@@ -4,7 +4,7 @@ import { canonicalJson } from "../deployments/execution/hash.ts";
 import { stableId } from "../domain/ids.ts";
 import { createStripeCheckoutSession, sha256Hex, verifyStripeWebhook, type StripeWebhookEvent } from "../payments/stripe.ts";
 import { SANDBOX_PURCHASE_ENVIRONMENT, SANDBOX_PURCHASE_ORIGIN, SANDBOX_PURCHASE_PRODUCT,
-  type SandboxPurchaseScope } from "./sandbox-first-purchase-config.ts";
+  sandboxCheckoutSessionIdFromUrl, type SandboxPurchaseScope } from "./sandbox-first-purchase-config.ts";
 
 export const SANDBOX_PURCHASE_SQL = {
   reserve: "SELECT sandbox_first_purchase.reserve(?, ?, ?, ?, ?, ?, ?, ?, ?) AS value",
@@ -32,7 +32,8 @@ export async function startSandboxFirstCheckout(input: {
       input.templateId, canonicalJson(input.configuration), input.amount, input.currency]);
   if (r?.orderId !== orderId) return null;
   if (!r.created) {
-    return r.checkoutUrl?.startsWith("https://checkout.stripe.com/c/pay/cs_test_")
+    // The database only returns an attached, unexpired checkout for this exact order.
+    return r.checkoutUrl && sandboxCheckoutSessionIdFromUrl(r.checkoutUrl)
       ? { purchaseOrderId: orderId, checkoutUrl: r.checkoutUrl, reused: true } : null;
   }
   const resultUrl = SANDBOX_PURCHASE_ORIGIN + "/dashboard/billing/payment-result";

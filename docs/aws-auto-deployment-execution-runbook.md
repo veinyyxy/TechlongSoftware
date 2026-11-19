@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，由用户亲自完成一次限定 Sandbox 测试购买。** [接续清单 `98b3c1d0…`](evidence/sandbox-first-purchase-dahlia-source-refresh.review.json)已按批准单次执行，[去敏回执](evidence/sandbox-first-purchase-dahlia-activation-verified.json)证明 Neon 安装已提交并独立回读、固定 Secret 和原 Access／Hosting 已更新，ECS revision 15 一任务健康，`/api/health` 与 `/register` 均 200。沿用原发布镜像、未重发或启用普通 worker。用户用原测试账号登录[套餐页](https://console.sandbox.techlong.cloud/dashboard/plans)，只对原工作区做一次 Stripe 测试购买；结果不明不重复提交。业务购买、回调登记和首开任务尚未验证；不代买、不启动真实首开或队列。原槽保留，不重跑。
+**当前唯一继续点：缺口 3 第 4 步，准备 Checkout 链接修正上线与原会话恢复。** [原平台技术验收](evidence/sandbox-first-purchase-dahlia-activation-verified.json)已通过；用户第一次测试的 Stripe 创建请求返回 200，但获批的一次原会话 GET 显示 Stripe 的 HTTPS、官方主机和末尾测试会话 ID 匹配，路由前缀不是代码写死的 `/c/pay/`，平台在关联前误拒。本轮仅离线同步修正创建、复用和 `attach` 校验：严格固定 `checkout.stripe.com`、无查询、路径最后一段为准确测试会话 ID，不接收 URL 归一化变体；隔离 PG18.3 复现旧拒绝、单函数替换保留所有者/授权及原预留订单只关联一次。实际 Neon／平台未改；下一步另审准确候选发布、仅替换 `attach` 和原仍有效的同一会话／订单核对及关联，不重装 DDL、创建第二个 Checkout 或代购。原用户测试暂停，先不重试或绕过平台付款；不启动普通 worker 或租户首开。
 
 [上一次已批准启用](aws-sandbox-first-purchase-activation-renewed-review.md) SHA `8b35a358…` 于 2026-11-18 16:28:26 CST（温尼伯）在首次写入前停于 `FIRST_PURCHASE_REVIEW_STRIPE_EXACT_ENDPOINT`。原平台与 Neon 只读核对、Stripe 两键同账户及测试模式通过。AWS 1 STS／28 项元数据／0 写入，Neon 1 条只读连接／14 条 SQL，未占发布槽或派发 GitHub run。启用尝试槽已消费，保留不复位、不重跑；去敏结果 SHA-256 `b6cb5a44db47c77f6605f422dba0df1a64564b0f0645f2e2f6459826262104e0`。
 

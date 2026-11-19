@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { sandboxCheckoutSessionIdFromUrl } from "../purchases/sandbox-first-purchase-config.ts";
 
 const STRIPE_API_BASE = "https://api.stripe.com/v1";
 const DEFAULT_SIGNATURE_TOLERANCE_SECONDS = 300;
@@ -128,9 +129,9 @@ export async function createStripeCheckoutSession(
   const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
   const id = typeof payload?.id === "string" ? payload.id : "";
   const url = typeof payload?.url === "string" ? payload.url : "";
-  if (!response.ok || !id || !isStripeCheckoutUrl(url) || (sandbox &&
-      (payload?.livemode !== false || !/^cs_test_[A-Za-z0-9]{1,200}$/.test(id) ||
-        url.split("#")[0] !== `https://checkout.stripe.com/c/pay/${id}`))) {
+  if (!response.ok || !id || (sandbox
+      ? payload?.livemode !== false || sandboxCheckoutSessionIdFromUrl(url) !== id
+      : !isStripeCheckoutUrl(url))) {
     throw new StripeGatewayError(
       "STRIPE_CHECKOUT_FAILED",
       "无法创建在线支付页面，请稍后重试。",

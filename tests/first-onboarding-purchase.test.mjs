@@ -5,11 +5,12 @@ import test from "node:test";
 import pg from "pg";
 import { assertRuntimeEnvironment, buildEnvironment } from "../ops/platform-hosting-v1/contract.mjs";
 import { checkIngress, ingressPolicy, PUBLIC_ORIGIN } from "../ops/platform-hosting-v1/ingress.mjs";
-import { SANDBOX_PURCHASE_WEBHOOK_ROLE, readSandboxPurchaseConfiguration } from "../lib/purchases/sandbox-first-purchase-config.ts";
+import { SANDBOX_PURCHASE_WEBHOOK_ROLE, readSandboxPurchaseConfiguration,
+  sandboxCheckoutSessionIdFromUrl } from "../lib/purchases/sandbox-first-purchase-config.ts";
 import { authenticateSharedStripeWebhook, finishSandboxFirstCheckout, finishVerifiedSandboxFirstCheckout,
   sandboxPurchaseOrderId, SANDBOX_PURCHASE_SQL, startSandboxFirstCheckout } from "../lib/purchases/sandbox-first-purchase.ts";
 import { randomId } from "../lib/domain/ids.ts";
-import { sandboxFirstPurchaseDdl } from "../ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts";
+import { sandboxFirstPurchaseAttachReplacement, sandboxFirstPurchaseDdl } from "../ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts";
 import { buildDeploymentClaimStatement } from "../lib/deployments/lease.ts";
 import { buildFirstOnboardingJob, FIRST_ONBOARDING_HOLD_AT, SELECT_FIRST_ONBOARDING } from "../lib/deployments/first-onboarding.ts";
 
@@ -21,7 +22,24 @@ const scope = {
 const web = "techlong_platform_web_acceptance_v1", webhook = SANDBOX_PURCHASE_WEBHOOK_ROLE;
 const testKey = "sk_test_synthetic_only", signingSecret = "whsec_synthetic_only";
 const orderId = await sandboxPurchaseOrderId(scope.workspaceId);
-const sessionId = "cs_test_SandboxOne", hostedUrl = "https://checkout.stripe.com/c/pay/" + sessionId + "#synthetic";
+const sessionId = "cs_test_SandboxOne";
+const legacyUrl = "https://checkout.stripe.com/c/pay/" + sessionId + "#synthetic";
+const hostedUrl = "https://checkout.stripe.com/sandbox/checkout/" + sessionId + "#fid%2Fsynthetic";
+const unsafeCheckoutUrls = [
+  hostedUrl.replace("https:", "http:"),
+  hostedUrl.replace("checkout.stripe.com", "checkout.stripe.com.evil.invalid"),
+  hostedUrl.replace("checkout.stripe.com", "other.stripe.com"),
+  hostedUrl.replace("checkout.stripe.com", "evil.invalid@checkout.stripe.com"),
+  hostedUrl.replace("checkout.stripe.com", "checkout.stripe.com:443"),
+  hostedUrl.replace("/sandbox/", "//sandbox/"),
+  hostedUrl.replace("/sandbox/", "/sandbox/../"),
+  hostedUrl.replace("/sandbox/", "/sandbox/%2f/"),
+  hostedUrl.replace("#", "?redirect=evil.invalid#"),
+  hostedUrl.replace(sessionId, "cs_live_SandboxOne"),
+  hostedUrl.replace("#", "/#"),
+  hostedUrl + "\n",
+  hostedUrl + "a".repeat(8192),
+];
 const actor = "usr_synthetic_owner", templateId = "tplver_restaurant_standard_v1";
 const purchase = { scope, workspaceId: scope.workspaceId, actor, customerEmail: "owner@example.invalid",
   planId: scope.planId, templateId, planName: "Synthetic", planDescription: "", configuration: { storeName: "Synthetic", theme: "classic" },
@@ -168,6 +186,42 @@ test("a live Checkout response is rejected after one reservation and no attachme
   assert.equal(stripe.mock.callCount(), 1);
 });
 
+test("Sandbox Stripe links are bound to the exact HTTPS authority and test ID, not a routing prefix", () => {
+  for (const url of [legacyUrl, hostedUrl, hostedUrl.split("#")[0]]) {
+    assert.equal(sandboxCheckoutSessionIdFromUrl(url), sessionId);
+  }
+  for (const url of unsafeCheckoutUrls) assert.equal(sandboxCheckoutSessionIdFromUrl(url), null);
+});
+
+test("the alternate Stripe path is attached once and reused without another provider request", async (t) => {
+  const stripe = mockStripe(t);
+  let attached;
+  const webPort = async (stmt, args) => {
+    if (stmt === SANDBOX_PURCHASE_SQL.reserve) return attached
+      ? { orderId, created: false, checkoutUrl: attached } : { orderId, created: true };
+    assert.equal(stmt, SANDBOX_PURCHASE_SQL.attach);
+    assert.deepEqual(args.slice(0, 4), [actor, orderId, sessionId, hostedUrl]);
+    assert.equal(attached, undefined);
+    attached = args[3];
+    return true;
+  };
+  const create = () => startSandboxFirstCheckout({ ...purchase, web: webPort });
+  assert.deepEqual(await create(), { purchaseOrderId: orderId, checkoutUrl: hostedUrl, reused: false });
+  assert.deepEqual(await create(), { purchaseOrderId: orderId, checkoutUrl: hostedUrl, reused: true });
+  attached = unsafeCheckoutUrls[1];
+  assert.equal(await create(), null);
+  assert.equal(stripe.mock.callCount(), 1);
+});
+
+test("an otherwise secure Stripe link for a different session is not attached", async (t) => {
+  const stripe = mockStripe(t, { url: hostedUrl.replace(sessionId, "cs_test_Other") });
+  await assert.rejects(startSandboxFirstCheckout({ ...purchase, web: async (stmt) => {
+    assert.equal(stmt, SANDBOX_PURCHASE_SQL.reserve);
+    return { orderId, created: true };
+  } }), { code: "STRIPE_CHECKOUT_FAILED" });
+  assert.equal(stripe.mock.callCount(), 1);
+});
+
 const testUrl = process.env.INSTANCE_RELEASE_TEST_DATABASE_URL;
 test("disposable PostgreSQL and simulated signed Stripe: one checkout, one atomic held job, no general Web writes", { skip: !testUrl, timeout: 25000 }, async (t) => {
   assert.equal(process.env.GITHUB_ACTIONS, "true");
@@ -224,13 +278,33 @@ test("disposable PostgreSQL and simulated signed Stripe: one checkout, one atomi
     await assert.rejects(shopper.query("SELECT sandbox_first_purchase.complete(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL)"), { code: "42501" });
     await assert.rejects(callback.query("UPDATE public.deployment_jobs SET status='running'"), { code: "42501" });
     await assert.rejects(callback.query("SELECT sandbox_first_purchase.read_order($1,$2)", [actor, orderId]), { code: "42501" });
+    const attachReplacement = sandboxFirstPurchaseAttachReplacement(scope);
+    const legacyAttach = attachReplacement.replace(/^    OR substring\(p_url FROM .+\) IS DISTINCT FROM p_session THEN RETURN false; END IF;$/m,
+      "    OR split_part(coalesce(p_url,''),'#',1) <> 'https://checkout.stripe.com/c/pay/' || p_session THEN RETURN false; END IF;");
+    assert.notEqual(legacyAttach, attachReplacement);
+    await db.query(legacyAttach);
     const stripe = mockStripe(t);
     const create = () => startSandboxFirstCheckout({ ...purchase, web: shopperPort });
-    assert.deepEqual(await create(), { purchaseOrderId: orderId, checkoutUrl: hostedUrl, reused: false });
+    const readOrder = () => shopperPort(SANDBOX_PURCHASE_SQL.read, [actor, orderId]);
+    await assert.rejects(create(), /Sandbox checkout was not attached/);
+    assert.equal((await readOrder()).status, "draft");
+    const routines = async () => (await db.query(`SELECT p.proname, p.oid::text AS oid, p.proowner::text AS owner,
+      p.proacl, p.prosecdef, p.proconfig, p.prosrc FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+      WHERE n.nspname='sandbox_first_purchase' ORDER BY p.proname`)).rows;
+    const beforePatch = await routines();
+    await db.query("BEGIN; SET LOCAL ROLE techlong_sandbox_first_purchase_definer;\n" + attachReplacement + "\nCOMMIT;");
+    const afterPatch = await routines();
+    const invariant = (rows) => rows.map((r) => r.proname === "attach" ? { ...r, prosrc: null } : r);
+    assert.deepEqual(invariant(afterPatch), invariant(beforePatch));
+    assert.notEqual(afterPatch.find((r) => r.proname === "attach").prosrc, beforePatch.find((r) => r.proname === "attach").prosrc);
+    const attach = (url) => shopperPort(SANDBOX_PURCHASE_SQL.attach,
+      [actor, orderId, sessionId, url, Date.now() + 3600000]);
+    for (const url of [...unsafeCheckoutUrls, hostedUrl.replace(sessionId, "cs_test_Other")]) assert.equal(await attach(url), false);
+    assert.equal(await attach(hostedUrl), true);
+    assert.equal(await attach(hostedUrl), false);
     assert.deepEqual(await create(), { purchaseOrderId: orderId, checkoutUrl: hostedUrl, reused: true });
     assert.equal(stripe.mock.callCount(), 1);
     const deliver = (e, port = webhookPort) => finishSandboxFirstCheckout({ scope, signingSecret, ...signed(e), webhook: port });
-    const readOrder = () => shopperPort(SANDBOX_PURCHASE_SQL.read, [actor, orderId]);
     assert.equal((await readOrder()).status, "checkout_pending");
     assert.equal(await deliver(event({ id: "cs_test_Other" })), "ignored");
     await assert.rejects(deliver(event({ amount_total: 1 })));

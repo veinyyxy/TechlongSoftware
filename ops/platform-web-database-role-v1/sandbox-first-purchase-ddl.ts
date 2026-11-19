@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { FIRST_ONBOARDING_HOLD_AT, FIRST_ONBOARDING_PREFIX, INSERT_FIRST_ONBOARDING } from "../../lib/deployments/first-onboarding.ts";
 import { SANDBOX_PURCHASE_ENVIRONMENT, SANDBOX_PURCHASE_PRODUCT, SANDBOX_PURCHASE_WEBHOOK_ROLE,
-  validSandboxPurchaseScope, type SandboxPurchaseScope } from "../../lib/purchases/sandbox-first-purchase-config.ts";
+  SANDBOX_CHECKOUT_URL_MAX_BYTES, SANDBOX_CHECKOUT_URL_PATTERN, validSandboxPurchaseScope,
+  type SandboxPurchaseScope } from "../../lib/purchases/sandbox-first-purchase-config.ts";
 
 const schema = "sandbox_first_purchase";
 const owner = "techlong_sandbox_first_purchase_definer";
@@ -120,8 +121,8 @@ DECLARE r public.subscription_purchase_orders; now_ms bigint;
 BEGIN
   IF NOT ${matchedOwner} OR p_order IS DISTINCT FROM '${order}'
     OR coalesce(p_session,'') !~ '^cs_test_[A-Za-z0-9]{1,200}$'
-    OR split_part(coalesce(p_url,''),'#',1) <> 'https://checkout.stripe.com/c/pay/' || p_session
-    OR octet_length(p_url)>8192 THEN RETURN false; END IF;
+    OR octet_length(p_url)>${SANDBOX_CHECKOUT_URL_MAX_BYTES}
+    OR substring(p_url FROM '${SANDBOX_CHECKOUT_URL_PATTERN}') IS DISTINCT FROM p_session THEN RETURN false; END IF;
   SELECT * INTO r FROM public.subscription_purchase_orders WHERE id='${order}' FOR UPDATE;
   now_ms := floor(extract(epoch FROM clock_timestamp()) * 1000)::bigint;
   IF NOT FOUND OR NOT (${unchangedScope}) OR r.created_by_user_id<>p_actor OR r.status<>'draft'
@@ -225,6 +226,14 @@ BEGIN
   RETURN 'accepted';
 END;`)];
   return { guard, tableGrants, functions };
+}
+
+// Offline candidate for an already-installed database. Do not replay role or schema setup.
+export function sandboxFirstPurchaseAttachReplacement(s: SandboxPurchaseScope): string {
+  const prefix = `CREATE FUNCTION ${schema}.attach(`;
+  const attach = ddlParts(s).functions.find((sql) => sql.startsWith(prefix));
+  if (!attach) throw Error("Sandbox checkout attachment definition missing");
+  return attach.replace(/^CREATE FUNCTION /, "CREATE OR REPLACE FUNCTION ");
 }
 
 function functionAcl(sig: string, role: string) {

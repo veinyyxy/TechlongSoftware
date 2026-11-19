@@ -3,6 +3,19 @@ export const SANDBOX_PURCHASE_PRODUCT = "prd_restaurant_order_system";
 export const SANDBOX_PURCHASE_ENVIRONMENT = "env_aws_sandbox_ca_central_1";
 export const SANDBOX_PURCHASE_WEBHOOK_ROLE = "techlong_sandbox_first_purchase_webhook";
 
+// Stripe owns the routing prefix. Bind the exact HTTPS authority and the final
+// test-session segment, reject query or URL normalization, and keep the fragment opaque.
+export const SANDBOX_CHECKOUT_URL_MAX_BYTES = 8192;
+export const SANDBOX_CHECKOUT_URL_PATTERN =
+  "^https://checkout[.]stripe[.]com/(?:[A-Za-z0-9_-]+/)*(cs_test_[A-Za-z0-9]{1,200})(?:#[!-~]*)?$";
+const sandboxCheckoutUrl = new RegExp(SANDBOX_CHECKOUT_URL_PATTERN);
+export function sandboxCheckoutSessionIdFromUrl(value: unknown): string | null {
+  // All admitted characters are ASCII, so the length limit also bounds UTF-8 bytes.
+  if (typeof value !== "string" || value.length > SANDBOX_CHECKOUT_URL_MAX_BYTES) return null;
+  const match = sandboxCheckoutUrl.exec(value);
+  return match && match[0] === value ? match[1] : null;
+}
+
 export const SANDBOX_PURCHASE_BINDINGS = [
   "TECHLONG_SANDBOX_FIRST_PURCHASE",
   "AWS_SANDBOX_FIRST_ONBOARDING_WORKSPACE_ID",
