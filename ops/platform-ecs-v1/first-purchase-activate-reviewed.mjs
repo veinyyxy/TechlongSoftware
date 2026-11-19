@@ -19,7 +19,11 @@ import { validSandboxPurchaseScope } from '../../lib/purchases/sandbox-first-pur
 const reviewPath='docs/evidence/sandbox-first-purchase-dahlia-size-fix-activation.review.json';
 const riskDoc='docs/aws-sandbox-first-purchase-dahlia-size-fix-activation-review.md';
 const ciPath='docs/evidence/sandbox-first-purchase-dahlia-size-fix-publisher.observed.json';
-const approvalDocChanges=[reviewPath,'docs/aws-auto-deployment-execution-runbook.md','docs/aws-auto-deployment-mainline.md',
+const continuationPath='docs/evidence/sandbox-first-purchase-dahlia-continuation.review.json';
+const continuationRisk='docs/aws-sandbox-first-purchase-dahlia-continuation-review.md';
+const continuationReceipt='docs/evidence/sandbox-first-purchase-dahlia-size-fix-activation-stopped.json';
+const continuationReceiptSha='d57d6b13f303b3b78fabbfb4898d8ee5342b91b96b7f083c5b09dc66ce3fbcc4';
+const approvalDocChanges=[reviewPath,continuationPath,'docs/aws-auto-deployment-execution-runbook.md','docs/aws-auto-deployment-mainline.md',
   'docs/aws-sandbox-first-purchase-activation-preparation.md'];
 const checkoutScopeHash='7359ccf32c3bebd4c4b754caac4cdfbdd471a8202c9206f67a298a8f020ca0fc';
 const code=(ok,g)=>{if(!ok)throw Error('FIRST_PURCHASE_REVIEW_'+g);};
@@ -27,6 +31,7 @@ const local=path.join(ROOT,'.local-secrets');
 const privateName='sandbox-first-purchase-stripe-test.json', signingName='sandbox-first-purchase-stripe-webhook-test.json';
 const prefix='techlong-platform-recovery-image-v1';
 const slot=path.join(local,'sandbox-first-purchase-dahlia-14480476839-size-fix.intent.json');
+const continuationSlot=path.join(local,'sandbox-first-purchase-dahlia-14480476839-remaining.intent.json');
 const previous=Object.freeze({
   approvedSha256:'8b35a3584a5b71e3eb74d7950e66a403cfe2ce3806db434febc04edee0abf25d',
   resultPath:'techlong-platform-recovery-image-v1-74c452f0d964045a2928105f22d2a34b/activation-result.json',
@@ -44,6 +49,7 @@ const stoppedDahlia=Object.freeze({
   runId:44421699935,
 });
 const total=95*60000, approvalWindow=24*3600000, preflightMax=10*60000;
+const continuationTotal=60*60000, platformContinuationMetadata=200, publisherReadMetadata=17;
 export const dahliaEndpoint=Object.freeze({
   url:draft.runtimeMaterial.stripeEndpoint,
   apiVersion:'2026-05-27.dahlia',
@@ -105,9 +111,48 @@ export function validateFirstPurchaseReview(text,approvedSha,now=Date.now(),ciEv
   return m;
 }
 
-export async function runFirstPurchaseStages(ports){
+function readContinuationFacts(){
+  const read=p=>normalize(readFileSync(path.join(ROOT,p),'utf8'));
+  const raw=read(continuationReceipt),outer=read(reviewPath);
+  code(hash(raw)===continuationReceiptSha,'CONTINUATION_EVIDENCE');
+  const stopped=JSON.parse(raw),old=JSON.parse(outer),p=stopped.publisher;
+  code(hash(outer)===stopped.approvalSha256&&p.runConclusion==='success'&&p.runAttempt===1&&p.dispatchCount===1&&
+    p.artifactId===candidate.artifactId&&p.revokedRoleReadBackLocked===true&&p.revokeAcknowledged===true&&
+    p.independentPublicationProofRecorded===false&&stopped.preflight.verified===true&&
+    !stopped.neonInstallExecuted&&!stopped.newSecretWritten&&!stopped.platformUpdated&&!stopped.retryAllowed,'CONTINUATION_PREDECESSOR');
+  return {old,stopped};
+}
+
+export function makeContinuationReview({implementationCommit,nonce,issuedAt,riskSha256}){
+  const {old,stopped}=readContinuationFacts(),issued=Date.parse(issuedAt);
+  const start=Math.min(issued+approvalWindow,Date.parse(old.latestStartUtc),Date.parse(old.hardStopUtc)-continuationTotal);
+  code(/^[a-f0-9]{40}$/.test(implementationCommit??'')&&/^[a-f0-9]{32}$/.test(nonce??'')&&nonce!==old.nonce&&
+    /^[a-f0-9]{64}$/.test(riskSha256??'')&&issued>=Date.parse(stopped.completedAtUtc)&&issued<start,'CONTINUATION_WINDOW');
+  return {schema:'techlong/sandbox-first-purchase-post-publication/v1',implementationCommit,nonce,issuedAt,riskSha256,
+    latestStartUtc:new Date(start).toISOString(),hardStopUtc:old.hardStopUtc,totalMinutesMax:60,
+    preflight:{...old.preflight,firstWriteRequiresIndependentEcrAndLockedProof:true},
+    predecessor:{approvalSha256:stopped.approvalSha256,receiptSha256:continuationReceiptSha,runId:stopped.publisher.runId,
+      dispatchCommit:stopped.publisher.head,preserveBothUsedSlots:true},
+    sourceCi:old.sourceCi,target:old.target,candidate:old.candidate,stripe:old.stripe,
+    limits:{sourceSts:5,awsMetadata:platformContinuationMetadata+publisherReadMetadata,githubApiGets:0,githubCredentialLoads:0,
+      artifactDownloads:0,stripePrivateFiles:2,stripeAuthenticatedGets:5,configReads:1,neonTlsConnections:3,
+      neonSqlSubmissions:76,anonymousTechnicalGets:2},
+    writes:{...old.writes,publisherGrantUpdates:0,publisherRevokeUpdates:0,protectedDispatch:0,topLevelEcrPush:0},
+    safety:'Verify existing immutable ECR manifest and Locked, then finish original narrow installation and access/hosting update only. No publishing, retries, cleanup, test checkout, or worker enablement.'};
+}
+
+export function validateContinuationReview(text,approvedSha,now=Date.now()){
+  code(/^[a-f0-9]{64}$/.test(approvedSha??'')&&hash(normalize(text))===approvedSha,'APPROVAL_SHA');
+  const m=JSON.parse(text);
+  code(m?.schema==='techlong/sandbox-first-purchase-post-publication/v1','CONTINUATION_FORMAT');
+  code(same(m,makeContinuationReview(m))&&Date.parse(m.issuedAt)<=now&&now<Date.parse(m.latestStartUtc)&&
+    now+continuationTotal<=Date.parse(m.hardStopUtc),'CONTINUATION_EXPIRED_OR_CHANGED');
+  return m;
+}
+
+export async function runFirstPurchaseStages(ports,{continuation=false}={}){
   await ports.preflight();
-  const publisher=await ports.publish();
+  const publisher=await (continuation?ports.inspectPublished():ports.publish());
   code(publisher?.locked===true,'PUBLISHER_LOCK_NOT_PROVED');
   const webhookDatabaseUrl=await ports.install();
   const secret=await ports.store(webhookDatabaseUrl);
@@ -186,6 +231,39 @@ async function verifyStoppedDahlia(){
     JSON.parse(priorPublish.innerReview).candidate.artifactId===candidate.artifactId&&
     final.approvedSha===s.approvalSha256&&final.stage==='publish-and-lock'&&final.outcome==='STOPPED_REQUIRES_INSPECTION'&&
     final.retry===false,'DAHLIA_PRIOR_ATTEMPT_NOT_PROVED');
+}
+async function verifyContinuationJournal(){
+  const {old,stopped}=readContinuationFacts(),p=stopped.publisher,oldSha=stopped.approvalSha256;
+  const journal=path.join(EVIDENCE,prefix+'-'+old.nonce);
+  const priorSlot=await privateJson(slot);
+  const pubSlot=await privateJson(path.join(EVIDENCE,pub.S.intentFile));
+  const prev=await privateJson(path.join(journal,'activation-publish-result.json'),p.resultSha256);
+  const run=await privateJson(path.join(journal,'activation-publish-run-completed.json'),p.runCompletedSha256);
+  const final=await privateJson(path.join(journal,'activation-result.json'),stopped.finalResultSha256);
+  const inner=firstPurchaseProtocol.validateReview(pubSlot.innerReview,pubSlot.innerSha256,Date.parse(pubSlot.startedAtUtc));
+  code(priorSlot.approvedSha===oldSha&&priorSlot.retry===false&&pubSlot.retryAllowed===false&&
+    pubSlot.nonce===old.nonce&&inner.nonce===old.nonce&&pubSlot.head===p.head&&inner.dispatchCommit===p.head&&
+    inner.reusableCommit===dahliaSealedSizeFix.reusableCommit&&
+    [prev,run,final].every(j=>j.approvedSha===oldSha)&&prev.innerSha256===pubSlot.innerSha256&&
+    prev.locked===true&&prev.runId===p.runId&&prev.published===null&&
+    same(prev.errors,[{stage:'publication_inspect',code:'PLATFORM_PUBLISH_V2_SOURCE_STS_BUDGET'}])&&
+    run.id===p.runId&&run.head_sha===p.head&&run.run_attempt===1&&run.status==='completed'&&run.conclusion==='success'&&
+    final.stage==='publish-and-lock'&&final.outcome==='STOPPED_REQUIRES_INSPECTION'&&final.aws?.writes===0&&final.retry===false,
+    'CONTINUATION_JOURNAL_CHANGED');
+  return inner;
+}
+
+async function verifyExistingPublication(m,inner,record){
+  const aws=await createAws({protocol:firstPurchaseProtocol,request:pub.updateRequest,sourceLogin:true,
+    readOnly:true,metadataLimit:publisherReadMetadata,stsLimit:2});
+  try{
+    const view=await aws.snapshot(), proof=await aws.published();
+    code(verifySnapshot(view,firstPurchaseProtocol.templates(inner).revoke).locked,'CONTINUATION_PUBLISHER_NOT_LOCKED');
+    firstPurchaseProtocol.verifyFinalInventory(view.images,proof.verified.manifestDigest);
+    const result={locked:true,artifactId:candidate.artifactId,sourceRecipeSha256:candidate.sourceRecipeSha256,
+      sourceTreeOid:candidate.sourceTreeOid,...proof.verified,runId:m.predecessor.runId};
+    await record('existing-publication-independently-verified',result);return result;
+  }finally{aws.close();}
 }
 export function verifyDahliaStripeEndpoint(rows,endpointId){
   code(rows.object==='list'&&rows.has_more===false&&Array.isArray(rows.data),'STRIPE_ENDPOINT_LIST');
@@ -304,22 +382,30 @@ async function publish(m,until,preflightBy,heads,notify,record){
   }finally{a.close();g.close();}
 }
 
-async function execute(approvedSha,notify){
-  const text=await readText(path.join(ROOT,reviewPath)),m=validateFirstPurchaseReview(text,approvedSha);
+async function execute(approvedSha,notify,continuation=false){
+  const text=await readText(path.join(ROOT,continuation?continuationPath:reviewPath));
+  const m=(continuation?validateContinuationReview:validateFirstPurchaseReview)(text,approvedSha);
   const heads=()=>sourceGuard(m);
-  heads();code(hash(normalize(await readText(path.join(ROOT,riskDoc))))===m.riskSha256,'RISK_CHANGED');
+  heads();code(hash(normalize(await readText(path.join(ROOT,continuation?continuationRisk:riskDoc))))===m.riskSha256,'RISK_CHANGED');
   const tf=path.join(local,privateName),sf=path.join(local,signingName),config=path.join(ROOT,'.env.local');
-  await verifyPriorNoRemoteWrite();
-  await verifyStoppedDahlia();
-  await absent(slot);await absent(path.join(EVIDENCE,pub.S.intentFile));
+  const activeSlot=continuation?continuationSlot:slot;
+  await absent(activeSlot);
+  let oldInner;
+  if(continuation)oldInner=await verifyContinuationJournal();
+  else{
+    await verifyPriorNoRemoteWrite();
+    await verifyStoppedDahlia();
+    await absent(path.join(EVIDENCE,pub.S.intentFile));
+  }
   for(const f of [tf,sf,config]){excluded(f);await noLinks(f);}
   privateAcl(local,tf,sf);
-  const start=Date.now(),until=Math.min(Date.parse(m.hardStopUtc),start+total);
-  code(start<Date.parse(m.latestStartUtc)&&until-start===total,'REVIEW_START_MISSED');
+  const duration=continuation?continuationTotal:total;
+  const start=Date.now(),until=Math.min(Date.parse(m.hardStopUtc),start+duration);
+  code(start<Date.parse(m.latestStartUtc)&&until-start===duration,'REVIEW_START_MISSED');
   const preflightBy=start+preflightMax;
   const dir=await directory(prefix+'-'+m.nonce,{prefix});
   const record=(label,v)=>writeOnce(path.join(dir,'activation-'+label+'.json'),{utc:new Date().toISOString(),approvedSha,...v});
-  await writeOnce(slot,{approvedSha,startedAt:new Date(start).toISOString(),endsAt:new Date(until).toISOString(),retry:false});
+  await writeOnce(activeSlot,{approvedSha,startedAt:new Date(start).toISOString(),endsAt:new Date(until).toISOString(),retry:false});
   let stage='preflight',aws,db,stripe;
   const step=(name,work)=>(...args)=>{code(Date.now()<until,'RUN_EXPIRED');stage=name;notify({stage});return work(...args);};
   try{
@@ -334,7 +420,8 @@ async function execute(approvedSha,notify){
       awsFacts.outcome==='AWS_READ_ONLY_VERIFIED'&&same(projection.findings,['STANDARD_PLAN_NOT_UNIQUE_OR_INVALID']),'ORIGINAL_FACTS');
     const tc=await privateJson(tf),sc=await privateJson(sf);
     db=firstPurchaseDatabase({rawConfig:await readText(config,65536),historical:historic,projection:projection.checks,binding,deadline:until,record});
-    aws=firstPurchaseAws({deadline:until,nonce:m.nonce,versionId:randomUUID(),prior:awsFacts.checks,record});
+    aws=firstPurchaseAws({deadline:until,nonce:m.nonce,versionId:randomUUID(),prior:awsFacts.checks,record,
+      ...(continuation?{metadataLimit:platformContinuationMetadata}:{})});
     await runFirstPurchaseStages({
       preflight:step('necessary-preflight',async()=>{const observedFrom=new Date().toISOString();
         await aws.preflight();await db.preflight();stripe=await stripeGate(tc,sc,preflightBy);
@@ -342,13 +429,14 @@ async function execute(approvedSha,notify){
         tc.runtimeKey=undefined;tc.inspectionKey=undefined;sc.signingSecret=undefined;
         await record('preflight-verified',{observedFrom,observedThrough:new Date().toISOString(),
           accountAndEndpointMatch:true,platformAndBusinessBaselineMatch:true});}),
+      inspectPublished:step('verify-existing-publication',()=>verifyExistingPublication(m,oldInner,record)),
       publish:step('publish-and-lock',()=>publish(m,until,preflightBy,heads,notify,record)),
-      install:step('install-neon',()=>db.install()),
+      install:step('install-neon',()=>{if(continuation){heads();code(Date.now()<preflightBy,'PREFLIGHT_EXPIRED');}return db.install();}),
       store:step('store-runtime-secret',async webhookDatabaseUrl=>{try{return await aws.store({...stripe,webhookDatabaseUrl});}finally{stripe=undefined;}}),
       templates:(publisher,secret)=>buildFirstPurchaseActivationTemplates({...binding,publisher,secret}),
       update:(which,t)=>step('update-'+which,()=>aws.update(which,t))(),
       inspect:step('independent-technology-inspect',t=>aws.inspect(t)),
-    });
+    },{continuation});
     await record('result',{outcome:'SANDBOX_FIRST_PURCHASE_ENABLED_TECHNICALLY_VERIFIED',aws:aws.counts,db:db.limits,businessTest:false,retry:false});
     return {outcome:'SANDBOX_FIRST_PURCHASE_ENABLED_TECHNICALLY_VERIFIED',evidenceDirectory:dir,businessTest:false};
   }catch(e){
@@ -359,6 +447,15 @@ async function execute(approvedSha,notify){
 }
 
 async function cli([mode,value,...extra]){
+  if(mode==='PrepareContinuationOffline'&&!value&&!extra.length){
+    const implementationCommit=git(['rev-parse','HEAD']).trim();
+    await absent(continuationSlot);await absent(path.join(ROOT,continuationPath));
+    const riskSha256=hash(normalize(await readText(path.join(ROOT,continuationRisk))));
+    const m=makeContinuationReview({implementationCommit,nonce:randomBytes(16).toString('hex'),issuedAt:new Date().toISOString(),riskSha256});
+    sourceGuard(m);
+    await writeOnce(path.join(ROOT,continuationPath),m);
+    return {mode,approvalSha256:hash(normalize(await readText(path.join(ROOT,continuationPath)))),latestStartUtc:m.latestStartUtc,executed:false};
+  }
   if(mode==='PrepareOffline'&&!value&&!extra.length){
     const implementationCommit=git(['rev-parse','HEAD']).trim();
     code(git(['status','--porcelain']).trim()===''&&git(['branch','--show-current']).trim()==='main','PREPARE_CLEAN_MAIN');
@@ -372,8 +469,8 @@ async function cli([mode,value,...extra]){
     const approvedSha=hash(normalize(await readText(path.join(ROOT,reviewPath))));
     return {mode,approvalSha256:approvedSha,latestStartUtc:m.latestStartUtc,executed:false};
   }
-  code(mode==='RunReviewed'&&value&&!extra.length,'ARGUMENTS');
-  return execute(value,msg=>console.log(JSON.stringify(msg)));
+  code(['RunReviewed','ContinueReviewed'].includes(mode)&&value&&!extra.length,'ARGUMENTS');
+  return execute(value,msg=>console.log(JSON.stringify(msg)),mode==='ContinueReviewed');
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){
   cli(process.argv.slice(2)).then(r=>{console.log(JSON.stringify(r));if(r.outcome==='STOPPED_REQUIRES_INSPECTION')process.exitCode=1;})

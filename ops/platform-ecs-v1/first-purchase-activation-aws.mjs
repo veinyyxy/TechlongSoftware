@@ -27,7 +27,7 @@ const changeKind={
   TaskDefinition:['True','ContainerDefinitions'],Service:['False','TaskDefinition'],
 };
 
-export function firstPurchaseAws({deadline,nonce,versionId,prior,record}){
+export function firstPurchaseAws({deadline,nonce,versionId,prior,record,metadataLimit=185}){
   const old=firstPurchaseOriginalTemplates(),counts={metadata:0,sts:0,writes:0,https:0};
   const names={access:scope.expectedAccessStackId,hosting:scope.expectedHostingStackId},attempts=new Set();
   function session(){
@@ -42,7 +42,7 @@ export function firstPurchaseAws({deadline,nonce,versionId,prior,record}){
         check(!attempts.has(label)&&++counts.writes<=7,'WRITE_LIMIT');attempts.add(label);
         await record(label+'-intent',{operation}); // no request body, credentials or SQL in the journal
       }else if(k==='sts')check(++counts.sts<=3,'STS_LIMIT');
-      else check(++counts.metadata<=185,'METADATA_LIMIT');
+      else check(++counts.metadata<=metadataLimit,'METADATA_LIMIT');
       return sdk[k].send(new libs[k][operation+'Command'](input),{abortSignal:AbortSignal.timeout(20000)});
     }
     return {send,source:async()=>identity(await send('sts','GetCallerIdentity',{})),close:()=>Object.values(sdk).forEach(x=>x.destroy())};
@@ -135,7 +135,7 @@ export function firstPurchaseAws({deadline,nonce,versionId,prior,record}){
     catch(e){if(e.name==='ResourceNotFoundException')return;throw e;}check(false,'SECRET_NAME_IN_USE');
   }
   function keyMetadata(operation,args=[]){
-    check(++counts.metadata<=185&&Date.now()+20000<deadline,'KMS_WINDOW');
+    check(++counts.metadata<=metadataLimit&&Date.now()+20000<deadline,'KMS_WINDOW');
     return JSON.parse(execFileSync('aws.exe',['kms',operation,'--key-id',P.kmsArn,...args,'--profile',P.profile,'--region',P.region,
       '--endpoint-url','https://kms.ca-central-1.amazonaws.com','--output','json','--no-cli-pager'],{encoding:'utf8',windowsHide:true,
       timeout:20000,stdio:['ignore','pipe','ignore'],env:{...process.env,AWS_MAX_ATTEMPTS:'1',AWS_PAGER:''}}));

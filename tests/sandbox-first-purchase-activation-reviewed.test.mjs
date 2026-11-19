@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { dahliaEndpoint, makeFirstPurchaseReview, validateFirstPurchaseReview, verifyDahliaStripeEndpoint,
-  runFirstPurchaseStages } from '../ops/platform-ecs-v1/first-purchase-activate-reviewed.mjs';
+  makeContinuationReview, validateContinuationReview, runFirstPurchaseStages } from '../ops/platform-ecs-v1/first-purchase-activate-reviewed.mjs';
 import { buildFirstPurchaseActivationTemplates, draft } from '../ops/platform-ecs-v1/first-purchase-activation.mjs';
 import { DAHLIA_FIRST_PURCHASE_CANDIDATE as candidate, FIRST_PURCHASE_CANDIDATE as oldCandidate } from '../ops/platform-registration-publish-v1/contract.mjs';
 import { dahliaSealedSizeFix } from '../ops/platform-registration-publish-v1/source.mjs';
@@ -58,6 +58,46 @@ test('one sequence: no downstream writes if fresh preflight or publisher lock pr
   calls.length=0;await runFirstPurchaseStages(ports);
   assert.deepEqual(calls.map(c=>c[0]),['preflight','publish','install','store','templates','update','update','inspect']);
   assert.deepEqual(calls.slice(5,7),[['update','access','a'],['update','hosting','h']]);
+});
+
+test('continuation binds the successful run and cannot expand publishing or original time',()=>{
+  const read=name=>readFileSync(new URL(`../docs/evidence/${name}.json`,import.meta.url),'utf8').replaceAll('\r\n','\n');
+  const prior=read('sandbox-first-purchase-dahlia-size-fix-activation.review');
+  const original=JSON.parse(prior),now=Date.parse('2026-11-19T00:30:00Z');
+  const approval={implementationCommit:'a'.repeat(40),nonce:'b'.repeat(32),riskSha256:'c'.repeat(64),issuedAt:new Date(now).toISOString()};
+  const make=()=>makeContinuationReview(approval);
+  const hash=s=>createHash('sha256').update(s).digest('hex'),m=make(),text=JSON.stringify(m);
+  assert.equal(validateContinuationReview(text,hash(text),now).predecessor.runId,44425786946);
+  assert.equal(m.predecessor.approvalSha256,hash(prior));
+  assert.equal(m.predecessor.preserveBothUsedSlots,true);
+  assert.deepEqual(m.candidate,original.candidate);
+  assert.deepEqual(m.target,original.target);
+  assert.deepEqual(m.stripe,original.stripe);
+  assert.equal(m.hardStopUtc,original.hardStopUtc);
+  assert.equal(m.limits.githubApiGets,0);
+  assert.equal(m.limits.artifactDownloads,0);
+  assert.equal(m.limits.sourceSts,5);
+  assert.equal(m.limits.awsMetadata,217);
+  for(const operation of ['publisherGrantUpdates','publisherRevokeUpdates','protectedDispatch','topLevelEcrPush'])
+    assert.equal(m.writes[operation],0);
+  assert.throws(()=>validateContinuationReview(prior,hash(prior),now),/CONTINUATION_FORMAT/);
+  assert.throws(()=>makeContinuationReview({...approval,nonce:original.nonce}),/CONTINUATION_WINDOW/);
+  assert.throws(()=>validateContinuationReview(text,hash(text),Date.parse(m.latestStartUtc)),/EXPIRED/);
+  const widened=JSON.stringify({...m,writes:{...m.writes,protectedDispatch:1}});
+  assert.throws(()=>validateContinuationReview(widened,hash(widened),now),/CHANGED/);
+});
+
+test('continuation never calls the publication port and does not install if its independent read fails',async()=>{
+  const calls=[];
+  const port=(label,v)=>(...args)=>{calls.push([label,...args]);return v;};
+  const ports={preflight:port('preflight'),publish:()=>{throw Error('MUST_NOT_PUBLISH');},inspectPublished:port('read-ecr-and-lock',{locked:true}),
+    install:port('install','dsn'),store:port('store',{arn:'stub'}),templates:port('templates',{access:'a',hosting:'h'}),
+    update:port('update'),inspect:port('inspect')};
+  await assert.rejects(runFirstPurchaseStages({...ports,inspectPublished:()=>{throw Error('TAG_NOT_PROVED');}},{continuation:true}),/TAG_NOT_PROVED/);
+  assert.deepEqual(calls,[['preflight']]);
+  calls.length=0;
+  await runFirstPurchaseStages(ports,{continuation:true});
+  assert.deepEqual(calls.map(c=>c[0]),['preflight','read-ecr-and-lock','install','store','templates','update','update','inspect']);
 });
 
 test('Hosting pins the new version and retains the old Web connection and closed worker',()=>{
