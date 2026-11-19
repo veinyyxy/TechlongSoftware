@@ -8,6 +8,8 @@
 
 **当前唯一继续点：缺口 3 第 4 步，准备 Checkout 链接修正上线与原会话恢复。** [原平台技术验收](evidence/sandbox-first-purchase-dahlia-activation-verified.json)已通过；用户第一次测试的 Stripe 创建请求返回 200，但获批的一次原会话 GET 显示 Stripe 的 HTTPS、官方主机和末尾测试会话 ID 匹配，路由前缀不是代码写死的 `/c/pay/`，平台在关联前误拒。本轮仅离线同步修正创建、复用和 `attach` 校验：严格固定 `checkout.stripe.com`、无查询、路径最后一段为准确测试会话 ID，不接收 URL 归一化变体；隔离 PG18.3 复现旧拒绝、单函数替换保留所有者/授权及原预留订单只关联一次。实际 Neon／平台未改；下一步另审准确候选发布、仅替换 `attach` 和原仍有效的同一会话／订单核对及关联，不重装 DDL、创建第二个 Checkout 或代购。原用户测试暂停，先不重试或绕过平台付款；不启动普通 worker 或租户首开。
 
+**修正验证：** `5b89c18` 的[支付及 PostgreSQL 回归](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551298)全过。[通用托管候选 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551331)在构建前停于既有 81 文件部署执行闭包摘要断言；修正前后的 81 个绑定文件及其规范 SHA 均逐项一致，本修正未触及闭包或放宽门禁。该 run 没有生成发布候选，不能作为部署凭据。
+
 [上一次已批准启用](aws-sandbox-first-purchase-activation-renewed-review.md) SHA `8b35a358…` 于 2026-11-18 16:28:26 CST（温尼伯）在首次写入前停于 `FIRST_PURCHASE_REVIEW_STRIPE_EXACT_ENDPOINT`。原平台与 Neon 只读核对、Stripe 两键同账户及测试模式通过。AWS 1 STS／28 项元数据／0 写入，Neon 1 条只读连接／14 条 SQL，未占发布槽或派发 GitHub run。启用尝试槽已消费，保留不复位、不重跑；去敏结果 SHA-256 `b6cb5a44db47c77f6605f422dba0df1a64564b0f0645f2e2f6459826262104e0`。
 
 **测试分工：** 工程侧先交付功能，只做必要的代码回归及部署技术核验。用户亲自做界面、测试购买和其他业务验收；不代测、不重复跑用户已验收的场景、不为细节拆出额外阶段。影响是否可安全部署的账户/目标/版本和健康核对保留，合并进一次准确审批。
