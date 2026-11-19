@@ -15,9 +15,11 @@ const PLAN_CONFIG_PATH = 'lib/purchases/sandbox-first-purchase-config.ts';
 const PRE_DAHLIA_RECIPE = 'b344a2e3f1c36ceeebca47b8d184f9e20fce8fa0c8d66e44ddcfb62454e17315';
 export const FIRST_PURCHASE = 'cdfa2e16aa6660698a2bce8b8a6a73b67616c1bc7d2955fc43291764abe9ed1d';
 export const CHECKOUT_REPAIR = 'b2faf785466efcef7aa4434b82c3a22b8537550c829525a3885b04105e3eaaff';
+export const BILLING_REPAIR = '1f01d6a8736504dad9c1351b1f8c6c6c142c2459ee158e17fb011e81d8a35f9c';
 const REGISTRATION_TREE = '131fc5f0fd491e642916723ea0206cd0b03f413f';
 export const FIRST_PURCHASE_TREE = '5a818a48940e21b2d907d6b8a64ac902ff709299';
 export const CHECKOUT_REPAIR_TREE = '88749946405674d03892e241bbfc6f6153caa88c';
+export const BILLING_REPAIR_TREE = '8ff7f4974fe1212b101aba308809cd226cf7a373';
 const ARCHIVE_FILE = 'image.tar.gz';
 const SHA = /^[a-f0-9]{64}$/;
 const OID = /^[a-f0-9]{40}$/;
@@ -26,7 +28,7 @@ const fixedFiles = ['lib/auth/credentials.ts', 'lib/auth/sandbox-registration.ts
 const dahliaFiles = ['app/api/stripe/webhook/route.ts','lib/payments/stripe.ts',
   'lib/purchases/sandbox-first-purchase-runtime.ts','lib/purchases/sandbox-first-purchase.ts'];
 const checkoutFiles = ['lib/payments/stripe.ts',PLAN_CONFIG_PATH,'lib/purchases/sandbox-first-purchase.ts'];
-const isFirstPurchase = review => review===FIRST_PURCHASE || review===CHECKOUT_REPAIR;
+const isFirstPurchase = review => [FIRST_PURCHASE,CHECKOUT_REPAIR,BILLING_REPAIR].includes(review);
 const canon = x => Array.isArray(x) ? x.map(canon) : x && typeof x === 'object' ?
   Object.fromEntries(Object.keys(x).sort().map(k => [k, canon(x[k])])) : x;
 const hash = b => createHash('sha256').update(b).digest('hex');
@@ -80,7 +82,22 @@ async function reviewedProfile(review) {
   assert.ok([...changes.values()].every(f=>recipe.overlay.some(row=>row.path===f.path&&row.blob!==f.blob)));
   const next={...recipe,overlay:recipe.overlay.map(row=>changes.get(row.path)??row)};
   assert.equal(hash(JSON.stringify(next)), CHECKOUT_REPAIR, 'reviewed checkout repair source recipe');
-  return {recipe:next,schema,treeOid:CHECKOUT_REPAIR_TREE};
+  if(review===CHECKOUT_REPAIR)return {recipe:next,schema,treeOid:CHECKOUT_REPAIR_TREE};
+  const billingText=(await readFile(path.join(root,'docs/evidence/sandbox-first-purchase-billing-rollout.review.json'),'utf8')).replace(/\r\n/g,'\n');
+  assert.equal(hash(billingText),'7112a253eddda954c25c5b94f92b259b8895484a07ae127e4531d0d7d746334c','billing approval bytes');
+  const billing=JSON.parse(billingText).source;
+  assert.equal(billing.previousRecipeSha256,CHECKOUT_REPAIR);
+  assert.equal(billing.previousTree,CHECKOUT_REPAIR_TREE);
+  assert.equal(billing.recipeSha256,BILLING_REPAIR);
+  assert.equal(billing.tree,BILLING_REPAIR_TREE);
+  const [page,runtime]=billing.replacements;
+  assert.deepEqual(billing.replacements.map(f=>f.path),['app/dashboard/billing/page.tsx','lib/purchases/sandbox-first-purchase-runtime.ts']);
+  assert.ok(billing.replacements.every(f=>f.source===billing.commit));
+  assert.ok(!next.overlay.some(f=>f.path===page.path)&&next.overlay.some(f=>f.path===runtime.path&&f.blob!==runtime.blob));
+  const final={...next,overlay:[...next.overlay.map(f=>f.path===runtime.path?runtime:f),page]};
+  assert.equal(final.overlay.length,20);
+  assert.equal(hash(JSON.stringify(final)),BILLING_REPAIR);
+  return {recipe:final,schema,treeOid:BILLING_REPAIR_TREE};
 }
 
 const git = (args, env=process.env) => execFileSync('git', ['-C',root,...args], {
