@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，仅等 ACL 修正后剩余启用的审批。** [原停止回执](evidence/sandbox-first-purchase-dahlia-continuation-stopped.json)已绑定已核验镜像与 Locked；原安装未发 COMMIT、未写 Secret 或更新平台。原 Web 登录授权误判已修复，[隔离 PG18 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44429410826)通过，安装 DDL 与目标授权不变。[新清单](evidence/sandbox-first-purchase-dahlia-acl-recovery.review.json) SHA `115e7e8c1aa410ad3715362514686ea8b084d61700529a9fdb0e44ebbf59d834`；[范围与风险](aws-sandbox-first-purchase-dahlia-acl-recovery-review.md)。获批后先用 Neon 只读事务确认两个安装角色和 schema 未残留、原基线未变，仅回读一次准确已验证 ECR manifest，通过才做原窄安装、Secret、平台更新与独立验收。最晚在温尼伯 **11 月 19 日 17:53:50** 前启动，最多 60 分钟；不延原期限、不复位、不重建、不重发、无需 GitHub 审批。本轮只离线准备；技术验收通过才由用户测试购买。
+**当前唯一继续点：缺口 3 第 4 步，先恢复 AWS Source 身份，再准备剩余启用的最小接续。** [清单 `115e7e8c…`](evidence/sandbox-first-purchase-dahlia-acl-recovery.review.json)已单次执行，[去敏回执](evidence/sandbox-first-purchase-dahlia-acl-recovery-stopped.json)证实 Neon 只读检查无两个旧安装角色或 schema 残留，随后 AWS SDK 在 Source 身份核对时报 `CredentialsProviderError`，未证明是到期，AWS 元数据和写入均为 0。未再执行安装、Secret、平台更新、镜像回读或 Stripe 核对。请用户刷新 `techlong-sandbox-user`，后续只准备新的限定接续，先确保 Source 身份可用，保留原窗口、原槽和此次只读事实；不重跑旧批准、不重发镜像或重做历史验收。技术验收通过前不测试购买。
 
 [上一次已批准启用](aws-sandbox-first-purchase-activation-renewed-review.md) SHA `8b35a358…` 于 2026-11-18 16:28:26 CST（温尼伯）在首次写入前停于 `FIRST_PURCHASE_REVIEW_STRIPE_EXACT_ENDPOINT`。原平台与 Neon 只读核对、Stripe 两键同账户及测试模式通过。AWS 1 STS／28 项元数据／0 写入，Neon 1 条只读连接／14 条 SQL，未占发布槽或派发 GitHub run。启用尝试槽已消费，保留不复位、不重跑；去敏结果 SHA-256 `b6cb5a44db47c77f6605f422dba0df1a64564b0f0645f2e2f6459826262104e0`。
 

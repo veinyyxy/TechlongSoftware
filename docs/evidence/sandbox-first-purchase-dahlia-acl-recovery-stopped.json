@@ -1,0 +1,31 @@
+{
+  "schema": "techlong/sandbox-first-purchase-dahlia-acl-recovery-stopped/v1",
+  "approvalSha256": "115e7e8c1aa410ad3715362514686ea8b084d61700529a9fdb0e44ebbf59d834",
+  "completedAtUtc": "2026-11-19T00:57:53.752Z",
+  "outcome": "STOPPED_BEFORE_WRITES_AFTER_NEON_VACANCY_PROOF",
+  "neon": {
+    "observedAtUtc": "2026-11-19T00:57:53.061Z",
+    "readOnly": true,
+    "connections": 1,
+    "sqlSubmissions": 14,
+    "installationRolesAndSchemaAbsent": true,
+    "preflightReceiptSha256": "fa11b8745d0cb1e2e04c5a0e830141291d0f1b8f802244934a4a6b829eb8ec07",
+    "installAttempted": false
+  },
+  "aws": {
+    "sourceStsAttempts": 1,
+    "sourceIdentityVerified": false,
+    "metadataReads": 0,
+    "writes": 0,
+    "error": "CredentialsProviderError",
+    "credentialExpiryProved": false,
+    "freshImageReadPerformed": false
+  },
+  "secretWritten": false,
+  "platformUpdated": false,
+  "stripeApiRequests": 0,
+  "newGitHubDispatch": false,
+  "testCheckoutExecuted": false,
+  "retryAllowed": false,
+  "resultSha256": "235945fe829e57e470d00859afc37b13cf6e111635dc4ba8ad4ce10aed50e0b5"
+}
