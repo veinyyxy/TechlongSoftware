@@ -2,12 +2,13 @@ import { randomBytes } from 'node:crypto';
 import { parseEnv } from 'node:util';
 import pg from 'pg';
 import { parseTarget } from '../platform-web-database-v1/local.mjs';
+import { WEB_DATABASE_PROFILE } from '../platform-hosting-v1/database-profile.mjs';
 import { sandboxFirstPurchaseInstallStatements } from '../platform-web-database-role-v1/sandbox-first-purchase-ddl.ts';
 import { SANDBOX_PURCHASE_WEBHOOK_ROLE as hook } from '../../lib/purchases/sandbox-first-purchase-config.ts';
 import { hash, same } from './contract.mjs';
 import { scope } from './first-purchase-activation.mjs';
 
-const web='techlong_platform_web_acceptance_v1', definer='techlong_sandbox_first_purchase_definer';
+const web=WEB_DATABASE_PROFILE.role, definer='techlong_sandbox_first_purchase_definer';
 const roles=[definer,hook];
 const check=(ok,code)=>{if(!ok)throw Error('FIRST_PURCHASE_DB_'+code);};
 const selectTables=['workspaces','workspace_members','users','products','plans','app_instance_template_versions',
@@ -25,6 +26,36 @@ const tables=[...new Set([...selectTables,...insertTables])];
 const columnOptions=Object.entries(updates).flatMap(([table,columns])=>columns.map(column=>[table,column]));
 async function base(q){
   await q('SET LOCAL search_path=pg_catalog');await q("SET LOCAL statement_timeout='18s'");await q("SET LOCAL lock_timeout='4s'");
+}
+export async function assertFirstPurchaseInstalledRoles(q){
+  // The existing Web role can write login sessions and three lockout columns.
+  // The webhook has no exceptions, and neither login write can be delegated.
+  const [v]=await q(`SELECT (
+    SELECT count(*)=2 AND bool_and(rolcanlogin=(rolname=$1) AND NOT (rolinherit OR rolsuper OR rolcreaterole OR rolcreatedb OR rolreplication OR rolbypassrls)
+      AND NOT pg_has_role(current_user,oid,'SET') AND NOT pg_has_role(current_user,oid,'USAGE'))
+      FROM pg_roles WHERE rolname=ANY($2::text[])) AS roles,
+    (SELECT count(*)=2 AND bool_and(m.rolname=current_user AND a.admin_option AND NOT a.inherit_option AND NOT a.set_option)
+      FROM pg_auth_members a JOIN pg_roles r ON r.oid=a.roleid JOIN pg_roles m ON m.oid=a.member
+      WHERE r.rolname=ANY($2::text[]) OR m.rolname=ANY($2::text[])) AS memberships,
+    (SELECT pg_get_userbyid(n.nspowner)=$3
+      AND (SELECT count(*)=4 AND bool_and(NOT a.is_grantable AND ((pg_get_userbyid(a.grantee)=$3 AND a.privilege_type IN ('CREATE','USAGE'))
+        OR (pg_get_userbyid(a.grantee) IN ($1,$4) AND a.privilege_type='USAGE'))) FROM aclexplode(n.nspacl) a)
+      FROM pg_namespace n WHERE n.nspname='sandbox_first_purchase') AS namespace,
+    NOT EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r'
+      AND (has_any_column_privilege($1::name,c.oid,'INSERT,UPDATE,REFERENCES') OR has_table_privilege($1::name,c.oid,'DELETE,TRUNCATE,TRIGGER')
+        OR CASE c.relname
+          WHEN 'auth_sessions' THEN
+            has_any_column_privilege($4::name,c.oid,'UPDATE,REFERENCES,INSERT WITH GRANT OPTION')
+            OR has_table_privilege($4::name,c.oid,'DELETE WITH GRANT OPTION,TRUNCATE,TRIGGER')
+          WHEN 'user_credentials' THEN
+            has_any_column_privilege($4::name,c.oid,'INSERT,REFERENCES,UPDATE WITH GRANT OPTION')
+            OR has_table_privilege($4::name,c.oid,'UPDATE,DELETE,TRUNCATE,TRIGGER')
+            OR EXISTS(SELECT 1 FROM pg_attribute a WHERE a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped
+              AND NOT (a.attname=ANY($5::name[])) AND has_column_privilege($4::name,c.oid,a.attnum,'UPDATE'))
+          ELSE has_any_column_privilege($4::name,c.oid,'INSERT,UPDATE,REFERENCES')
+            OR has_table_privilege($4::name,c.oid,'DELETE,TRUNCATE,TRIGGER')
+        END)) AS no_direct_writes`,[hook,roles,definer,web,WEB_DATABASE_PROFILE.credentialsUpdateColumns]);
+  check(v&&Object.values(v).every(x=>x===true),'INSTALLED_ROLE_OR_ACL');
 }
 export function firstPurchaseDatabase({rawConfig,historical,projection,binding,deadline,record}){
   check(!Object.keys(process.env).some(k=>/^PG|^SSL_CERT_(?:DIR|FILE)$/i.test(k)&&process.env[k]) &&
@@ -129,22 +160,7 @@ export function firstPurchaseDatabase({rawConfig,historical,projection,binding,d
     check(cols?.allowed===true&&same(await layout(q),projection.protectedLayout),'COLUMNS_OR_PROTECTED_LAYOUT');
   }
   async function installed(q,statements){
-    const [v]=await q(`SELECT (
-      SELECT count(*)=2 AND bool_and(rolcanlogin=(rolname=$1) AND NOT (rolinherit OR rolsuper OR rolcreaterole OR rolcreatedb OR rolreplication OR rolbypassrls)
-        AND NOT pg_has_role(current_user,oid,'SET') AND NOT pg_has_role(current_user,oid,'USAGE'))
-        FROM pg_roles WHERE rolname=ANY($2::text[])) AS roles,
-      (SELECT count(*)=2 AND bool_and(m.rolname=current_user AND a.admin_option AND NOT a.inherit_option AND NOT a.set_option)
-        FROM pg_auth_members a JOIN pg_roles r ON r.oid=a.roleid JOIN pg_roles m ON m.oid=a.member
-        WHERE r.rolname=ANY($2::text[]) OR m.rolname=ANY($2::text[])) AS memberships,
-      (SELECT pg_get_userbyid(n.nspowner)=$3
-        AND (SELECT count(*)=4 AND bool_and(NOT a.is_grantable AND ((pg_get_userbyid(a.grantee)=$3 AND a.privilege_type IN ('CREATE','USAGE'))
-          OR (pg_get_userbyid(a.grantee) IN ($1,$4) AND a.privilege_type='USAGE'))) FROM aclexplode(n.nspacl) a)
-        FROM pg_namespace n WHERE n.nspname='sandbox_first_purchase') AS namespace,
-      NOT EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r'
-        AND (has_any_column_privilege($1::name,c.oid,'INSERT,UPDATE,REFERENCES') OR has_table_privilege($1::name,c.oid,'DELETE,TRUNCATE,TRIGGER')
-          OR has_any_column_privilege($4::name,c.oid,'INSERT,UPDATE,REFERENCES') OR has_table_privilege($4::name,c.oid,'DELETE,TRUNCATE,TRIGGER'))) AS no_direct_writes`,
-      [hook,roles,definer,web]);
-    check(v&&Object.values(v).every(x=>x===true),'INSTALLED_ROLE_OR_ACL');
+    await assertFirstPurchaseInstalledRoles(q);
     const f=await q(`SELECT p.proname AS name,p.prosrc AS body,pg_get_userbyid(p.proowner) AS owner,p.prosecdef AS definer,p.proconfig AS config,
       ARRAY(SELECT coalesce(r.rolname,'PUBLIC')||':'||x.privilege_type||':'||x.is_grantable::text
         FROM aclexplode(p.proacl) x LEFT JOIN pg_roles r ON r.oid=x.grantee ORDER BY r.rolname) AS acl

@@ -22,6 +22,7 @@ on:
       - 'tests/first-onboarding*'
       - 'lib/purchases/sandbox-first-purchase*.ts'
       - 'lib/payments/stripe.ts'
+      - 'ops/platform-ecs-v1/first-purchase-activation-db.mjs'
       - 'ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts'
       - 'tests/deployment-s3-worker.test.ts'
       - 'ops/releases/**'

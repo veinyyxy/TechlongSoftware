@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import pg from 'pg';
 import { sandboxFirstPurchaseDdl, sandboxFirstPurchaseInstallStatements } from '../ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts';
+import { assertFirstPurchaseInstalledRoles } from '../ops/platform-ecs-v1/first-purchase-activation-db.mjs';
 
 const url = process.env.FIRST_PURCHASE_PG18_CI_DATABASE_URL;
 const installer = 'first_purchase_ci_installer', web = 'techlong_platform_web_acceptance_v1';
@@ -33,7 +34,9 @@ test('isolated PostgreSQL 18: non-superuser creates and verifies exact owners, A
     return new pg.Client({connectionString:target.href,connectionTimeoutMillis:5000,statement_timeout:5000});
   };
   const root=client('postgres'), writer=client(installer), reader=client(installer), runtime=client(webhook,pw);
+  const verifyInstalledRoles=db=>assertFirstPurchaseInstalledRoles(async (sql,args)=>(await db.query(sql,args)).rows);
   async function verify(db){
+    await verifyInstalledRoles(db);
     const {rows:[identity]}=await db.query(`SELECT current_user AS actor, session_user AS login,
       current_setting('server_version_num')::int / 10000 AS major,r.rolsuper,r.rolcreaterole FROM pg_roles r WHERE r.rolname=current_user`);
     assert.deepEqual(identity,{actor:installer,login:installer,major:18,rolsuper:false,rolcreaterole:true});
@@ -58,22 +61,40 @@ test('isolated PostgreSQL 18: non-superuser creates and verifies exact owners, A
       proconfig:['search_path=pg_catalog, public, pg_temp'],acl:[`${definer}:EXECUTE:false`,
         `${['complete','webhook_order'].includes(proname)?webhook:web}:EXECUTE:false`].sort()})));
     const {rows:[guard]}=await db.query(`SELECT
-      count(*) FILTER (WHERE has_any_column_privilege($1::name,c.oid,'INSERT,UPDATE,REFERENCES') OR has_table_privilege($1::name,c.oid,'DELETE,TRUNCATE,TRIGGER'))::int AS web_writes,
-      count(*) FILTER (WHERE has_any_column_privilege($2::name,c.oid,'INSERT,UPDATE,REFERENCES') OR has_table_privilege($2::name,c.oid,'DELETE,TRUNCATE,TRIGGER'))::int AS webhook_writes,
-      count(*) FILTER (WHERE has_table_privilege($3::name,c.oid,'INSERT'))::int AS definer_insert_tables,
-      count(*) FILTER (WHERE has_table_privilege($3::name,c.oid,'DELETE,TRUNCATE,TRIGGER,UPDATE') OR c.relowner=(SELECT oid FROM pg_roles WHERE rolname=$3::name))::int AS definer_extra
-      FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r'`,[web,webhook,definer]);
-    assert.deepEqual(guard,{web_writes:0,webhook_writes:0,definer_insert_tables:8,definer_extra:0});
+      count(*) FILTER (WHERE has_table_privilege($1::name,c.oid,'INSERT'))::int AS definer_insert_tables,
+      count(*) FILTER (WHERE has_table_privilege($1::name,c.oid,'DELETE,TRUNCATE,TRIGGER,UPDATE') OR c.relowner=(SELECT oid FROM pg_roles WHERE rolname=$1::name))::int AS definer_extra
+      FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r'`,[definer]);
+    assert.deepEqual(guard,{definer_insert_tables:8,definer_extra:0});
   }
   try {
     await root.connect();
     const {rows:[v]}=await root.query("SELECT current_setting('server_version_num')::int / 10000 AS major");assert.equal(v.major,18);
-    await root.query(`CREATE ROLE ${installer} LOGIN CREATEROLE NOSUPERUSER PASSWORD 'synthetic-ci-only'; CREATE ROLE ${web} NOLOGIN NOINHERIT; ALTER DATABASE first_purchase_pg18_ci OWNER TO ${installer}`);
+    await root.query(`CREATE ROLE ${installer} LOGIN CREATEROLE NOSUPERUSER PASSWORD 'synthetic-ci-only'; ALTER DATABASE first_purchase_pg18_ci OWNER TO ${installer}`);
     await writer.connect();
     await writer.query(await readFile(new URL('../db/postgres-schema.sql',import.meta.url),'utf8'));
+    await writer.query(await readFile(new URL('../ops/platform-web-database-role-v1/no-login.sql',import.meta.url),'utf8'));
+    await writer.query(`ALTER ROLE ${web} LOGIN`);
     await writer.query('BEGIN');
     for(const sql of sandboxFirstPurchaseInstallStatements(scope,pw)) await writer.query(sql);
     await verify(writer);
+    for(const extraGrant of [
+      `INSERT ON public.subscriptions TO ${web}`,
+      `UPDATE ON public.auth_sessions TO ${web}`,
+      `INSERT ON public.auth_sessions TO ${web} WITH GRANT OPTION`,
+      `DELETE ON public.auth_sessions TO ${web} WITH GRANT OPTION`,
+      `UPDATE ON public.user_credentials TO ${web}`,
+      `UPDATE (password_hash) ON public.user_credentials TO ${web}`,
+      `UPDATE (failed_attempts) ON public.user_credentials TO ${web} WITH GRANT OPTION`,
+      `INSERT ON public.auth_sessions TO ${webhook}`,
+      `UPDATE (failed_attempts) ON public.user_credentials TO ${webhook}`,
+    ]){
+      await writer.query('SAVEPOINT extra_acl');
+      await writer.query('GRANT '+extraGrant);
+      await assert.rejects(verifyInstalledRoles(writer),/FIRST_PURCHASE_DB_INSTALLED_ROLE_OR_ACL/,extraGrant);
+      await writer.query('ROLLBACK TO SAVEPOINT extra_acl');
+      await writer.query('RELEASE SAVEPOINT extra_acl');
+    }
+    await verifyInstalledRoles(writer);
     await writer.query('COMMIT');
     await reader.connect();await reader.query('BEGIN READ ONLY');await verify(reader);await reader.query('COMMIT');
     await runtime.connect();await runtime.query('BEGIN READ ONLY');

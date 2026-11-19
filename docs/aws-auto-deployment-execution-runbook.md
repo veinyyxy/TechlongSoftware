@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，只离线定位 Neon 提交前角色／ACL 校验。** [接续 SHA `05cc2ecb…`](evidence/sandbox-first-purchase-dahlia-continuation.review.json)已单次执行，[去敏回执](evidence/sandbox-first-purchase-dahlia-continuation-stopped.json)证明原镜像和 publisher Locked 均已独立核验。Neon 安装在提交前因 `FIRST_PURCHASE_DB_INSTALLED_ROLE_OR_ACL` 停止；未发安装 COMMIT、未独立回查回滚，不能推定具体失配项。AWS 写入为 0，未写 Secret 或更新平台。保留所有槽和原期限，不重复镜像发布、已通过的验收或 Stripe 测试；下一步只用隔离 PostgreSQL 18 执行正式校验 SQL 并定位失配条件，不降低权限门槛。生产侧再次读取或安装另审。平台尚未启用，暂不测试购买。
+**当前唯一继续点：缺口 3 第 4 步，准备带正确 ACL 校验的剩余启用审批。** [接续 SHA `05cc2ecb…`](evidence/sandbox-first-purchase-dahlia-continuation.review.json)的[停止回执](evidence/sandbox-first-purchase-dahlia-continuation-stopped.json)证明原镜像与 publisher Locked 已独立核验，Neon 未发安装 COMMIT、未独立回查回滚；未写 AWS Secret 或更新平台。已在隔离 PostgreSQL 18.3 用[既有登录授权](aws-platform-hosting-w7l-nologin-role-observed.md)复现：仅 `no_direct_writes` 误拒。修复只识别 Web 的 `auth_sessions` INSERT/DELETE 和 `user_credentials` 三列 UPDATE，拒绝转授、其他 Web 写权限及 webhook 直接写表；原安装 DDL 不变。隔离复测确认基线通过、9 项越权拒绝；无生产读取或写入。下一步仅准备准确回滚状态核对与未执行安装／更新的集中审批，不复位旧槽、不延旧期限、不重建或重发；上线核验通过前不测试购买。
 
 [上一次已批准启用](aws-sandbox-first-purchase-activation-renewed-review.md) SHA `8b35a358…` 于 2026-11-18 16:28:26 CST（温尼伯）在首次写入前停于 `FIRST_PURCHASE_REVIEW_STRIPE_EXACT_ENDPOINT`。原平台与 Neon 只读核对、Stripe 两键同账户及测试模式通过。AWS 1 STS／28 项元数据／0 写入，Neon 1 条只读连接／14 条 SQL，未占发布槽或派发 GitHub run。启用尝试槽已消费，保留不复位、不重跑；去敏结果 SHA-256 `b6cb5a44db47c77f6605f422dba0df1a64564b0f0645f2e2f6459826262104e0`。
 
