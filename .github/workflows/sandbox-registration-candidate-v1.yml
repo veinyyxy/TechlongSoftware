@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       recipe_sha:
-        description: Exact reviewed registration or first-purchase recipe SHA-256
+        description: Exact reviewed candidate recipe SHA-256
         type: string
         required: true
       orchestration_sha:
@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   candidate:
-    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && github.sha == inputs.orchestration_sha && (inputs.recipe_sha == '06d91b3eb875568af5d3f9b9a9015d9a949571dc0ec8427b0ad2e764bbd8c720' || inputs.recipe_sha == 'cdfa2e16aa6660698a2bce8b8a6a73b67616c1bc7d2955fc43291764abe9ed1d' || inputs.recipe_sha == 'b2faf785466efcef7aa4434b82c3a22b8537550c829525a3885b04105e3eaaff' || inputs.recipe_sha == '1f01d6a8736504dad9c1351b1f8c6c6c142c2459ee158e17fb011e81d8a35f9c')
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && github.sha == inputs.orchestration_sha && (inputs.recipe_sha == '06d91b3eb875568af5d3f9b9a9015d9a949571dc0ec8427b0ad2e764bbd8c720' || inputs.recipe_sha == 'cdfa2e16aa6660698a2bce8b8a6a73b67616c1bc7d2955fc43291764abe9ed1d' || inputs.recipe_sha == 'b2faf785466efcef7aa4434b82c3a22b8537550c829525a3885b04105e3eaaff' || inputs.recipe_sha == '1f01d6a8736504dad9c1351b1f8c6c6c142c2459ee158e17fb011e81d8a35f9c' || inputs.recipe_sha == '35ec0afbe7d4d7f6f222f45edc261aeaf5b229fe49874817c0fedc3bf0c2e597')
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
@@ -41,6 +41,17 @@ jobs:
           mkdir "$stage/context" "$stage/artifact"
           tar --extract --file "$stage/source.tar" --directory "$stage/context"
           cp "$stage/source-proof.json" "$stage/artifact/source-proof.json"
+      - name: Require unchanged 81-file control closure in the frozen buyer candidate
+        if: inputs.recipe_sha == '35ec0afbe7d4d7f6f222f45edc261aeaf5b229fe49874817c0fedc3bf0c2e597'
+        shell: bash
+        working-directory: ${{ runner.temp }}/registration-overlay/context
+        run: |
+          node --input-type=module -e '
+            import assert from "node:assert/strict";
+            import { platformClosureV6 } from "./ops/platform-cloud-v6/closure.mjs";
+            const x = await platformClosureV6();
+            assert.equal(x.pinCount, 81);
+            assert.equal(x.closureSha256, "828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a");'
       - name: Build one image from the reviewed Dockerfile, no registry publish
         shell: bash
         run: |
@@ -82,7 +93,7 @@ jobs:
             assert.match(html,/企业名称/);assert.match(html,/workspaceName/);
             console.log("SANDBOX_REGISTRATION_FORM_GET_ONLY_PASSED");'
       - name: First-purchase signed-callback smoke with synthetic bindings, network none
-        if: inputs.recipe_sha == 'cdfa2e16aa6660698a2bce8b8a6a73b67616c1bc7d2955fc43291764abe9ed1d' || inputs.recipe_sha == 'b2faf785466efcef7aa4434b82c3a22b8537550c829525a3885b04105e3eaaff' || inputs.recipe_sha == '1f01d6a8736504dad9c1351b1f8c6c6c142c2459ee158e17fb011e81d8a35f9c'
+        if: inputs.recipe_sha == 'cdfa2e16aa6660698a2bce8b8a6a73b67616c1bc7d2955fc43291764abe9ed1d' || inputs.recipe_sha == 'b2faf785466efcef7aa4434b82c3a22b8537550c829525a3885b04105e3eaaff' || inputs.recipe_sha == '1f01d6a8736504dad9c1351b1f8c6c6c142c2459ee158e17fb011e81d8a35f9c' || inputs.recipe_sha == '35ec0afbe7d4d7f6f222f45edc261aeaf5b229fe49874817c0fedc3bf0c2e597'
         shell: bash
         run: |
           set -euo pipefail
@@ -133,7 +144,7 @@ jobs:
       - name: Upload only sealed candidate evidence to GitHub
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: ${{ inputs.recipe_sha == '1f01d6a8736504dad9c1351b1f8c6c6c142c2459ee158e17fb011e81d8a35f9c' && 'sandbox-first-purchase-billing-1f01d6a8' || inputs.recipe_sha == 'b2faf785466efcef7aa4434b82c3a22b8537550c829525a3885b04105e3eaaff' && 'sandbox-first-purchase-checkout-b2faf785' || inputs.recipe_sha == 'cdfa2e16aa6660698a2bce8b8a6a73b67616c1bc7d2955fc43291764abe9ed1d' && 'sandbox-first-purchase-overlay-cdfa2e16' || 'sandbox-registration-overlay-06d91b3e' }}-${{ github.run_id }}
+          name: ${{ inputs.recipe_sha == '35ec0afbe7d4d7f6f222f45edc261aeaf5b229fe49874817c0fedc3bf0c2e597' && 'sandbox-first-open-buyer-forward-35ec0afb' || inputs.recipe_sha == '1f01d6a8736504dad9c1351b1f8c6c6c142c2459ee158e17fb011e81d8a35f9c' && 'sandbox-first-purchase-billing-1f01d6a8' || inputs.recipe_sha == 'b2faf785466efcef7aa4434b82c3a22b8537550c829525a3885b04105e3eaaff' && 'sandbox-first-purchase-checkout-b2faf785' || inputs.recipe_sha == 'cdfa2e16aa6660698a2bce8b8a6a73b67616c1bc7d2955fc43291764abe9ed1d' && 'sandbox-first-purchase-overlay-cdfa2e16' || 'sandbox-registration-overlay-06d91b3e' }}-${{ github.run_id }}
           path: |
             ${{ runner.temp }}/registration-overlay/artifact/image.tar.gz
             ${{ runner.temp }}/registration-overlay/artifact/image-receipt.json

@@ -4,7 +4,7 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import {load} from 'js-yaml';
-import {buildCandidateArchive,BILLING_REPAIR,BILLING_REPAIR_TREE,CHECKOUT_REPAIR,CHECKOUT_REPAIR_TREE,FIRST_PURCHASE,FIRST_PURCHASE_TREE} from '../ops/platform-registration-candidate-v1/candidate.mjs';
+import {buildCandidateArchive,BILLING_REPAIR,BILLING_REPAIR_TREE,BUYER_FORWARD,CHECKOUT_REPAIR,CHECKOUT_REPAIR_TREE,FIRST_PURCHASE,FIRST_PURCHASE_TREE} from '../ops/platform-registration-candidate-v1/candidate.mjs';
 
 const file=filepath=>new URL('../'+filepath,import.meta.url);
 const previous=JSON.parse(await readFile(file('docs/evidence/sandbox-first-purchase-activation.prepared.json'),'utf8')).candidate;
@@ -13,7 +13,7 @@ const prepared=JSON.parse(await readFile(file('docs/evidence/sandbox-first-purch
 const repair=JSON.parse(await readFile(file('docs/evidence/sandbox-first-purchase-checkout-repair.prepared.json'),'utf8'));
 const billing=JSON.parse(await readFile(file('docs/evidence/sandbox-first-purchase-billing-rollout.review.json'),'utf8')).source;
 
-test('same no-AWS manual workflow admits only the fixed registration and first-purchase recipes',async()=>{
+test('same no-AWS manual workflow admits only the four original recipes and the exact buyer candidate',async()=>{
   const workflow=load(await readFile(file('.github/workflows/sandbox-registration-candidate-v1.yml'),'utf8'));
   assert.deepEqual(Object.keys(workflow.on),['workflow_dispatch']);
   assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs),['recipe_sha','orchestration_sha']);
@@ -22,11 +22,10 @@ test('same no-AWS manual workflow admits only the fixed registration and first-p
   assert.equal(job.environment,undefined);
   assert.equal(job.permissions,undefined);
   assert.equal(job['timeout-minutes'],25);
-  for(const gate of ["github.ref == 'refs/heads/main'","github.run_attempt == 1","github.repository_id == '1323312747'",
-    'github.sha == inputs.orchestration_sha',FIRST_PURCHASE,CHECKOUT_REPAIR,BILLING_REPAIR,'06d91b3eb875568af5d3f9b9a9015d9a949571dc0ec8427b0ad2e764bbd8c720']) {
-    assert.ok(job.if.includes(gate),gate);
-  }
-  assert.equal((job.if.match(/inputs\.recipe_sha == '[a-f0-9]{64}'/g)??[]).length,4);
+  const admissions=['06d91b3eb875568af5d3f9b9a9015d9a949571dc0ec8427b0ad2e764bbd8c720',
+    FIRST_PURCHASE,CHECKOUT_REPAIR,BILLING_REPAIR,BUYER_FORWARD];
+  assert.equal(job.if,"github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && github.sha == inputs.orchestration_sha && ("+
+    admissions.map(x=>`inputs.recipe_sha == '${x}'`).join(' || ')+')');
   assert.ok(!job.if.includes(previous.recipeSha256));
   assert.ok(!job.if.includes(prior.candidate.recipeSha256));
   assert.deepEqual(job.env,{REVIEWED_RECIPE_SHA:'${{ inputs.recipe_sha }}'});
@@ -34,12 +33,18 @@ test('same no-AWS manual workflow admits only the fixed registration and first-p
   assert.doesNotMatch(shell,/docker push|docker login|aws login|aws sts|gh workflow run|secrets\./);
   assert.equal((shell.match(/docker build --platform/g)??[]).length,1);
   const smoke=job.steps.find(x=>x.name?.startsWith('First-purchase signed-callback'));
-  assert.equal(smoke.if,`inputs.recipe_sha == '${FIRST_PURCHASE}' || inputs.recipe_sha == '${CHECKOUT_REPAIR}' || inputs.recipe_sha == '${BILLING_REPAIR}'`);
+  assert.equal(smoke.if,[FIRST_PURCHASE,CHECKOUT_REPAIR,BILLING_REPAIR,BUYER_FORWARD].map(x=>`inputs.recipe_sha == '${x}'`).join(' || '));
+  const closure=job.steps.find(x=>x.name?.startsWith('Require unchanged 81-file'));
+  assert.equal(closure.if,`inputs.recipe_sha == '${BUYER_FORWARD}'`);
+  assert.match(closure.run,/assert\.equal\(x\.pinCount, 81\)/);
+  assert.match(closure.run,/828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a/);
+  assert.equal(closure['working-directory'],'${{ runner.temp }}/registration-overlay/context');
   for(const pin of ['--network none','--read-only','--cap-drop ALL','DEPLOYMENT_WORKER_ENABLED=false','whsec_synthetic_only','first-purchase-smoke.json',
     'TECHLONG_SANDBOX_FIRST_PURCHASE_PLAN_ID=pln_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'] )
     assert.ok(smoke.run.includes(pin));
   const upload=job.steps.find(x=>x.uses?.startsWith('actions/upload-artifact@'));
-  assert.equal(upload.with.name,"${{ inputs.recipe_sha == '"+BILLING_REPAIR+"' && 'sandbox-first-purchase-billing-1f01d6a8' || "+
+  assert.equal(upload.with.name,"${{ inputs.recipe_sha == '"+BUYER_FORWARD+"' && 'sandbox-first-open-buyer-forward-35ec0afb' || "+
+    "inputs.recipe_sha == '"+BILLING_REPAIR+"' && 'sandbox-first-purchase-billing-1f01d6a8' || "+
     "inputs.recipe_sha == '"+CHECKOUT_REPAIR+"' && 'sandbox-first-purchase-checkout-b2faf785' || "+
     "inputs.recipe_sha == '"+FIRST_PURCHASE+"' && 'sandbox-first-purchase-overlay-"+
     FIRST_PURCHASE.slice(0,8)+"' || 'sandbox-registration-overlay-06d91b3e' }}-${{ github.run_id }}");
@@ -48,15 +53,17 @@ test('same no-AWS manual workflow admits only the fixed registration and first-p
   assert.match(await readFile(file('ops/platform-registration-candidate-v1/first-purchase-smoke.mjs'),'utf8'),/api_version:'2026-05-27\.dahlia'/);
 });
 
-test('exact archives retain the fixed Dahlia lineage and change only three files for Checkout repair',async()=>{
+test('exact archives retain the fixed billing lineage and a buyer candidate changes only eight files',async()=>{
   const temp=await mkdtemp(path.join(tmpdir(),'techlong-candidate-wiring-test-'));
   try {
     await assert.rejects(buildCandidateArchive(path.join(temp,'wrong'),'0'.repeat(64)),/reviewed recipe ID/);
     await assert.rejects(buildCandidateArchive(path.join(temp,'superseded'),previous.recipeSha256),/reviewed recipe ID/);
     await assert.rejects(buildCandidateArchive(path.join(temp,'pre-dahlia'),prior.candidate.recipeSha256),/reviewed recipe ID/);
     const staged=path.join(temp,'first-purchase');
-    const [old,next,fixed,narrow]=await Promise.all([buildCandidateArchive(path.join(temp,'registration')),buildCandidateArchive(staged,FIRST_PURCHASE),
-      buildCandidateArchive(path.join(temp,'checkout-repair'),CHECKOUT_REPAIR),buildCandidateArchive(path.join(temp,'billing-repair'),BILLING_REPAIR)]);
+    const buyerDir=path.join(temp,'first-open-buyer-forward');
+    const [old,next,fixed,narrow,buyer]=await Promise.all([buildCandidateArchive(path.join(temp,'registration')),buildCandidateArchive(staged,FIRST_PURCHASE),
+      buildCandidateArchive(path.join(temp,'checkout-repair'),CHECKOUT_REPAIR),buildCandidateArchive(path.join(temp,'billing-repair'),BILLING_REPAIR),
+      buildCandidateArchive(buyerDir,BUYER_FORWARD)]);
     assert.equal(old.sourceTreeOid,'131fc5f0fd491e642916723ea0206cd0b03f413f');
     assert.equal(old.sourceRecipe.overlay.length,2);
     assert.equal(next.sourceRecipeSha256,FIRST_PURCHASE);
@@ -98,6 +105,20 @@ test('exact archives retain the fixed Dahlia lineage and change only three files
     const oldBilling=new Map(fixed.sourceRecipe.overlay.map(x=>[x.path,x.blob]));
     assert.deepEqual(narrow.sourceRecipe.overlay.filter(x=>oldBilling.get(x.path)!==x.blob).sort(byPath),[...billing.replacements].sort(byPath));
     assert.ok(Buffer.byteLength(await readFile(path.join(temp,'billing-repair','source-proof.json')))<8192);
+    assert.equal(buyer.sourceRecipeSha256,BUYER_FORWARD);
+    assert.equal(buyer.sourceRecipe.baseRecipeSha256,BILLING_REPAIR);
+    assert.equal(buyer.sourceRecipe.baseTreeOid,narrow.sourceTreeOid);
+    assert.equal(buyer.sourceTreeOid,'9225d2060b5bb8b3cfa90cbde4a9ba06d00da3c4');
+    assert.deepEqual(buyer.sourceRecipe.overlay.map(x=>[x.action,x.path]),[
+      ['A','app/api/buyer-forward/[...path]/route.ts'],
+      ['A','lib/buyer-forward/allowed-routes.ts'],['A','lib/buyer-forward/sandbox-relay.ts'],
+      ['A','lib/buyer-forward/signer-binding.ts'],['A','lib/buyer-forward/wire.mjs'],
+      ['A','lib/deployments/execution/first-open-buyer-binding.ts'],
+      ['M','ops/platform-hosting-v1/Dockerfile'],['M','ops/platform-hosting-v1/ingress.mjs'],
+    ]);
+    const buyerProof=await readFile(path.join(buyerDir,'source-proof.json'),'utf8');
+    assert.ok(Buffer.byteLength(buyerProof)<8192);
+    assert.deepEqual(JSON.parse(buyerProof),buyer);
     await assert.rejects(buildCandidateArchive(staged,FIRST_PURCHASE),{code:'EEXIST'});
   } finally {
     // Only the unique test fixture created above, not a checkout or existing directory.

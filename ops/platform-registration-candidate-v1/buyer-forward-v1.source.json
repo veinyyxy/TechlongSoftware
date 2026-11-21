@@ -1,0 +1,59 @@
+{
+  "schema": "techlong/sandbox-first-open-buyer-forward-source/v1",
+  "baseRecipeSha256": "1f01d6a8736504dad9c1351b1f8c6c6c142c2459ee158e17fb011e81d8a35f9c",
+  "baseTreeOid": "8ff7f4974fe1212b101aba308809cd226cf7a373",
+  "sourceTreeOid": "9225d2060b5bb8b3cfa90cbde4a9ba06d00da3c4",
+  "closureSha256": "828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a",
+  "closureFileCount": 81,
+  "patchSha256": "7cfcaffdeb5675ef8bf767a33029af1ffe2cd403867d58f3c8281eb0856068f5",
+  "overlay": [
+    {
+      "path": "app/api/buyer-forward/[...path]/route.ts",
+      "action": "A",
+      "blob": "ef1998b3fbe365b7c61241e6c52fe3dc5d4b65bd",
+      "sha256": "e23bd73194ba016f0487a51f94e2f4d40066517c6eea5799e36165246badaea9"
+    },
+    {
+      "path": "lib/buyer-forward/allowed-routes.ts",
+      "action": "A",
+      "blob": "9f40f61b89e0489a939e0a171891a9730e5d9135",
+      "sha256": "7a57a94fc89a840f5345b6106790a3da6a6ef35b67c583ad06d60bb8c99f488a"
+    },
+    {
+      "path": "lib/buyer-forward/sandbox-relay.ts",
+      "action": "A",
+      "blob": "ea6dd5962b94d0f43222e47503a32e72ffd198dd",
+      "sha256": "65386886c6b1a18ef440c40bae0c9a3ff65aebd0c917634194ac3150d74056b3"
+    },
+    {
+      "path": "lib/buyer-forward/signer-binding.ts",
+      "action": "A",
+      "blob": "fdda1da435c02666239f22514ff53223dd2e999e",
+      "sha256": "8133c401afafb9c1af0a5c9a925c9e16d5b9c57f52e121ff84eead2a02a1e976"
+    },
+    {
+      "path": "lib/buyer-forward/wire.mjs",
+      "action": "A",
+      "blob": "7eb6fd35cdbb55cf6e7d49742eb3a4f4e9eb8e99",
+      "sha256": "16c243633dff38203d1e0f8a31ba3db50ac3a430629b852251b4899ced04a8c8"
+    },
+    {
+      "path": "lib/deployments/execution/first-open-buyer-binding.ts",
+      "action": "A",
+      "blob": "04e96a50f2844ac32050c7dad8809d6b032ae3f8",
+      "sha256": "272b7421ddf73d1dbf85264059179c1a26ac1990359c924304ead306354352c9"
+    },
+    {
+      "path": "ops/platform-hosting-v1/Dockerfile",
+      "action": "M",
+      "blob": "3b52f95d8d13ae5611365347e503e64dd0e2bcde",
+      "sha256": "78237873f7eecac912b9edd328c09355ca3c3e3f18d7213b5547344ae27c6d75"
+    },
+    {
+      "path": "ops/platform-hosting-v1/ingress.mjs",
+      "action": "M",
+      "blob": "d86c6e03b7f42fa775fa6fd9a3a29aad42e46eeb",
+      "sha256": "027ad17c93dc4b1a03bff9f4991bbfadde88de3208f52a287ca30d2944ebe92e"
+    }
+  ]
+}

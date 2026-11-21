@@ -1,0 +1,407 @@
+diff --git a/app/api/buyer-forward/[...path]/route.ts b/app/api/buyer-forward/[...path]/route.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..ef1998b3fbe365b7c61241e6c52fe3dc5d4b65bd
+--- /dev/null
++++ b/app/api/buyer-forward/[...path]/route.ts
+@@ -0,0 +1,14 @@
++import { createSandboxBuyerForward } from "@/lib/buyer-forward/sandbox-relay";
++import { firstOpenBuyerSignerEnvName } from "@/lib/buyer-forward/signer-binding";
++
++export const runtime = "nodejs";
++export const dynamic = "force-dynamic";
++
++const forward = createSandboxBuyerForward({
++  loadSigningKey: () => process.env[firstOpenBuyerSignerEnvName],
++  fetchUpstream: (url, options) => fetch(url, options),
++});
++
++export const OPTIONS = forward;
++export const GET = forward;
++export const POST = forward;
+diff --git a/lib/buyer-forward/allowed-routes.ts b/lib/buyer-forward/allowed-routes.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..9f40f61b89e0489a939e0a171891a9730e5d9135
+--- /dev/null
++++ b/lib/buyer-forward/allowed-routes.ts
+@@ -0,0 +1,83 @@
++/**
++ * Browser surface used by SpeedFeast at the pinned version A backend.
++ * Route admission is not authentication; Origin can be forged outside a
++ * browser. The original API still verifies the buyer JWT and applies its
++ * store/order/recipient checks, and its rate limits remain in place.
++ */
++export type BuyerForwardRoute = Readonly<{
++  bearer: "required" | "optional";
++  queryKeys: readonly string[];
++  acceptsQueryValues?: (query: URLSearchParams) => boolean;
++}>;
++
++const route = (
++  bearer: BuyerForwardRoute["bearer"],
++  queryKeys: string[] = [],
++  acceptsQueryValues?: BuyerForwardRoute["acceptsQueryValues"],
++): BuyerForwardRoute => Object.freeze({ bearer, queryKeys: Object.freeze(queryKeys), acceptsQueryValues });
++
++const publicBuyerRoute = route("optional");
++const buyerToken = route("required");
++const uuid = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}";
++const isUuid = new RegExp(`^${uuid}$`);
++const buyerReview = new RegExp(`^/api/reviews/orders/${uuid}$`);
++const buyerNoticeMutation = new RegExp(`^/api/buyer/notifications/${uuid}/(?:read|delete)$`);
++
++const config = route("optional", ["app_scope", "country_code", "region_code"], (q) =>
++  q.get("app_scope") === "order_client" &&
++  (!q.has("country_code") || /^[A-Z]{2}$/.test(q.get("country_code") ?? "")) &&
++  (!q.has("region_code") || /^[A-Z]{2}$/.test(q.get("region_code") ?? "")),
++);
++const verificationTarget = (q: URLSearchParams) => {
++  const target = q.get("target") ?? "";
++  return q.get("type") === "phone" ? /^\+?[1-9]\d{9,14}$/.test(target) :
++    q.get("type") === "email" && target.length <= 254 && /^[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}$/.test(target);
++};
++
++// Exact preimages prevent the forwarding layer from exposing a broad
++// token/signing path. No caller-supplied route names, origins or API prefixes.
++const gets = new Map<string, BuyerForwardRoute>([
++  ["/api/buyer/access", publicBuyerRoute],
++  ["/api/stores/bootstrap", publicBuyerRoute],
++  ["/api/products/get_list", publicBuyerRoute],
++  ["/api/config", config],
++  ["/api/verification/send_verification", route("optional", ["type", "target"], verificationTarget)],
++  ["/api/verification/verify", route("optional", ["type", "target", "code"], (q) =>
++    verificationTarget(q) && /^\d{4}$/.test(q.get("code") ?? ""))],
++  ["/api/orders/get_list", route("required", ["limit"])],
++  ["/api/payments/status", route("required", ["order_id"], (q) => isUuid.test(q.get("order_id") ?? ""))],
++  ["/api/rewards/summary", buyerToken],
++  ["/api/rewards/transactions", route("required", ["limit", "offset"])],
++  ["/api/rewards/redemptions", route("required", ["status"])],
++  ["/api/buyer/notifications", route("required", ["limit", "offset", "unread_only"])],
++  ["/api/buyer/notifications/unread-count", buyerToken],
++]);
++
++const posts = new Map<string, BuyerForwardRoute>([
++  ["/api/users/login", publicBuyerRoute],
++  ["/api/users/register", buyerToken], // A requires the registration verification JWT here.
++  ["/api/user/validate", buyerToken],
++  ["/api/users/profile/get", buyerToken],
++  ["/api/users/profile/update", buyerToken],
++  ["/api/users/address/create", buyerToken],
++  ["/api/users/address/update", buyerToken],
++  ["/api/users/address/delete", buyerToken],
++  ["/api/users/address/default", buyerToken],
++  ["/api/dine-in/table/verify", publicBuyerRoute],
++  ["/api/orders/create", buyerToken],
++  ["/api/orders/cancel", buyerToken],
++  ["/api/payments/create", buyerToken], // Hosted Checkout only; relay checks platform=web before signing.
++  ["/api/rewards/redeem", buyerToken],
++  ["/api/buyer/notifications/device-token", buyerToken],
++  ["/api/buyer/notifications/device-token/deactivate", buyerToken],
++  ["/api/buyer/notifications/read-all", buyerToken],
++  ["/api/buyer/notifications/delete-read", buyerToken],
++  // Saved card/PayPal management is deliberately not proxied with Checkout.
++]);
++
++export function matchBuyerForwardRoute(method: string, pathname: string): BuyerForwardRoute | null {
++  if (/[^a-zA-Z0-9_/-]/.test(pathname)) return null;
++  if (method === "GET") return gets.get(pathname) ?? (buyerReview.test(pathname) ? buyerToken : null);
++  if (method === "POST") return posts.get(pathname) ?? (buyerReview.test(pathname) || buyerNoticeMutation.test(pathname) ? buyerToken : null);
++  return null;
++}
+diff --git a/lib/buyer-forward/sandbox-relay.ts b/lib/buyer-forward/sandbox-relay.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..ea6dd5962b94d0f43222e47503a32e72ffd198dd
+--- /dev/null
++++ b/lib/buyer-forward/sandbox-relay.ts
+@@ -0,0 +1,165 @@
++import { createHmac, randomBytes } from "node:crypto";
++import { firstOpenBuyerBinding } from "../deployments/execution/first-open-buyer-binding.ts";
++import { matchBuyerForwardRoute } from "./allowed-routes.ts";
++import { isFirstOpenBuyerSigningKey } from "./signer-binding.ts";
++import { firstOpenBuyerWire } from "./wire.mjs";
++
++export const buyerForwardConsoleOrigin = firstOpenBuyerWire.consoleOrigin;
++export const buyerForwardPrefix = firstOpenBuyerWire.prefix;
++const clientId = "speedfeast-sandbox-buyer-forward-v1";
++const permittedHeaders = ["authorization", "content-type", "x-store-id", "x-buyer-device-id", "x-buyer-platform"];
++const bearerPattern = /^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
++const jsonType = /^application\/json(?:\s*;\s*charset\s*=\s*utf-8)?$/i;
++const maximumRequestBytes = 64 * 1024;
++const maximumResponseBytes = 4 * 1024 * 1024;
++
++function replyHeaders(request: Request) {
++  const headers = new Headers({
++    "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
++    Vary: "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
++  });
++  if (request.headers.get("origin") === firstOpenBuyerBinding.buyerOrigin) {
++    headers.set("Access-Control-Allow-Origin", firstOpenBuyerBinding.buyerOrigin);
++  }
++  return headers; // No credentialed CORS, irrespective of the upstream response.
++}
++
++async function readBounded(body: ReadableStream<Uint8Array> | null, limit: number, signal: AbortSignal) {
++  if (!body) return "";
++  const chunks: Uint8Array[] = [];
++  const reader = body.getReader();
++  const stop = () => { void reader.cancel().catch(() => {}); };
++  signal.addEventListener("abort", stop, { once: true });
++  let bytes = 0, complete = false;
++  try {
++    for (;;) {
++      signal.throwIfAborted();
++      const part = await reader.read();
++      signal.throwIfAborted();
++      if (part.done) { complete = true; break; }
++      bytes += part.value.byteLength;
++      if (bytes > limit) throw Error("BODY_TOO_LARGE");
++      chunks.push(part.value);
++    }
++    return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(Buffer.concat(chunks, bytes));
++  } finally {
++    signal.removeEventListener("abort", stop);
++    if (!complete) stop();
++    reader.releaseLock();
++  }
++}
++
++function normalizeQuery(params: URLSearchParams, allowed: readonly string[]) {
++  const seen = new Map<string, string>();
++  for (const [key, value] of params) {
++    // A deliberately flat subset of A's qs codec. Unlisted, nested, multiple,
++    // and inherited property names cannot reach backend routing or signing.
++    if (!allowed.includes(key) || seen.has(key) || value.length > 2048 || /[\x00-\x1f\x7f\ufffd]/u.test(value)) return null;
++    seen.set(key, value);
++  }
++  const keys = [...seen.keys()].sort();
++  return { wire: new URLSearchParams(keys.map(key => [key, seen.get(key)!])), signed: keys.map(key => `${key}=${seen.get(key)}`).join("&") };
++}
++
++/** Authenticates this relay as a client of fixed version A, not its caller.
++ * JWT, account/tenant/store/order ownership, rate limits and buyer-access rules
++ * remain enforced by the API. Origin is only a browser CORS constraint. */
++export function createSandboxBuyerForward(deps: {
++  loadSigningKey(): unknown;
++  fetchUpstream(url: URL, options: RequestInit): Promise<Response>;
++}) {
++  return async (request: Request) => {
++    const resultHeaders = replyHeaders(request);
++    const error = (status: number, code: string) => Response.json(
++      { success: false, code, message: status >= 500 ? "Buyer service is unavailable." : "Buyer request was not accepted." },
++      { status, headers: resultHeaders },
++    );
++    const incoming = new URL(request.url);
++    if (incoming.origin !== buyerForwardConsoleOrigin || request.headers.get("origin") !== firstOpenBuyerBinding.buyerOrigin) {
++      return error(403, "BUYER_FORWARD_ORIGIN");
++    }
++    const path = incoming.pathname.slice(buyerForwardPrefix.length);
++    if (!incoming.pathname.startsWith(buyerForwardPrefix + "/api/") || incoming.hash || incoming.search.length > 8192) {
++      return error(404, "BUYER_FORWARD_ROUTE");
++    }
++    const preflight = request.method === "OPTIONS";
++    const method = preflight ? request.headers.get("access-control-request-method") ?? "" : request.method;
++    const allowed = matchBuyerForwardRoute(method, path);
++    if (!allowed) return error(404, "BUYER_FORWARD_ROUTE");
++    const query = normalizeQuery(incoming.searchParams, allowed.queryKeys);
++    if (!query || allowed.acceptsQueryValues?.(query.wire) === false) return error(400, "BUYER_FORWARD_QUERY");
++
++    if (preflight) {
++      const declared = (request.headers.get("access-control-request-headers") ?? "").toLowerCase().split(",").map(s => s.trim()).filter(Boolean);
++      if (declared.some(name => !permittedHeaders.includes(name))) return error(400, "BUYER_FORWARD_HEADERS");
++      resultHeaders.set("Access-Control-Allow-Methods", method);
++      resultHeaders.set("Access-Control-Allow-Headers", permittedHeaders.join(", "));
++      return new Response(null, { status: 204, headers: resultHeaders });
++    }
++
++    const headers = new Headers({ Accept: "application/json", Origin: firstOpenBuyerBinding.buyerOrigin });
++    const authorization = request.headers.get("authorization");
++    if (authorization !== null && (authorization.length > 4096 || !bearerPattern.test(authorization))) return error(401, "BUYER_FORWARD_BEARER");
++    if (allowed.bearer === "required" && !authorization) return error(401, "BUYER_FORWARD_BEARER");
++    if (authorization) headers.set("Authorization", authorization);
++    for (const name of ["x-store-id", "x-buyer-device-id", "x-buyer-platform"]) {
++      const value = request.headers.get(name);
++      if (value === null) continue;
++      if (!/^[A-Za-z0-9_-]{1,128}$/.test(value) || name === "x-buyer-platform" && value !== "web") {
++        return error(400, "BUYER_FORWARD_HEADERS");
++      }
++      headers.set(name, value);
++    }
++    headers.set("X-Buyer-Platform", "web");
++    if (request.headers.has("content-encoding")) return error(415, "BUYER_FORWARD_CONTENT");
++    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(12_000)]);
++    let body: string | undefined;
++    if (method === "POST") {
++      if (!jsonType.test(request.headers.get("content-type") ?? "")) return error(415, "BUYER_FORWARD_CONTENT");
++      try {
++        body = await readBounded(request.body, maximumRequestBytes, signal);
++        const value = JSON.parse(body);
++        if (!value || typeof value !== "object" || Array.isArray(value)) return error(400, "BUYER_FORWARD_JSON");
++        if (path === "/api/payments/create" && value.platform !== "web") return error(400, "BUYER_FORWARD_CHECKOUT_PLATFORM");
++      } catch {
++        return error(400, "BUYER_FORWARD_JSON");
++      }
++      headers.set("Content-Type", "application/json");
++    } else if (request.body) {
++      return error(400, "BUYER_FORWARD_CONTENT");
++    }
++
++    try {
++      signal.throwIfAborted();
++      const secret = deps.loadSigningKey();
++      if (!isFirstOpenBuyerSigningKey(secret)) return error(503, "BUYER_FORWARD_DISABLED");
++      const timestamp = String(Math.floor(Date.now() / 1_000)), nonce = randomBytes(16).toString("hex");
++      // A uses the original UTF-8 JSON bytes on writes and sorted qs values
++      // with `encode: false` for GET. Do not reserialize the signed body.
++      const signature = createHmac("sha256", secret).update(`${clientId}-${timestamp}-${nonce}-${body ?? query.signed}`).digest("base64");
++      headers.set("X-Client-Id", clientId);
++      headers.set("X-Timestamp", timestamp);
++      headers.set("X-Nonce", nonce);
++      headers.set("X-Signature", signature);
++      const upstreamUrl = new URL(firstOpenBuyerBinding.apiOrigin);
++      upstreamUrl.pathname = path; // Fixed host; allowed path never provides a URL or leading //.
++      upstreamUrl.search = query.wire.toString();
++      const upstream = await deps.fetchUpstream(upstreamUrl, { method, headers, body, cache: "no-store", redirect: "manual", signal });
++      if (upstream.status === 204) return new Response(null, { status: 204, headers: resultHeaders });
++      if (upstream.status < 200 || (upstream.status >= 300 && upstream.status < 400) || upstream.status >= 500 ||
++        !jsonType.test(upstream.headers.get("content-type") ?? "")) {
++        void upstream.body?.cancel().catch(() => {});
++        return error(502, "BUYER_FORWARD_UPSTREAM");
++      }
++      const response = await readBounded(upstream.body, maximumResponseBytes, signal);
++      // None of the vetted A routes intentionally return signatures, client
++      // keys, cookies or internal response headers. Fail on accidental echo.
++      if (response.includes(signature) || response.includes(secret)) return error(502, "BUYER_FORWARD_UPSTREAM");
++      JSON.parse(response);
++      resultHeaders.set("Content-Type", "application/json; charset=utf-8");
++      return new Response(response, { status: upstream.status, headers: resultHeaders });
++    } catch {
++      return error(502, "BUYER_FORWARD_UPSTREAM");
++    }
++  };
++}
+diff --git a/lib/buyer-forward/signer-binding.ts b/lib/buyer-forward/signer-binding.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..fdda1da435c02666239f22514ff53223dd2e999e
+--- /dev/null
++++ b/lib/buyer-forward/signer-binding.ts
+@@ -0,0 +1,20 @@
++import { firstOpenBuyerWire, hasFirstOpenBuyerSigningMaterial } from "./wire.mjs";
++
++export const firstOpenBuyerSignerEnvName = firstOpenBuyerWire.signerEnvName;
++export const firstOpenBuyerSignerSecretName = "techlong/sandbox/platform-web/buyer-forward/fc41597f-hmac-v1";
++const arnPrefix = `arn:aws:secretsmanager:ca-central-1:402010193138:secret:${firstOpenBuyerSignerSecretName}-`;
++
++export type FirstOpenBuyerSignerPin = Readonly<{ arn: string; versionId: string }>;
++
++export function isFirstOpenBuyerSignerPin(value: unknown): value is FirstOpenBuyerSignerPin {
++  if (!value || typeof value !== "object" || Object.keys(value).sort().join(",") !== "arn,versionId") return false;
++  const { arn, versionId } = value as Partial<FirstOpenBuyerSignerPin>;
++  return typeof arn === "string" && arn.startsWith(arnPrefix) && /^[A-Za-z0-9]{6}$/.test(arn.slice(arnPrefix.length)) &&
++    typeof versionId === "string" && /^[A-Za-z0-9-]{32,64}$/.test(versionId);
++}
++
++// Canonical base64url encoding of exactly 32 fresh random bytes, raw text.
++// Do not normalize/truncate, accept placeholders or parse a runtime JSON.
++export function isFirstOpenBuyerSigningKey(value: unknown): value is string {
++  return hasFirstOpenBuyerSigningMaterial(value);
++}
+diff --git a/lib/buyer-forward/wire.mjs b/lib/buyer-forward/wire.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..7eb6fd35cdbb55cf6e7d49742eb3a4f4e9eb8e99
+--- /dev/null
++++ b/lib/buyer-forward/wire.mjs
+@@ -0,0 +1,15 @@
++// Public constants, also loaded directly by the minimal Node hosting entry.
++const tenantId = "app_bbd626d7d3806af686073211";
++export const firstOpenBuyerWire = Object.freeze({
++  tenantId,
++  buyerOrigin: `https://${tenantId.replace("_", "-")}.sandbox.techlong.cloud`,
++  consoleOrigin: "https://console.sandbox.techlong.cloud",
++  prefix: "/api/buyer-forward",
++  signerEnvName: "FIRST_OPEN_BUYER_FORWARD_HMAC",
++});
++
++// 32 bytes form 42 complete Base64 characters and four remaining bits.
++// Require canonical zero padding bits; never write the value into policy state.
++export function hasFirstOpenBuyerSigningMaterial(value) {
++  return typeof value === "string" && /^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$/.test(value);
++}
+diff --git a/lib/deployments/execution/first-open-buyer-binding.ts b/lib/deployments/execution/first-open-buyer-binding.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..04e96a50f2844ac32050c7dad8809d6b032ae3f8
+--- /dev/null
++++ b/lib/deployments/execution/first-open-buyer-binding.ts
+@@ -0,0 +1,42 @@
++import { firstOpenBuyerWire } from "../../buyer-forward/wire.mjs";
++
++/** Public data only. The existing Sandbox beta buyer alias is not a tenant ID. */
++export const sandboxBuyerRuntimePath = "/buyer-runtime.json";
++export const sandboxBuyerPaymentPaths = Object.freeze({ success: "/payment-success", cancel: "/payment-cancel" });
++const sandboxSuffix = ".sandbox.techlong.cloud";
++const instanceIdPattern = /^app_[a-f0-9]{24}$/;
++
++export function bindSandboxBuyerOrigin(tenantId: string) {
++  if (!instanceIdPattern.test(tenantId)) throw Error("SANDBOX_BUYER_TENANT_ID_INVALID");
++  // Prefix and full ID suffix are preserved: no truncation or case folding.
++  const tenantLabel = tenantId.replace("_", "-");
++  const buyerHostname = tenantLabel + sandboxSuffix;
++  const apiHostname = `pending-${tenantLabel}${sandboxSuffix}`;
++  return Object.freeze({ tenantId, buyerHostname, apiHostname,
++    buyerOrigin: `https://${buyerHostname}`, apiOrigin: `https://${apiHostname}` });
++}
++
++const binding = bindSandboxBuyerOrigin(firstOpenBuyerWire.tenantId);
++export const firstOpenBuyerBinding = Object.freeze({ ...binding, parameters: Object.freeze({
++  ControlIssuer: "https://techlong.cloud",
++  CorsAllowedOrigins: binding.buyerOrigin,
++  // Stripe redirection is not a payment verdict. Neither landing needs a
++  // Checkout Session ID or any other Stripe data in the address or page.
++  StripeSuccessUrl: `${binding.buyerOrigin}${sandboxBuyerPaymentPaths.success}`,
++  StripeCancelUrl: `${binding.buyerOrigin}${sandboxBuyerPaymentPaths.cancel}`,
++}) });
++
++/** Complete the offline scope before sealing it; never silently rewrite a
++ * previously specified origin or redirect from a different tenant. */
++export function completeFirstOpenBuyerParameters(base: Readonly<Record<string, string>>) {
++  for (const [key, value] of Object.entries(firstOpenBuyerBinding.parameters)) {
++    if (Object.hasOwn(base, key) && base[key] !== value) throw Error("FIRST_OPEN_BUYER_PARAMETERS_CHANGED");
++  }
++  return { ...base, ...firstOpenBuyerBinding.parameters };
++}
++
++export function assertFirstOpenBuyerParameters(parameters: Readonly<Record<string, string>>) {
++  if (Object.entries(firstOpenBuyerBinding.parameters).some(([name, value]) => parameters[name] !== value)) {
++    throw Error("FIRST_OPEN_BUYER_PARAMETERS_CHANGED");
++  }
++}
+diff --git a/ops/platform-hosting-v1/Dockerfile b/ops/platform-hosting-v1/Dockerfile
+index e91f247078990506d56167b600d784a612f8233d..3b52f95d8d13ae5611365347e503e64dd0e2bcde 100644
+--- a/ops/platform-hosting-v1/Dockerfile
++++ b/ops/platform-hosting-v1/Dockerfile
+@@ -36,0 +37 @@ COPY --from=build --chown=node:node /app/lib/deployments/execution/hash.ts ./lib
++COPY --from=build --chown=node:node /app/lib/buyer-forward/wire.mjs ./lib/buyer-forward/
+diff --git a/ops/platform-hosting-v1/ingress.mjs b/ops/platform-hosting-v1/ingress.mjs
+index 8ef9bb4d98499e473a410cabd04d3089eab54462..d86c6e03b7f42fa775fa6fd9a3a29aad42e46eeb 100644
+--- a/ops/platform-hosting-v1/ingress.mjs
++++ b/ops/platform-hosting-v1/ingress.mjs
+@@ -1,0 +2 @@ import {must} from './contract.mjs';
++import {firstOpenBuyerWire,hasFirstOpenBuyerSigningMaterial} from '../../lib/buyer-forward/wire.mjs';
+@@ -3 +4 @@ import {must} from './contract.mjs';
+-export const PUBLIC_ORIGIN='https://console.sandbox.techlong.cloud';
++export const PUBLIC_ORIGIN=firstOpenBuyerWire.consoleOrigin;
+@@ -15 +16,2 @@ export function ingressPolicy(env,options){
+-    ...(env.TECHLONG_SANDBOX_FIRST_PURCHASE==='true'?{sandboxStripeWebhook:true}:{})});
++    ...(env.TECHLONG_SANDBOX_FIRST_PURCHASE==='true'?{sandboxStripeWebhook:true}:{}),
++    ...(hasFirstOpenBuyerSigningMaterial(env[firstOpenBuyerWire.signerEnvName])?{sandboxBuyerForward:true}:{})});
+@@ -44,0 +47,12 @@ export function checkIngress(req,policy){
++  const path=req.url.split('?',1)[0];
++  if(path===firstOpenBuyerWire.prefix||path.startsWith(firstOpenBuyerWire.prefix+'/')){
++    // No dot, encoded path, or ambiguous separator may normalize into a
++    // different platform route. The buyer handler independently checks its
++    // narrower method/path allowlist plus the JWT/transport boundary.
++    const route=path.slice(firstOpenBuyerWire.prefix.length);
++    if(!policy.sandboxBuyerForward||policy.mode!=='alb-https-v1'||
++      !/^\/api\/[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(route)||values.get('origin')!==firstOpenBuyerWire.buyerOrigin||
++      headers.cookie!==undefined||headers['next-action']!==undefined||values.has('stripe-signature')||
++      (values.has('sec-fetch-site')&&values.get('sec-fetch-site')!=='same-site'))return 403;
++    return ['GET','POST','OPTIONS'].includes(method)?0:405;
++  }

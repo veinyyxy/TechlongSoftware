@@ -16,6 +16,7 @@ const PRE_DAHLIA_RECIPE = 'b344a2e3f1c36ceeebca47b8d184f9e20fce8fa0c8d66e44ddcfb
 export const FIRST_PURCHASE = 'cdfa2e16aa6660698a2bce8b8a6a73b67616c1bc7d2955fc43291764abe9ed1d';
 export const CHECKOUT_REPAIR = 'b2faf785466efcef7aa4434b82c3a22b8537550c829525a3885b04105e3eaaff';
 export const BILLING_REPAIR = '1f01d6a8736504dad9c1351b1f8c6c6c142c2459ee158e17fb011e81d8a35f9c';
+export const BUYER_FORWARD = '35ec0afbe7d4d7f6f222f45edc261aeaf5b229fe49874817c0fedc3bf0c2e597';
 const REGISTRATION_TREE = '131fc5f0fd491e642916723ea0206cd0b03f413f';
 export const FIRST_PURCHASE_TREE = '5a818a48940e21b2d907d6b8a64ac902ff709299';
 export const CHECKOUT_REPAIR_TREE = '88749946405674d03892e241bbfc6f6153caa88c';
@@ -36,6 +37,22 @@ export const FIRST_PURCHASE_SMOKE = Object.freeze({
   outcome:'SANDBOX_FIRST_PURCHASE_SYNTHETIC_CALLBACK_PASSED',
   validOutOfScopeIgnored:true, liveModeIgnored:true, badSignatureRejected:true, exactRouteOnly:true, workerClosed:true,
 });
+const buyerForwardImageSchema = 'techlong/sandbox-first-open-buyer-forward-image/v1';
+
+async function buyerForwardRecipe() {
+  const source = await readFile(new URL('./buyer-forward-v1.source.json', import.meta.url),'utf8');
+  const canonicalText = source.replace(/\r\n/g,'\n');
+  assert.equal(hash(canonicalText), BUYER_FORWARD, 'reviewed buyer-forward recipe bytes');
+  const recipe = JSON.parse(canonicalText);
+  assert.equal(recipe.schema, 'techlong/sandbox-first-open-buyer-forward-source/v1');
+  assert.equal(recipe.baseRecipeSha256, BILLING_REPAIR);
+  assert.equal(recipe.baseTreeOid, BILLING_REPAIR_TREE);
+  assert.ok(OID.test(recipe.sourceTreeOid) && recipe.sourceTreeOid!==recipe.baseTreeOid);
+  assert.equal(recipe.overlay.length,8);
+  const patch=(await readFile(new URL('./buyer-forward-v1.patch', import.meta.url),'utf8')).replace(/\r\n/g,'\n');
+  assert.equal(hash(patch),recipe.patchSha256,'reviewed buyer-forward patch bytes');
+  return {recipe,patch};
+}
 
 async function reviewedProfile(review) {
   assert.ok(review===REGISTRATION || isFirstPurchase(review), 'reviewed recipe ID');
@@ -100,12 +117,14 @@ async function reviewedProfile(review) {
   return {recipe:final,schema,treeOid:BILLING_REPAIR_TREE};
 }
 
-const git = (args, env=process.env) => execFileSync('git', ['-C',root,...args], {
-  env, maxBuffer: 4*1024*1024, stdio:['ignore','pipe','ignore'],
+const git = (args, env=process.env, input) => execFileSync('git', ['-C',root,...args], {
+  env, input, maxBuffer: 4*1024*1024, stdio:[input===undefined?'ignore':'pipe','pipe','ignore'],
 });
 export async function buildCandidateArchive(dir, review=REGISTRATION) {
   assert.ok(path.isAbsolute(dir));
-  const {recipe,treeOid}=await reviewedProfile(review);
+  const overlay=review===BUYER_FORWARD ? await buyerForwardRecipe() : null;
+  const baseReview=overlay ? BILLING_REPAIR : review;
+  const {recipe,treeOid}=await reviewedProfile(baseReview);
   assert.ok(OID.test(recipe.base));
   const objects=path.join(dir,'objects');
   await mkdir(dir);
@@ -117,7 +136,7 @@ export async function buildCandidateArchive(dir, review=REGISTRATION) {
   const ancestry=new Set();
   const expected=[];
   for(const f of recipe.overlay) {
-    const source=isFirstPurchase(review) ? f.source : recipe.fix;
+    const source=isFirstPurchase(baseReview) ? f.source : recipe.fix;
     assert.ok(OID.test(source));
     if(!ancestry.has(source)) {
       git(['merge-base','--is-ancestor',recipe.base,source]);
@@ -127,7 +146,7 @@ export async function buildCandidateArchive(dir, review=REGISTRATION) {
     const entry=git(['ls-tree',source,'--',pathspec]).toString().trim();
     const parts=/^100644 blob ([a-f0-9]{40})\t([^\n]+)$/.exec(entry);
     assert.ok(parts?.[2]===f.path && SHA.test(f.sha256));
-    if(isFirstPurchase(review)) assert.equal(parts[1], f.blob);
+    if(isFirstPurchase(baseReview)) assert.equal(parts[1], f.blob);
     assert.equal(hash(git(['cat-file','blob',parts[1]])),f.sha256);
     const old=git(['ls-tree',recipe.base,'--',pathspec]).toString().trim();
     assert.notEqual(old,entry,'overlay must change the pinned base');
@@ -138,8 +157,22 @@ export async function buildCandidateArchive(dir, review=REGISTRATION) {
   assert.equal(tree,treeOid,'reviewed source tree');
   const changed=git(['diff-tree','--no-commit-id','--name-status','-r',recipe.base,tree],env).toString().trim().split('\n');
   assert.deepEqual(changed.sort(),expected.sort());
-  git(['archive','--format=tar',`--output=${path.join(dir,'source.tar')}`,tree],env);
-  const proof={sourceRecipe:recipe,sourceRecipeSha256:review,sourceTreeOid:tree};
+  let stagedTree=tree;
+  if(overlay) {
+    // Zero context is safe only with the exact prior tree, patch hash, and final tree/blob checks.
+    git(['apply','--cached','--unidiff-zero','--whitespace=error-all','-'],env,overlay.patch);
+    stagedTree=git(['write-tree'],env).toString().trim();
+    assert.equal(stagedTree,overlay.recipe.sourceTreeOid,'exact buyer-forward source tree');
+    const delta=git(['diff-tree','--no-commit-id','--name-status','--no-renames','-r',tree,stagedTree],env).toString().trim().split('\n');
+    assert.deepEqual(delta,overlay.recipe.overlay.map(f=>`${f.action}\t${f.path}`));
+    for(const f of overlay.recipe.overlay) {
+      assert.equal(git(['ls-tree',stagedTree,'--',':(literal)'+f.path],env).toString().trim(),
+        `100644 blob ${f.blob}\t${f.path}`);
+      assert.equal(hash(git(['cat-file','blob',f.blob],env)),f.sha256);
+    }
+  }
+  git(['archive','--format=tar',`--output=${path.join(dir,'source.tar')}`,stagedTree],env);
+  const proof={sourceRecipe:overlay?.recipe??recipe,sourceRecipeSha256:review,sourceTreeOid:stagedTree};
   await writeFile(path.join(dir,'source-proof.json'),JSON.stringify(proof,null,2)+'\n',{flag:'wx'});
   return proof;
 }
@@ -170,7 +203,9 @@ function inspectConfig(rows) {
 }
 async function seal(dir,cache,review) {
   const e=process.env;
-  const {recipe,schema,treeOid}=await reviewedProfile(review);
+  const overlay=review===BUYER_FORWARD ? await buyerForwardRecipe() : null;
+  const {recipe,schema,treeOid}=overlay ?
+    {recipe:overlay.recipe,schema:buyerForwardImageSchema,treeOid:overlay.recipe.sourceTreeOid} : await reviewedProfile(review);
   assert.ok(e.GITHUB_ACTIONS==='true' && e.GITHUB_EVENT_NAME==='workflow_dispatch' && e.GITHUB_REF==='refs/heads/main' &&
     e.GITHUB_REPOSITORY==='veinyyxy/TechlongSoftware' && e.GITHUB_REPOSITORY_ID==='1323312747' && e.GITHUB_RUN_ATTEMPT==='1' &&
     OID.test(e.GITHUB_SHA) && e.GITHUB_SHA===e.REVIEWED_ORCHESTRATION_SHA && /^[1-9][0-9]{5,19}$/.test(e.GITHUB_RUN_ID));
@@ -178,7 +213,7 @@ async function seal(dir,cache,review) {
   const proof=await readJson(path.join(dir,'source-proof.json'),8192);
   assert.deepEqual(proof.sourceRecipe,recipe); assert.equal(proof.sourceRecipeSha256,review); assert.equal(proof.sourceTreeOid,treeOid);
   const smoke={networkDisabled:true,closedControl:true,healthAndLogin:true,registrationPageGetOnly:true};
-  if(isFirstPurchase(review)) {
+  if(isFirstPurchase(review)||overlay) {
     const extra=await readJson(path.join(dir,'first-purchase-smoke.json'),1024);
     assert.deepEqual(extra,FIRST_PURCHASE_SMOKE);
     smoke.firstPurchaseSyntheticCallback=extra;
