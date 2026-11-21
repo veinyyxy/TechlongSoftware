@@ -126,7 +126,7 @@ test('the original manual caller routes each fixed artifact to its own reviewed 
   assert.notEqual(next.S.publicReviewFile,stopped.S.publicReviewFile);
   assert.throws(()=>dahliaFirstPurchaseSourceContext({...dahliaSealedSizeFix,reusableCiRun:stopped.S.reusableCiRun}),/CI_PIN/);
   assert.deepEqual(Object.keys(selector.on),['workflow_dispatch']);
-  assert.deepEqual(Object.keys(selector.jobs),['reviewed-publication','reviewed-first-purchase-publication','reviewed-checkout-repair-publication','reviewed-billing-repair-publication']);
+  assert.deepEqual(Object.keys(selector.jobs),['reviewed-publication','reviewed-first-purchase-publication','reviewed-checkout-repair-publication','reviewed-billing-repair-publication','reviewed-buyer-forward-publication']);
   const reusable=`${C.repository}/.github/workflows/${C.reusableFile}@`;
   for(const [name,{P,S}] of [['reviewed-publication',old],['reviewed-first-purchase-publication',next]]) {
     const job=selector.jobs[name];
@@ -145,6 +145,12 @@ test('the original manual caller routes each fixed artifact to its own reviewed 
   assert.deepEqual(repair.permissions,{contents:'read',actions:'read','id-token':'write'});
   assert.deepEqual(repair.with,selector.jobs['reviewed-first-purchase-publication'].with);
   const billing=selector.jobs['reviewed-billing-repair-publication'];
+  const buyer=selector.jobs['reviewed-buyer-forward-publication'];
+  const buyerPin='a3f1cefcd72246e76c9a1b46634dc4da4a90d75f';
+  assert.equal(buyer.uses,reusable+buyerPin);
+  assert.equal(buyer.if,"github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && github.sha == fromJSON(inputs.review_json).dispatchCommit && fromJSON(inputs.review_json).candidate.artifactId == "+BF.artifactId+" && fromJSON(inputs.review_json).reusableCommit == '"+buyerPin+"'");
+  assert.deepEqual(buyer.permissions,billing.permissions);
+  assert.deepEqual(buyer.with,billing.with);
   assert.equal(billing.if,"github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && fromJSON(inputs.review_json).candidate.artifactId == "+B.artifactId);
   assert.equal(billing.uses,reusable+'89230b2628d9719157f0a79d7ab27e5a1c091728');
   assert.deepEqual(billing.permissions,repair.permissions);

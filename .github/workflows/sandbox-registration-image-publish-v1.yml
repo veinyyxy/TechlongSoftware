@@ -53,3 +53,13 @@ jobs:
     with:
       review_json: ${{ inputs.review_json }}
       review_sha: ${{ inputs.review_sha }}
+  reviewed-buyer-forward-publication:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && github.sha == fromJSON(inputs.review_json).dispatchCommit && fromJSON(inputs.review_json).candidate.artifactId == 14714442097 && fromJSON(inputs.review_json).reusableCommit == 'a3f1cefcd72246e76c9a1b46634dc4da4a90d75f'
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    uses: veinyyxy/TechlongSoftware/.github/workflows/sandbox-registration-image-publish-job-v1.yml@a3f1cefcd72246e76c9a1b46634dc4da4a90d75f
+    with:
+      review_json: ${{ inputs.review_json }}
+      review_sha: ${{ inputs.review_sha }}
