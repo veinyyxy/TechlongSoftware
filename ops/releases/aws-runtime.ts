@@ -33,7 +33,11 @@ export async function requireHumanReview(job: ReleaseIdentityJob, config: Releas
 
 export async function assumeReleaseIdentity(job: ReleaseIdentityJob, config: ReleaseEnvironmentConfig,
   purpose: "planner" | "executor" | "verifier" | "publisher", environment: NodeJS.ProcessEnv, fetcher: typeof fetch = fetch,
-  createClient = (region: string) => new STSClient({ region, maxAttempts: 1, endpoint: `https://sts.${region}.amazonaws.com` })): Promise<ReleaseCredentials> {
+  createClient = (region: string) => new STSClient({ region, maxAttempts: 1, endpoint: `https://sts.${region}.amazonaws.com` }),
+  boundedPublisher?: { readonly durationSeconds: 900; readonly policy: string }): Promise<ReleaseCredentials> {
+  if (boundedPublisher && (purpose !== "publisher" || boundedPublisher.durationSeconds !== 900 || boundedPublisher.policy.length > 2048)) {
+    throw new Error("RELEASE_PUBLISHER_SESSION_SCOPE_REJECTED");
+  }
   const url = new URL(environment.ACTIONS_ID_TOKEN_REQUEST_URL ?? "");
   if (url.protocol !== "https:" || !url.hostname.endsWith(".actions.githubusercontent.com") || !environment.ACTIONS_ID_TOKEN_REQUEST_TOKEN) throw new Error("RELEASE_OIDC_UNAVAILABLE");
   url.searchParams.set("audience", "sts.amazonaws.com");
@@ -51,7 +55,8 @@ export async function assumeReleaseIdentity(job: ReleaseIdentityJob, config: Rel
   try {
     const result = await client.send(new AssumeRoleWithWebIdentityCommand({
       RoleArn: purpose === "planner" ? config.prepareRoleArn : purpose === "executor" ? config.executionRoleArn : purpose === "publisher" ? config.promotion?.roleArn : config.inspectionRoleArn,
-      RoleSessionName: `release-${job.runId}-${purpose}`, WebIdentityToken: token, DurationSeconds: 3600,
+      RoleSessionName: `release-${job.runId}-${purpose}`, WebIdentityToken: token, DurationSeconds: boundedPublisher?.durationSeconds ?? 3600,
+      ...(boundedPublisher ? { Policy: boundedPublisher.policy } : {}),
     }));
     const c = result.Credentials;
     if (!c?.AccessKeyId || !c.SecretAccessKey || !c.SessionToken || !c.Expiration || c.Expiration.getTime() <= Date.now() + 300_000) throw new Error("RELEASE_CREDENTIALS_UNAVAILABLE");
@@ -111,11 +116,19 @@ const awsCommand: ReleaseAwsCommand = (args, env) => new Promise((resolve, rejec
 
 /** CLI is used only for the fixed read APIs not already exposed by existing write SDK adapters.
  * Each snapshot gets a fresh bounded counter. No credentials/config files or write verbs are accepted. */
-export function releaseMetadataApi(config: ReleaseEnvironmentConfig, credentials: ReleaseCredentials,
+export function releaseMetadataApi(config: Pick<ReleaseEnvironmentConfig, "region" | "maxMetadataCallsPerSnapshot"> & {
+  /** Only the fixed first-open readiness port supplies an exact approved ARN. */
+  firstOpenTrustStoreArn?: string;
+}, credentials: ReleaseCredentials,
   command: ReleaseAwsCommand = awsCommand, fetcher: typeof fetch = fetch, parent: NodeJS.ProcessEnv = process.env): ReleaseMetadataApi {
   let used = 0, technical = 0;
   return { read: async <T>(service: string, operation: string, input: Record<string, unknown>) => {
-    if (!reads[service]?.includes(operation) || ++used > config.maxMetadataCallsPerSnapshot || credentials.expiresAt <= Date.now()) throw new Error("RELEASE_METADATA_SCOPE_OR_BUDGET_REJECTED");
+    const trust = config.firstOpenTrustStoreArn;
+    const exactFirstOpenTrust = service === "elbv2" && operation === "describe-trust-stores" && config.region === "ca-central-1" &&
+      Boolean(trust && /^arn:aws:elasticloadbalancing:ca-central-1:402010193138:truststore\/[a-zA-Z0-9._-]+\/[a-f0-9]+$/.test(trust)) &&
+      Object.keys(input).length === 1 && Array.isArray(input.TrustStoreArns) && input.TrustStoreArns.length === 1 && input.TrustStoreArns[0] === trust;
+    if ((!reads[service]?.includes(operation) && !exactFirstOpenTrust) || ++used > config.maxMetadataCallsPerSnapshot ||
+      credentials.expiresAt <= Date.now()) throw new Error("RELEASE_METADATA_SCOPE_OR_BUDGET_REJECTED");
     const env = { ...releaseChildEnvironment(parent), AWS_ACCESS_KEY_ID: credentials.accessKeyId, AWS_SECRET_ACCESS_KEY: credentials.secretAccessKey,
       AWS_SESSION_TOKEN: credentials.sessionToken, AWS_MAX_ATTEMPTS: "1", AWS_EC2_METADATA_DISABLED: "true", AWS_PAGER: "",
       AWS_CONFIG_FILE: devNull, AWS_SHARED_CREDENTIALS_FILE: devNull };

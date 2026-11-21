@@ -1,4 +1,5 @@
 import { firstOnboardingExpressNames, type FirstOnboardingReview } from "../first-onboarding.ts";
+import type { FirstOpenBuyerSignerPin } from "../../buyer-forward/signer-binding.ts";
 import type { ReleaseSamplingBinding } from "../releases/sampling.ts";
 import type { AwsEcsCellDeploymentPlan } from "../types.ts";
 import type { AwsSandboxTenantStackInput } from "../cloudformation/tenant-stack.ts";
@@ -23,6 +24,8 @@ export interface FirstOnboardingExpressApproval {
   lifecycleRoleArn: string;
   independentRoleArn: string;
   environmentParametersSha256: string;
+  /** The real fc41597f entry requires this exact approved signer-only version. */
+  buyerForwardSigner?: FirstOpenBuyerSignerPin;
   sampling: ReleaseSamplingBinding; // static; contains only the exact control public key reference
   mediaPublicBaseUrl: string;
 }
@@ -50,9 +53,20 @@ export interface FirstOnboardingExpressPorts {
     createInitial(input: EnsureSecret & { name: string; requestSha256: string; initialVersionId: string }):
       Promise<{ requestSha256: string; metadata: TenantSecretInspection }>;
   };
+  /** Fixed RunOnce only: initialize control with already-verified g1 facts
+   * from the recipe, not with guessed OIDs or the previous tenant's Secret. */
+  onVerifiedControlMaterial?(input: { identity: FirstOnboardingDatabaseIdentity;
+    runtimeSecret: ReleaseSamplingBinding["secrets"][number];
+    context: DeploymentExecutionContext; fence: TenantExternalOperationFence }): Promise<void>;
 }
 
 function reject(code: string): never { throw Object.assign(Error(code), { code, retryable: false }); }
+
+export function firstOnboardingInitialSecretVersion(input: { approvalSha256: string; name: string; jobId: string;
+  epoch: TenantExternalOperationFence; baselineDigest: string }) {
+  return sha256Hex({ kind: "first-onboarding-g1-initial-secret", approvalSha256: input.approvalSha256, name: input.name,
+    jobId: input.jobId, epoch: input.epoch, baselineDigest: input.baselineDigest });
+}
 
 export function assertInitialSecretVersion(metadata: { ARN?: string; DeletedDate?: unknown; RotationEnabled?: boolean;
   VersionIdsToStages?: Record<string, string[]> }, arn: string, versionId: string) {
@@ -61,15 +75,41 @@ export function assertInitialSecretVersion(metadata: { ARN?: string; DeletedDate
     !metadata.VersionIdsToStages?.[versionId]?.includes("AWSCURRENT")) reject("FIRST_ONBOARDING_SECRET_VERSION_CHANGED");
 }
 
-/** One in-process composition for one held task. No connections or write clients are created here. */
+export function firstOpenExpressDatabaseBinding(a: FirstOnboardingExpressApproval, runtimeSecret: ReleaseSamplingBinding["secrets"][number]) {
+  const { target, applicationRoleArn } = a;
+  return parseDatabaseBindingV2({
+    schema: "techlong/database-binding/v2", profile: "express_iam", tlsTrust: "ats-roots/v1",
+    clusterArn: target.clusterArn, clusterResourceId: target.clusterResourceId, endpoint: target.endpoint, port: target.port,
+    observedEngineVersion: target.observedEngineVersion, tenantDatabase: target.tenantDatabase, tenantUsername: target.tenantUsername,
+    managementDatabase: target.managementDatabase, managementUsername: target.managementUsername,
+    stableIdentity: target.stableIdentity, resourceGeneration: target.resourceGeneration, runtimeSecret,
+    access: { authentication: "iam", internetAccessGatewayEnabled: true, applicationRoleArn, lifecycleRoleArn: a.lifecycleRoleArn },
+  });
+}
+
+/** Re-render approved inputs; never use an observed template as the expectation. */
+export async function renderFirstOpenExpressTemplate(stackInput: AwsSandboxTenantStackInput, a: FirstOnboardingExpressApproval,
+  material: { identity: FirstOnboardingDatabaseIdentity; sampling: ReleaseSamplingBinding }, configurationHash: string) {
+  const { sampling } = a, { identity, sampling: completed } = material;
+  const r = await renderExpressSingleTenantWorkloadV1({ workload: stackInput, databaseOid: identity.databaseOid,
+    roleOid: identity.roleOid, configurationHash,
+    binding: firstOpenExpressDatabaseBinding(a, completed.secrets[1]),
+  });
+  const resources = r.template.Resources as Record<string, { Properties: { ContainerDefinitions: { Environment: { Name: string; Value: unknown }[] }[] } }>;
+  const container = resources.TenantTaskDefinition.Properties.ContainerDefinitions[0];
+  const media = { IMAGE_STORAGE_PROVIDER: "s3", IMAGE_S3_BUCKET: sampling.persistence.bucket,
+    IMAGE_PUBLIC_BASE_URL: a.mediaPublicBaseUrl, ALLOW_EPHEMERAL_IMAGE_STORAGE: "false" };
+  container.Environment = [...container.Environment.filter(e => !Object.hasOwn(media, e.Name)),
+    ...Object.entries(media).map(([Name, Value]) => ({ Name, Value }))];
+  return { ...r, templateBody: canonicalJson(r.template), templateSha256: await sha256Hex(r.template) };
+}
+
+/** One composition for one held task. No connections or write clients are created here. */
 export async function composeFirstOnboardingExpress(input: {
   approval: FirstOnboardingExpressApproval; approvalSha256: string; review: FirstOnboardingReview;
   hostname: string; schemaVersion: string; baselineDigest: string; plan: AwsEcsCellDeploymentPlan;
   ports: FirstOnboardingExpressPorts; now: () => number; deadline: number;
-  readSecretMetadata(arn: string, signal: AbortSignal): Promise<{
-    ARN?: string; DeletedDate?: unknown; RotationEnabled?: boolean;
-    VersionIdsToStages?: Record<string, string[]>;
-  }>;
+  verifyInitialSecret(ack: { arn: string; versionId: string; externalFence: TenantExternalOperationFence }, signal: AbortSignal): Promise<void>;
 }) {
   const a = structuredClone(input.approval), { target, baseline, sampling, applicationRoleArn } = a, { ports, review } = input;
   const scope = review.payload.scope;
@@ -106,7 +146,7 @@ export async function composeFirstOnboardingExpress(input: {
   const program = compileExpressBootstrapCandidateV3({ target, scope: tenant, nonce: a.nonce });
   if (baseline.archiveSha256 !== input.baselineDigest || baseline.archiveSha256 !== program.baseline.archiveSha256 ||
     baseline.manifestSha256 !== program.baseline.manifestSha256) reject("FIRST_ONBOARDING_BASELINE_PIN_CHANGED");
-  validateApprovedBaseline(baseline, true);
+  validateApprovedBaseline(baseline, review.jobId);
   const window = (signal?: AbortSignal) => {
     signal?.throwIfAborted();
     if (input.now() >= input.deadline) reject("FIRST_ONBOARDING_WINDOW_CLOSED");
@@ -196,7 +236,7 @@ export async function composeFirstOnboardingExpress(input: {
         checkFence(x);
         if (createSent) reject("FIRST_ONBOARDING_SECRET_ALREADY_SUBMITTED");
         const name = deriveTenantRuntimeSecretName(x.fence);
-        const requestSha256 = await sha256Hex({ kind: "first-onboarding-g1-initial-secret", approvalSha256: input.approvalSha256,
+        const requestSha256 = await firstOnboardingInitialSecretVersion({ approvalSha256: input.approvalSha256,
           name, jobId: review.jobId, epoch: x.externalFence, baselineDigest: baseline.archiveSha256 });
         window(x.signal);
         createSent = true;
@@ -207,9 +247,8 @@ export async function composeFirstOnboardingExpress(input: {
           !m.secretRef?.startsWith(prefix) || !/^[A-Za-z0-9]{6}$/.test(m.secretRef.slice(prefix.length)) ||
           m.ownershipMarker !== x.fence.ownershipMarker || canonicalJson(m.fence) !== canonicalJson(x.fence) ||
           epoch(m.externalFence) !== epoch(x.externalFence)) reject("FIRST_ONBOARDING_SECRET_ACK_CHANGED");
-        const observed = await input.readSecretMetadata(m.secretRef, x.signal);
+        await input.verifyInitialSecret({ arn: m.secretRef, versionId: requestSha256, externalFence: x.externalFence }, x.signal);
         window(x.signal);
-        assertInitialSecretVersion(observed, m.secretRef, requestSha256);
         created = { arn: m.secretRef, versionId: requestSha256, epoch: epoch(x.externalFence) };
         return { fence: x.fence, externalFence: x.externalFence, outcome: "created", secretRef: created.arn,
           versionRef: created.versionId, ownershipMarker: x.fence.ownershipMarker };
@@ -234,28 +273,15 @@ export async function composeFirstOnboardingExpress(input: {
     },
     async render(stackInput: AwsSandboxTenantStackInput, context: DeploymentExecutionContext) {
       await this.assertContext(context);
-      const { identity, sampling: completed } = material();
+      const evidence = material();
       if (stackInput.runtimeSecretRef !== created?.arn || !context.tenantExternalOperation ||
         epoch(context.tenantExternalOperation) !== created.epoch ||
         context.tenantResources?.identity.stableIdentityHash !== names.stableIdentity) reject("FIRST_ONBOARDING_EXPRESS_RENDER_FENCE_CHANGED");
-      const r = await renderExpressSingleTenantWorkloadV1({ workload: stackInput, databaseOid: identity.databaseOid,
-        roleOid: identity.roleOid, configurationHash: context.deployment.configurationHash,
-        binding: parseDatabaseBindingV2({
-          schema: "techlong/database-binding/v2", profile: "express_iam", tlsTrust: "ats-roots/v1",
-          clusterArn: target.clusterArn, clusterResourceId: target.clusterResourceId, endpoint: target.endpoint, port: target.port,
-          observedEngineVersion: target.observedEngineVersion, tenantDatabase: target.tenantDatabase, tenantUsername: target.tenantUsername,
-          managementDatabase: target.managementDatabase, managementUsername: target.managementUsername,
-          stableIdentity: target.stableIdentity, resourceGeneration: target.resourceGeneration, runtimeSecret: completed.secrets[1],
-          access: { authentication: "iam", internetAccessGatewayEnabled: true, applicationRoleArn, lifecycleRoleArn: a.lifecycleRoleArn },
-        }),
-      });
-      const resources = r.template.Resources as Record<string, { Properties: { ContainerDefinitions: { Environment: { Name: string; Value: unknown }[] }[] } }>;
-      const container = resources.TenantTaskDefinition.Properties.ContainerDefinitions[0];
-      const media = { IMAGE_STORAGE_PROVIDER: "s3", IMAGE_S3_BUCKET: sampling.persistence.bucket,
-        IMAGE_PUBLIC_BASE_URL: a.mediaPublicBaseUrl, ALLOW_EPHEMERAL_IMAGE_STORAGE: "false" };
-      container.Environment = [...container.Environment.filter(e => !Object.hasOwn(media, e.Name)),
-        ...Object.entries(media).map(([Name, Value]) => ({ Name, Value }))];
-      return { ...r, templateBody: canonicalJson(r.template), templateSha256: await sha256Hex(r.template) };
+      const rendered = await renderFirstOpenExpressTemplate(stackInput, a, evidence, context.deployment.configurationHash);
+      await ports.onVerifiedControlMaterial?.({ identity: evidence.identity, runtimeSecret: evidence.sampling.secrets[1],
+        context, fence: context.tenantExternalOperation });
+      window();
+      return rendered;
     },
   };
 }

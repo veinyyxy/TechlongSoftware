@@ -1,0 +1,101 @@
+{
+  "schema": "techlong/sandbox-first-open-lifecycle-iam-alignment/v1",
+  "status": "OFFLINE_DRAFT_LOCKED_NOT_APPROVED",
+  "jobId": "job_fc41597f9b5ba8e02b338ecf",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917",
+  "bases": {
+    "currentOriginalReceipt": "docs/evidence/sandbox-first-open-fc41597f-iam-originals.observed.json",
+    "currentOriginalRawSha256": "5027c73de759e5ca8e753e3bc7735a46b6b77b7f4bf4358752733fee93994360",
+    "liveInlineDiff": "docs/evidence/sandbox-first-open-fc41597f-lifecycle-inline-diff.observed.json",
+    "c4eReceipt": "ops/aws-sandbox/reviews/aurora-express-c4e-runtime-iam.executed.json",
+    "c4eArchivedProgramRawSha256": "2cdc36c59d911797a4e0fd516794dcc7256c952e8aac3fc83b29d093a1e95ace"
+  },
+  "delta": {
+    "expected": [
+      {
+        "logicalId": "TenantLifecycleTaskRole",
+        "action": "Modify",
+        "replacement": false
+      }
+    ],
+    "inlinePolicy": "ImmutableReceiptsAndGenerationSecretRead",
+    "existingEffectiveStatementsPreserved": 6,
+    "oldStatementsReturnedToTemplate": [
+      "C4eMgmtConnect",
+      "C4eSecretRead"
+    ],
+    "newDenies": [
+      "FirstOpenDenySecretBySessionId",
+      "FirstOpenDenySecretByOidcSubject",
+      "FirstOpenLockDatabaseBySessionId",
+      "FirstOpenLockDatabaseByOidcSubject"
+    ],
+    "newAllows": 0,
+    "trustChanged": false,
+    "boundaryChanged": false,
+    "includesPermissionActivation": false
+  },
+  "isolation": {
+    "sessionName": "first-open-fc41597f-lifecycle-g1",
+    "roleId": "AROAV3GNMXTZDIWVT3BKN",
+    "selectors": [
+      "exact aws:userid",
+      "exact token.actions.githubusercontent.com:sub"
+    ],
+    "independentDenies": true,
+    "matchingFutureSessionSecretValueReadsDenied": true,
+    "matchingFutureSessionDatabaseLoginDenied": true,
+    "liveSelectorsVerified": false,
+    "mustProveSessionNameEnforcementAndLegacyNonmatchBeforeApproval": true
+  },
+  "management": {
+    "default": "DENY_ALL_NEW_DATABASE_LOGIN",
+    "eventualEligibleOperations": [
+      "approved-g1-empty-database-initialization",
+      "restore-exact-pinned-baseline",
+      "approved-saas-migrations",
+      "activate-exact-application-login"
+    ],
+    "iamCannotConstrainSqlCommands": true,
+    "proofOfSqlBoundaryRequiredBeforeAnySeparateUnlock": true,
+    "newLoginOrSqlPermissionsCreated": 0
+  },
+  "privateCandidate": {
+    "directory": ".local-secrets/first-open-fc41597f-lifecycle-align-d2a01ec02ba08dfb",
+    "verifiedAcl": true,
+    "notTracked": true,
+    "files": [
+      {
+        "name": "candidate.template.yaml",
+        "bytes": 56090,
+        "sha256": "8df605ab28544e61699bd5e93b45e5f80bb54404912606fbd7d134b630f395aa"
+      },
+      {
+        "name": "change.patch.json",
+        "bytes": 5084,
+        "sha256": "12c125164956f444ec964674a1bb9f977a44e93c5103e517a50a048778ce4050"
+      }
+    ],
+    "canonicalTemplateSha256": "d2a01ec02ba08dfbd2848a9373e0854a2fd7246be3af3f83c4ed15b9aff3b948",
+    "canonicalInlineSha256": "864e87d6225d5ae24289ed8088eea51b11b73ae00b250cf5876643cb8fc7bf53",
+    "inlineJsonBytes": 3007
+  },
+  "offlineChecks": {
+    "exactDeltaReproducesTemplate": true,
+    "rejectsUnsealedBaseline": true,
+    "rejectsUnsealedHistoricalPolicy": true,
+    "roundTrip": true,
+    "selectorMatrixPassed": true,
+    "selectorMatrixIsNotIamSimulation": true
+  },
+  "noLiveActivity": {
+    "aws": 0,
+    "iamWrites": 0,
+    "cloudFormationWrites": 0,
+    "sql": 0,
+    "secretValueReads": 0,
+    "dispatches": 0,
+    "claims": 0
+  },
+  "executionApprovalSha256": null
+}

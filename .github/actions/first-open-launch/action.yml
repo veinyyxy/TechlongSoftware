@@ -1,0 +1,9 @@
+name: Launch the reviewed first-open role
+description: Carries the same run's GitHub artifact runtime context to the reviewed launcher
+inputs:
+  role:
+    required: true
+    description: The literal role selected by the protected workflow
+runs:
+  using: node24
+  main: launch.cjs

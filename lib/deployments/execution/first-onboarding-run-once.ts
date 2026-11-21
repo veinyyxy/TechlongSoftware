@@ -1,21 +1,26 @@
 import { CLAIM_FIRST_ONBOARDING, SELECT_FIRST_ONBOARDING } from "../first-onboarding.ts";
+import { isFirstOpenBuyerSignerPin } from "../../buyer-forward/signer-binding.ts";
+import { FIRST_OPEN_MANAGEMENT_SQL_USER, parseExpressManagementTargetV3 } from "./aurora-express-bootstrap-v3.ts";
 import { awsSandboxTenantStackName } from "../cloudformation/tenant-stack.ts";
-import type { AwsDeploymentPort, DeploymentExecutionRepository, DeploymentJobLeaseFence } from "./contracts.ts";
-import { FIRST_OPEN_BASELINE_OBJECTS, isFixedFirstOpenBaseline } from "./first-onboarding-baseline-versions.ts";
+import type { AwsDeploymentPort, DeploymentExecutionBinding, DeploymentExecutionRepository, DeploymentJobLeaseFence } from "./contracts.ts";
+import { FIRST_OPEN_BASELINE_BINDING, isFixedFirstOpenBaseline } from "./first-onboarding-baseline-versions.ts";
+import { firstOpenBuyerBinding } from "./first-open-buyer-binding.ts";
+import { assertFirstOpenClaimTime, FIRST_OPEN_CELL_STACK, firstOpenExecutionWindow } from "./first-onboarding-window.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
-import type { SupervisedWorkloadAwsPort } from "./single-tenant-workload-strategy.ts";
+import { firstOpenVersion, verifyFirstOpenTaskRelease } from "./first-onboarding-version.ts";
+import { attachFirstOpenTaskBinding, isFirstOpenTaskBinding, type SupervisedWorkloadAwsPort } from "./single-tenant-workload-strategy.ts";
 import { DisabledTenantDatabasePort, validateApprovedBaseline } from "./tenant-database.ts";
 import { runReviewedFirstOnboarding, type DeploymentWorkerDependencies } from "./worker.ts";
 
 export const SANDBOX_FIRST_OPEN = Object.freeze({
-  jobId: "job_fc41597f9b5ba8e02b338ecf", deploymentId: "dep_746535593025bf97a9efeccd",
-  instanceId: "app_bbd626d7d3806af686073211", subscriptionId: "sub_f0dea547d45bcd26ed823fd7",
+  jobId: FIRST_OPEN_BASELINE_BINDING.jobId, deploymentId: "dep_746535593025bf97a9efeccd",
+  instanceId: firstOpenBuyerBinding.tenantId, subscriptionId: "sub_f0dea547d45bcd26ed823fd7",
   workspaceSha256: "7359ccf32c3bebd4c4b754caac4cdfbdd471a8202c9206f67a298a8f020ca0fc",
   productId: "prd_restaurant_order_system", account: "402010193138", region: "ca-central-1",
-  environmentId: "env_aws_sandbox_ca_central_1", hostname: "pending-app-bbd626d7d3806af686073211.sandbox.techlong.cloud",
-  releaseId: "release_00b9c5cfa6bceedc5fd05aa451dca811",
-  imageRepository: "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
-  imageDigest: "sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+  environmentId: "env_aws_sandbox_ca_central_1", hostname: firstOpenBuyerBinding.apiHostname,
+  releaseId: firstOpenVersion().releaseId,
+  imageRepository: firstOpenVersion().imageRepository,
+  imageDigest: firstOpenVersion().imageDigest,
   schemaVersion: "speedfeast-saas-control-v1",
   clientApi: "speedfeast-client-api-sha256:90191edd28decd490e95ea35461f9e26200874783a1ffc5f8598406bbc583144",
   workerRole: "arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole",
@@ -32,14 +37,13 @@ export const SANDBOX_FIRST_OPEN = Object.freeze({
   controlVersion: "75d8da0af103e1e10e6d3341cbd50226fea7ce5e5aac8d150ab9e447b6340680",
   clusterId: "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
   clusterArn: "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001",
-  cellStack: "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+  cellStack: FIRST_OPEN_CELL_STACK,
   platformStack: "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
   zone: "Z01473621BTTHKXBGOOEJ",
 });
 const s = SANDBOX_FIRST_OPEN;
 export const SANDBOX_FIRST_OPEN_STACK = awsSandboxTenantStackName(s.instanceId);
 const stackArnPrefix = `arn:aws:cloudformation:${s.region}:${s.account}:stack/${SANDBOX_FIRST_OPEN_STACK}/`;
-const artifact = `${s.imageRepository}@${s.imageDigest}`;
 const hex = /^[a-f0-9]{64}$/;
 const allowedTransitions = new Set(["queued", "preflight", "database_preparing", "migrating", "infrastructure_provisioning",
   "waiting_healthy", "configuring", "verifying"]);
@@ -84,24 +88,34 @@ export async function checkSandboxFirstOpenApproval(approval: Approval, sha: str
     /^[a-z0-9-]+\.ca-central-1\.elb\.amazonaws\.com$/.test(a.dnsTarget.replace(/^dualstack\./, "")) &&
     complete && "deriveG1Secret" in complete && complete.deriveG1Secret === true && complete.clientApiVersion === s.clientApi,
   "TASK_SCOPE");
-  requireScope(e.target.clusterArn === s.clusterArn && e.target.clusterResourceId === s.clusterId &&
+  requireScope(parseExpressManagementTargetV3(e.target).managementUsername === FIRST_OPEN_MANAGEMENT_SQL_USER &&
+    e.target.clusterArn === s.clusterArn && e.target.clusterResourceId === s.clusterId &&
     e.target.resourceGeneration === 1 && e.target.stableIdentity === s.stableIdentity && e.target.tenantDatabase === s.tenantDatabase &&
     e.target.tenantUsername === s.tenantRole && e.applicationRoleArn === s.applicationRole && e.independentRoleArn === s.inspectorRole &&
     e.lifecycleRoleArn === s.lifecycleRole && e.sampling.cellStackId === s.cellStack && e.sampling.platformStackId === s.platformStack &&
     e.sampling.hostedZoneId === s.zone && e.sampling.apiHostname === s.hostname && e.sampling.persistence.bucket === s.bucket &&
     canonicalJson(e.sampling.secrets) === canonicalJson([{ arn: s.controlArn, versionId: s.controlVersion }]), "PROVIDER_SCOPE");
-  requireScope(a.baselineDigest === FIRST_OPEN_BASELINE_OBJECTS.archive.sha256 && isFixedFirstOpenBaseline(e.baseline), "BASELINE_PINS");
-  validateApprovedBaseline(e.baseline, true);
+  requireScope(a.baselineDigest === FIRST_OPEN_BASELINE_BINDING.objects.archive.sha256 && isFixedFirstOpenBaseline(e.baseline, a.jobId), "BASELINE_PINS");
+  requireScope(isFirstOpenBuyerSignerPin(e.buyerForwardSigner), "BUYER_SIGNER_PIN_REQUIRED");
+  if (a.taskRelease !== undefined) {
+    await verifyFirstOpenTaskRelease(a.taskRelease);
+    requireScope(a.taskRelease.firstOpenScope.publication.publishedAt <= now, "RELEASE_NOT_PUBLISHED");
+  }
+  validateApprovedBaseline(e.baseline, a.jobId);
+  assertFirstOpenClaimTime(firstOpenExecutionWindow(a.jobId, a.writeBefore, a.controlledWindow)!, now);
   return a;
 }
 
 /** One callable entry; only a separately audited operator may supply real
  * role-separated ports. Importing the module opens no connections and reads
  * no configuration. The DB claim is the cross-process single-attempt fence. */
-export function createSandboxFirstOpenRunOnce(ports: SandboxFirstOpenPorts, now: () => number = Date.now) {
+export function createSandboxFirstOpenRunOnce(ports: SandboxFirstOpenPorts, now: () => number = Date.now,
+  reviewedTaskBinding?: DeploymentExecutionBinding) {
   let used = false;
   return async (approval: Approval, approvedSha256: string) => {
     const a = await checkSandboxFirstOpenApproval(approval, approvedSha256, now());
+    const version = firstOpenVersion(a.taskRelease), artifact = version.artifactRef;
+    if (reviewedTaskBinding) requireScope(isFirstOpenTaskBinding(reviewedTaskBinding, approvedSha256), "TASK_BINDING_UNSEALED");
     requireScope(!used && ports.cloud.region === s.region, "ENTRY_ALREADY_USED_OR_REGION");
     used = true;
     const inWindow = () => requireScope(now() < a.writeBefore, "WINDOW");
@@ -132,7 +146,9 @@ export function createSandboxFirstOpenRunOnce(ports: SandboxFirstOpenPorts, now:
         requireScope(c.deployment.id === s.deploymentId && c.deployment.artifactRef === artifact && c.appInstance.id === s.instanceId &&
           c.environment.id === s.environmentId && c.subscription?.id === s.subscriptionId &&
           await sha256Hex(c.workspace.id) === s.workspaceSha256, "CONTEXT");
-        return c;
+        if (!reviewedTaskBinding) return c;
+        requireScope(c.job.id === job.id && c.job.leaseToken === job.leaseToken && c.job.attempt === job.attempt, "TASK_BINDING_LEASE");
+        return attachFirstOpenTaskBinding(c, reviewedTaskBinding, approvedSha256);
       },
       reserveEnvironmentCapacity(x) { guardLease(x.lease); requireScope(x.environmentId === s.environmentId, "CAPACITY"); return r.reserveEnvironmentCapacity(x); },
       heartbeat(x) { guardLease(x.lease); return r.heartbeat({ ...x, notAfter: a.writeBefore }); },
@@ -210,10 +226,11 @@ export function createSandboxFirstOpenRunOnce(ports: SandboxFirstOpenPorts, now:
         return row;
       },
       async readRelease(id) {
-        inWindow(); requireScope(id === s.releaseId, "RELEASE_SCOPE");
+        inWindow(); requireScope(id === version.releaseId, "RELEASE_SCOPE");
         const release = await ports.readFixedRelease();
-        requireScope(release && release.id === s.releaseId && release.image.repository === s.imageRepository &&
-          release.image.manifestDigest === s.imageDigest && release.image.platformDigest === s.imageDigest, "RELEASE_SCOPE");
+        requireScope(release && release.id === version.releaseId && release.image.repository === version.imageRepository &&
+          release.image.manifestDigest === version.imageDigest && release.image.platformDigest === version.imageDigest &&
+          release.status === version.status && (!a.taskRelease || canonicalJson(release) === canonicalJson(a.taskRelease)), "RELEASE_SCOPE");
         return release;
       },
       verifyEmptyExpressCapability: ports.verifyEmptyExpressCapability,

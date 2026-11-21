@@ -1,0 +1,28 @@
+import { execFileSync } from "node:child_process";
+import { authorizeFirstOpenLaunch, firstOpenPeerRun, launchFirstOpenJob, type LocalLaunch } from "../first-open-workflow-launcher.ts";
+
+async function main() {
+  const [, , role] = process.argv;
+  if (!(role === "inspect" || role === "management" || role === "runonce") || process.argv.length !== 3) {
+    throw Error("FIRST_OPEN_LAUNCH_ROLE");
+  }
+  const env = process.env, expectedCheckout = env.FIRST_OPEN_EXPECTED_RUNTIME_COMMIT ?? "";
+  if (!/^[a-f0-9]{40}$/.test(expectedCheckout)) throw Error("FIRST_OPEN_LAUNCH_CHECKOUT");
+  const git = (...args: string[]) => execFileSync("git", args, { encoding: "utf8", timeout: 2500 }).trim();
+  const launch = { role, env, expectedCheckout, actualCheckout: git("rev-parse", "HEAD") } satisfies LocalLaunch;
+  const { record } = await authorizeFirstOpenLaunch(launch);
+  // Historical A remains usable by offline fixtures, not the real dispatcher.
+  if (!record.release.taskRelease) throw Error("FIRST_OPEN_LAUNCH_TASK_RELEASE_REQUIRED");
+  if (git("status", "--porcelain", "--untracked-files=no") !== "") throw Error("FIRST_OPEN_LAUNCH_CHECKOUT_DIRTY");
+  if (!env.FIRST_OPEN_PROTECTED_HOST_B64) throw Error("FIRST_OPEN_LAUNCH_HOST_UNBOUND");
+  const signal = AbortSignal.timeout(Math.max(1, record.release.writeBefore - Date.now()));
+  const peerRunId = await firstOpenPeerRun(launch, signal);
+  await launchFirstOpenJob({ ...launch, peerRunId }, signal);
+}
+
+main().then(() => { console.log("FIRST_OPEN_PINNED_JOB_COMPLETED"); }).catch((error: unknown) => {
+  const code = error instanceof Error && /^FIRST_OPEN_[A-Z0-9_]+$/.test(error.message)
+    ? error.message : "FIRST_OPEN_PINNED_JOB_STOPPED";
+  console.error(code);
+  process.exitCode = 1;
+});

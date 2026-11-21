@@ -1,0 +1,57 @@
+name: Sandbox first open — run-once
+on:
+  workflow_call:
+    inputs:
+      pair_sha: { type: string, required: true }
+      release_sha: { type: string, required: true }
+      inspect_run: { type: string, required: true }
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+jobs:
+  bound-first-open:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && github.repository_owner_id == '14145707' && github.actor_id == '14145707'
+    environment: techlong-sandbox-deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    steps:
+      - name: Require protected launch coordinates
+        shell: bash
+        env:
+          EXPECTED: ${{ vars.TECHLONG_FIRST_OPEN_APPROVED_RELEASE_SHA256 }}
+          EXPECTED_LAUNCH: ${{ vars.TECHLONG_FIRST_OPEN_APPROVED_LAUNCH_SHA256 }}
+          COMMIT: ${{ vars.TECHLONG_FIRST_OPEN_RUNTIME_COMMIT }}
+          REQUESTED: ${{ inputs.release_sha }}
+        run: |
+          [[ "$EXPECTED" =~ ^[a-f0-9]{64}$ && "$EXPECTED_LAUNCH" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$REQUESTED" == "$EXPECTED" && "$COMMIT" =~ ^[a-f0-9]{40}$ ]]
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ vars.TECHLONG_FIRST_OPEN_RUNTIME_COMMIT }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: actions/upload-artifact
+          ref: b7c566a772e6b6bfb58ed0dc250532a479d7789f
+          path: .first-open-artifact-action
+          persist-credentials: false
+      - name: Load pinned code dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Launch only run-once
+        uses: ./.github/actions/first-open-launch
+        with:
+          role: runonce
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FIRST_OPEN_APPROVED_RELEASE_SHA256: ${{ vars.TECHLONG_FIRST_OPEN_APPROVED_RELEASE_SHA256 }}
+          FIRST_OPEN_APPROVED_LAUNCH_SHA256: ${{ vars.TECHLONG_FIRST_OPEN_APPROVED_LAUNCH_SHA256 }}
+          FIRST_OPEN_EXPECTED_RUNTIME_COMMIT: ${{ vars.TECHLONG_FIRST_OPEN_RUNTIME_COMMIT }}
+          FIRST_OPEN_PROTECTED_RECORD: ${{ secrets.TECHLONG_FIRST_OPEN_PROTECTED_RECORD }}
+          FIRST_OPEN_PROTECTED_HOST_B64: ${{ secrets.TECHLONG_FIRST_OPEN_RUNONCE_HOST_B64 }}
+          FIRST_OPEN_PAIR: ${{ inputs.pair_sha }}
+          FIRST_OPEN_RELEASE: ${{ inputs.release_sha }}
+          FIRST_OPEN_INSPECT_RUN: ${{ inputs.inspect_run }}

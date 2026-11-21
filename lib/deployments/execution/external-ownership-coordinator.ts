@@ -14,6 +14,14 @@ import {
 } from "./external-ownership.ts";
 import type { TenantExternalOwnershipCoordinatorPort } from "./worker.ts";
 
+export function tenantExternalOperationHash(intent: TenantExternalOperationIntent,
+  resourceFence: Pick<TenantResourceFence, "generation" | "ownershipMarker"> & { identity: Pick<TenantResourceFence["identity"], "appInstanceId"> },
+  deployment: Pick<DeploymentExecutionContext["deployment"], "id" | "planHash" | "configurationHash" | "artifactRef">) {
+  return sha256Hex({ schemaVersion: 1, intent, deploymentId: deployment.id, appInstanceId: resourceFence.identity.appInstanceId,
+    generation: resourceFence.generation, ownershipMarker: resourceFence.ownershipMarker, planHash: deployment.planHash,
+    configurationHash: deployment.configurationHash, artifactRef: deployment.artifactRef });
+}
+
 function fail(code: string, message: string, retryable = false): Error {
   return Object.assign(new Error(message), { code, retryable });
 }
@@ -53,12 +61,12 @@ function assertPendingFence(
 export class RepositoryTenantExternalOwnershipCoordinator
   implements TenantExternalOwnershipCoordinatorPort
 {
-  private readonly repository: DeploymentExecutionRepository;
+  private readonly repository: Pick<DeploymentExecutionRepository, "prepareTenantExternalOperation" | "assertTenantExternalOperation" | "activateTenantExternalOperation">;
   private readonly external: TenantExternalOwnershipPort;
   private readonly now: () => number;
 
   constructor(
-    repository: DeploymentExecutionRepository,
+    repository: Pick<DeploymentExecutionRepository, "prepareTenantExternalOperation" | "assertTenantExternalOperation" | "activateTenantExternalOperation">,
     external: TenantExternalOwnershipPort,
     now: () => number = Date.now,
   ) {
@@ -86,17 +94,7 @@ export class RepositoryTenantExternalOwnershipCoordinator
         "External ownership epoch lease does not own this resource generation.",
       );
     }
-    const operationHash = await sha256Hex({
-      schemaVersion: 1,
-      intent: input.intent,
-      deploymentId: input.context.deployment.id,
-      appInstanceId: input.resourceFence.identity.appInstanceId,
-      generation: input.resourceFence.generation,
-      ownershipMarker: input.resourceFence.ownershipMarker,
-      planHash: input.context.deployment.planHash,
-      configurationHash: input.context.deployment.configurationHash,
-      artifactRef: input.context.deployment.artifactRef,
-    });
+    const operationHash = await tenantExternalOperationHash(input.intent, input.resourceFence, input.context.deployment);
     input.signal.throwIfAborted();
     const claim = await this.repository.prepareTenantExternalOperation({
       lease: input.lease,

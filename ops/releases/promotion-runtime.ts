@@ -4,12 +4,13 @@ import path from "node:path";
 import { GetSecretValueCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
-import { buildReleaseCandidate, readRegistryBuild, type RegistryReadback, type CheckedBuildFiles } from "../../lib/deployments/releases/production.ts";
+import { buildReleaseCandidate, readRegistryBuild, type RegistryReadback, type RegistryBuildTarget, type CheckedBuildFiles } from "../../lib/deployments/releases/production.ts";
 import type { StoredReleaseCandidate, ReleasePromotionIntent } from "../../lib/deployments/releases/promotion.ts";
 import type { ReleaseEnvironmentConfig } from "../../lib/deployments/releases/handoff.ts";
 import { releaseChildEnvironment, type ReleaseCredentials } from "./aws-runtime.ts";
 import { catalogSourceIdentity, catalogSourceReaders } from "./import-source.ts";
 import { readCheckedBuildFiles } from "./build-artifact.ts";
+import { firstOpenSandboxPublication, firstOpenCandidateZipSha256, firstOpenArchiveSha256 } from "./first-open-sandbox-publication.ts";
 
 export type PromotionCommand = (binary: "aws" | "docker", args: string[], env: NodeJS.ProcessEnv, input?: string, timeout?: number) => Promise<string>;
 // Publication itself needs no active instance/binding or CFN plan. Daily promotion
@@ -22,11 +23,10 @@ const command: PromotionCommand = (binary, args, env, input, timeout = 30000) =>
   child.stdin?.end(input);
 });
 
-/** One app archive, existing immutable repository only. No docker build/run, lifecycle, grants or CFN. */
-export function releasePromotionPublisher(config: ReleaseEnvironmentConfig, credentials: ReleaseCredentials, root: string,
-  services: { token(): Promise<string>; put(key: string, body: string): Promise<void> },
-  execute: PromotionCommand = command, fetcher: typeof fetch = fetch, now: () => number = Date.now,
-  readFiles: typeof readCheckedBuildFiles = readCheckedBuildFiles, requireAbsentTag = false) {
+type PromotionServices = { token(): Promise<string>; put(key: string, body: string): Promise<void> };
+/** Shared write transport, reached only through one of the explicit admissions below. */
+function createAppArchivePublisher(config: ReleaseEnvironmentConfig, credentials: ReleaseCredentials, root: string,
+  services: PromotionServices, execute: PromotionCommand, now: () => number, requireAbsentTag: boolean) {
   const p = config.promotion;
   if (!p || !path.isAbsolute(root)) throw new Error("RELEASE_PROMOTION_NOT_ACTIVATED");
   const env: NodeJS.ProcessEnv = { ...releaseChildEnvironment(process.env), AWS_ACCESS_KEY_ID: credentials.accessKeyId,
@@ -50,23 +50,14 @@ export function releasePromotionPublisher(config: ReleaseEnvironmentConfig, cred
       `${config.evidence.prefix}/promotions/${intent.requestId}/${kind}.json`;
     await services.put(key, canonicalJson({ kind, intent, payload }));
   };
-  return { audit, publish: async (c: AppPublicationCandidate, intent: AppPublicationIntent): Promise<RegistryReadback> => {
+  return { audit, publish: async (intent: AppPublicationIntent, sourceCommit: string, check: () => Promise<RegistryBuildTarget>): Promise<RegistryReadback> => {
     guard(intent);
-    if (published || c.policy.repository !== p.sourceRepository || c.policy.repositoryId !== p.sourceRepositoryId ||
-      c.build.imageRepository !== p.imageRepository || intent.target.repository !== p.imageRepository ||
-      intent.target.tag !== `app-sha${c.build.source.commit}-r${c.build.source.buildRunId}-a1`) throw new Error("RELEASE_PROMOTION_SCOPE_REJECTED");
+    if (published || intent.target.repository !== p.imageRepository) throw new Error("RELEASE_PROMOTION_SCOPE_REJECTED");
     published = true; await mkdir(root, { mode: 0o700 });
-    const github = catalogSourceReaders({ schema: "techlong/catalog-source-read/v1", ...catalogSourceIdentity,
-      nodeVersion: c.policy.nodeVersion, scannerVersion: c.policy.scannerVersion, scannerArchiveSha256: c.policy.scannerArchiveSha256,
-      expiresAt: Math.min(intent.writeBefore, now() + 5 * 3600_000) }, services.token, fetcher,
-    async () => { throw new Error("RELEASE_SOURCE_PROFILE_FORBIDDEN_IN_CLOUD_JOB"); }, now);
     try {
-      const run = await github.run(c.run.id), artifact = await github.artifact(c.artifact.id);
-      if (artifact.id !== c.artifact.id) throw new Error("RELEASE_PROMOTION_ARTIFACT_CHANGED");
-      await github.download(artifact, path.join(root, "artifact.zip"));
-      const files = await readFiles(artifact, path.join(root, "artifact.zip"), path.join(root, "checked"));
-      const checked = await buildReleaseCandidate(c.policy, run, artifact, files, now());
-      if (canonicalJson(checked) !== canonicalJson(c.build) || c.files && canonicalJson(files) !== canonicalJson(c.files)) throw new Error("RELEASE_PROMOTION_CANDIDATE_CHANGED");
+      const checked = await check();
+      if (checked.imageRepository !== p.imageRepository || now() >= checked.validUntil)
+        throw new Error("RELEASE_PROMOTION_CHECKED_TARGET_CHANGED");
       const repositoryName = p.imageRepository.split("/").slice(1).join("/"), registry = p.imageRepository.split("/")[0];
       const repo = await read<{ repositories: { registryId: string; repositoryName: string; imageTagMutability: string }[] }>("describe-repositories",
         { registryId: config.accountId, repositoryNames: [repositoryName] }, intent);
@@ -80,15 +71,15 @@ export function releasePromotionPublisher(config: ReleaseEnvironmentConfig, cred
       if (result.images?.length === 0 && result.failures?.length === 1 && (result.failures[0] as { failureCode?: string }).failureCode === "ImageNotFound") {
         const dockerEnv = releaseChildEnvironment(process.env), archive = path.join(root, "checked", "image.tar.gz");
         await execute("docker", ["load", "--input", archive], dockerEnv, undefined, 180000);
-        const loaded = JSON.parse(await execute("docker", ["image", "inspect", c.build.imageConfigDigest], dockerEnv));
-        if (loaded.length !== 1 || loaded[0].Id !== c.build.imageConfigDigest || loaded[0].Os !== "linux" || loaded[0].Architecture !== "amd64" ||
-          loaded[0].Config?.Labels?.["org.opencontainers.image.revision"] !== c.build.source.commit) throw new Error("RELEASE_PROMOTION_LOADED_IMAGE_CHANGED");
+        const loaded = JSON.parse(await execute("docker", ["image", "inspect", checked.imageConfigDigest], dockerEnv));
+        if (loaded.length !== 1 || loaded[0].Id !== checked.imageConfigDigest || loaded[0].Os !== "linux" || loaded[0].Architecture !== "amd64" ||
+          loaded[0].Config?.Labels?.["org.opencontainers.image.revision"] !== sourceCommit) throw new Error("RELEASE_PROMOTION_LOADED_IMAGE_CHANGED");
         const auth = await mkdtemp(path.join(root, "docker-auth-")), authEnv = { ...dockerEnv, DOCKER_CONFIG: auth };
         try {
           const password = await read<string>("get-login-password", {}, intent);
           await execute("docker", ["login", "--username", "AWS", "--password-stdin", registry], authEnv, password);
           const reference = `${p.imageRepository}:${intent.target.tag}`;
-          await execute("docker", ["tag", c.build.imageConfigDigest, reference], authEnv);
+          await execute("docker", ["tag", checked.imageConfigDigest, reference], authEnv);
           await audit("push", intent, {}); // Candidate-global one-shot upload slot, before the ONLY push.
           guard(intent); await execute("docker", ["push", reference], authEnv, undefined, 300000);
         } finally { await unlink(path.join(auth, "config.json")).catch(() => {}); } // Local credential file only, never cloud cleanup.
@@ -96,14 +87,59 @@ export function releasePromotionPublisher(config: ReleaseEnvironmentConfig, cred
       }
       const image = result.images?.[0];
       if (result.images?.length !== 1 || result.failures?.length || image?.imageId.imageTag !== intent.target.tag) throw new Error("RELEASE_PROMOTION_PUBLISHED_TAG_MISMATCH");
-      const verified = await readRegistryBuild(c.build, image!.imageId.imageDigest, { read: async <T>(service: string, operation: string, input: Record<string, unknown>) => {
+      const verified = await readRegistryBuild(checked, image!.imageId.imageDigest, { read: async <T>(service: string, operation: string, input: Record<string, unknown>) => {
         if (service !== "ecr" || operation !== "batch-get-image" || input.registryId !== config.accountId || input.repositoryName !== repositoryName) throw new Error("RELEASE_PROMOTION_SCOPE_REJECTED");
         return read<T>(operation, input, intent);
       } }, now);
       return verified.readback;
     } catch (error) {
       throw new Error(error instanceof Error && /^[A-Z][A-Z0-9_]+$/.test(error.message) ? error.message : "RELEASE_PROMOTION_STOPPED_NO_RETRY");
-    } finally { github.close(); }
+    }
+  } };
+}
+
+/** Normal releases still reconstruct and compare the original strict zero-finding candidate. */
+export function releasePromotionPublisher(config: ReleaseEnvironmentConfig, credentials: ReleaseCredentials, root: string,
+  services: PromotionServices, execute: PromotionCommand = command, fetcher: typeof fetch = fetch, now: () => number = Date.now,
+  readFiles: typeof readCheckedBuildFiles = readCheckedBuildFiles, requireAbsentTag = false) {
+  const p = config.promotion, transport = createAppArchivePublisher(config, credentials, root, services, execute, now, requireAbsentTag);
+  return { audit: transport.audit, publish: async (c: AppPublicationCandidate, intent: AppPublicationIntent) => {
+    if (!p || c.policy.repository !== p.sourceRepository || c.policy.repositoryId !== p.sourceRepositoryId ||
+      c.build.imageRepository !== p.imageRepository || intent.target.repository !== p.imageRepository ||
+      intent.target.tag !== `app-sha${c.build.source.commit}-r${c.build.source.buildRunId}-a1`) throw new Error("RELEASE_PROMOTION_SCOPE_REJECTED");
+    return transport.publish(intent, c.build.source.commit, async () => {
+      const github = catalogSourceReaders({ schema: "techlong/catalog-source-read/v1", ...catalogSourceIdentity,
+        nodeVersion: c.policy.nodeVersion, scannerVersion: c.policy.scannerVersion, scannerArchiveSha256: c.policy.scannerArchiveSha256,
+        expiresAt: Math.min(intent.writeBefore, now() + 5 * 3600_000) }, services.token, fetcher,
+      async () => { throw new Error("RELEASE_SOURCE_PROFILE_FORBIDDEN_IN_CLOUD_JOB"); }, now);
+      try {
+        const run = await github.run(c.run.id), artifact = await github.artifact(c.artifact.id);
+        if (artifact.id !== c.artifact.id) throw new Error("RELEASE_PROMOTION_ARTIFACT_CHANGED");
+        await github.download(artifact, path.join(root, "artifact.zip"));
+        const files = await readFiles(artifact, path.join(root, "artifact.zip"), path.join(root, "checked"));
+        const checked = await buildReleaseCandidate(c.policy, run, artifact, files, now());
+        if (canonicalJson(checked) !== canonicalJson(c.build) || c.files && canonicalJson(files) !== canonicalJson(c.files)) throw new Error("RELEASE_PROMOTION_CANDIDATE_CHANGED");
+        return checked;
+      } finally { github.close(); }
+    });
+  } };
+}
+
+/** Reuses only the transport; the dedicated admission can name only this image and its exact immutable tag. */
+export function firstOpenSandboxArchivePublisher(config: ReleaseEnvironmentConfig, credentials: ReleaseCredentials, root: string,
+  services: PromotionServices, check: () => Promise<RegistryBuildTarget>, execute: PromotionCommand = command, now: () => number = Date.now) {
+  const p = firstOpenSandboxPublication, transport = createAppArchivePublisher(config, credentials, root, services, execute, now, true);
+  return { audit: transport.audit, publish: async (intent: AppPublicationIntent) => {
+    if (intent.target.repository !== p.registryRepository || intent.target.tag !== p.tag ||
+      intent.target.imageConfigDigest !== p.imageConfigDigest || intent.target.archiveSha256 !== firstOpenArchiveSha256 ||
+      intent.target.artifactSha256 !== firstOpenCandidateZipSha256 || intent.candidateSha256 !== firstOpenCandidateZipSha256)
+      throw new Error("FIRST_OPEN_PUBLICATION_EXACT_TARGET_REQUIRED");
+    return transport.publish(intent, p.sourceCommit, async () => {
+      const checked = await check();
+      if (checked.imageRepository !== p.registryRepository || checked.imageConfigDigest !== p.imageConfigDigest)
+        throw new Error("FIRST_OPEN_PUBLICATION_CHECKED_TARGET_CHANGED");
+      return checked;
+    });
   } };
 }
 

@@ -1,10 +1,13 @@
 import { renderSingleTenantAcceptanceWorkload, renderSupervisedTenantWorkloadBase, assertSingleTenantWorkloadRender } from "../cloudformation/single-tenant-acceptance-workload.ts";
 import { assertAwsSandboxTenantRuntimeSecretRef, type AwsSandboxTenantStackInput } from "../cloudformation/tenant-stack.ts";
-import type { ApplyReadyTenantStack, AwsDeploymentPort, DeploymentExecutionContext } from "./contracts.ts";
+import type { ApplyReadyTenantStack, AwsDeploymentPort, DeploymentExecutionBinding, DeploymentExecutionContext } from "./contracts.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
 import { validateExternalParameter } from "./parameters.ts";
 import { validateSingleDeploymentScope, type SingleDeploymentClaimScope } from "./single-deployment-scope.ts";
 import type { FirstOnboardingExpressComposition } from "./first-onboarding-express.ts";
+import { FIRST_OPEN_BASELINE_BINDING } from "./first-onboarding-baseline-versions.ts";
+import { assertFirstOpenBuyerParameters } from "./first-open-buyer-binding.ts";
+import { FIRST_OPEN_CELL_STACK, FIRST_OPEN_CLEANUP_RESERVE_MS, FIRST_OPEN_TTL_SECONDS, type FirstOpenExecutionWindow } from "./first-onboarding-window.ts";
 
 type Rendered = Awaited<ReturnType<typeof renderSingleTenantAcceptanceWorkload>>;
 export interface SupervisedTenantStack extends Omit<Rendered, "safety"> {
@@ -32,6 +35,21 @@ export interface SupervisedCleanupReadinessPort {
     responsibleCallerArn: "arn:aws:iam::402010193138:user/techlong-sandbox-dev";
     order: "workload_database_role_generation_secret_then_cell";
   }>;
+  /** Fixed first-open review only: uses the held scope, not a claimed context. */
+  verifyBeforeClaim?(input: { scope: SingleDeploymentClaimScope; jobId: string; approvalSha256: string;
+    window: FirstOpenExecutionWindow; signal: AbortSignal }): Promise<SupervisedCleanupObservation>;
+}
+type SupervisedCleanupObservation = Awaited<ReturnType<SupervisedCleanupReadinessPort["verify"]>>;
+
+export async function assertFirstOpenCleanupReadiness(observed: SupervisedCleanupObservation, scope: SingleDeploymentClaimScope,
+  window: FirstOpenExecutionWindow, checkedAt: number) {
+  if (!observed || observed.scopeSha256 !== await sha256Hex(scope) || observed.reviewSha256 !== window.cleanupReviewSha256 ||
+    observed.permissionsEvidenceSha256 !== window.cleanupPermissionsEvidenceSha256 || observed.cellStackId !== FIRST_OPEN_CELL_STACK ||
+    observed.responsibleCallerArn !== "arn:aws:iam::402010193138:user/techlong-sandbox-dev" ||
+    observed.order !== "workload_database_role_generation_secret_then_cell" ||
+    !Number.isSafeInteger(observed.verifiedAt) || observed.verifiedAt > checkedAt || checkedAt - observed.verifiedAt > 30_000 ||
+    observed.expiresAt !== window.workloadExpiresAt || checkedAt >= window.writeBefore ||
+    observed.expiresAt <= checkedAt + FIRST_OPEN_CLEANUP_RESERVE_MS) fail("SUPERVISED_CLEANUP_READINESS_UNPROVED");
 }
 export interface TenantWorkloadExecutionStrategy {
   readonly mode: "single-tenant-supervised";
@@ -50,19 +68,62 @@ function freeze<T>(value: T): T {
 const externalNames = ["ClusterName", "VpcId", "SubnetIds", "TaskSecurityGroupId", "OneShotTaskSecurityGroupId",
   "HttpsListenerArn", "ControlListenerArn", "TaskExecutionRoleArn", "TaskRoleArn", "ControlPublicKeyValueFrom",
   "ControlIssuer", "CorsAllowedOrigins", "StripePublishableKey", "StripeSuccessUrl", "StripeCancelUrl"];
-function validateBinding(context: DeploymentExecutionContext, express?: FirstOnboardingExpressComposition): void {
+const scopedNames = externalNames.filter(k => k !== "OneShotTaskSecurityGroupId" && k !== "TaskRoleArn");
+const scopedBindings = new WeakMap<DeploymentExecutionBinding, string>();
+type ExpressBinding = Pick<FirstOnboardingExpressComposition, "controlRef" | "applicationRoleArn">;
+type RenderContext = Pick<DeploymentExecutionContext, "environment" | "binding"> & {
+  appInstance: Pick<DeploymentExecutionContext["appInstance"], "id">;
+  deployment: Pick<DeploymentExecutionContext["deployment"], "id" | "artifactRef">;
+};
+function validateBinding(context: Pick<RenderContext, "binding" | "environment">, express?: ExpressBinding): void {
   const binding = context.binding;
-  if (!binding || binding.status !== "active" || binding.environmentId !== context.environment.id ||
+  const scoped = binding !== null && scopedBindings.has(binding);
+  const names = scoped ? scopedNames : externalNames;
+  if (!binding || (scoped && !express) || binding.status !== "active" || binding.environmentId !== context.environment.id ||
     binding.workerRoleArn !== "arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole" ||
     binding.cloudFormationRoleArn !== "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole" ||
-    canonicalJson(Object.keys(binding.tenantStackParameters).sort()) !== canonicalJson([...externalNames].sort())) fail("SUPERVISED_PARAMETER_SET_INVALID");
-  for (const name of externalNames) {
+    canonicalJson(Object.keys(binding.tenantStackParameters).sort()) !== canonicalJson([...names].sort())) fail("SUPERVISED_PARAMETER_SET_INVALID");
+  for (const name of names) {
     const value = binding.tenantStackParameters[name];
     if (express && name === "ControlPublicKeyValueFrom" &&
       (value === express.controlRef || value === express.controlRef.split(":::")[0])) continue;
     validateExternalParameter({ name, value, environment: context.environment });
   }
   if (binding.tenantStackParameters.HttpsListenerArn === binding.tenantStackParameters.ControlListenerArn) fail("SUPERVISED_LISTENERS_NOT_SEPARATED");
+}
+
+/** Only the pinned hosted entry prepares this from its independently sealed
+ * Inspector seed, not from a Neon row, runtime port, or dispatcher field. */
+export async function sealFirstOpenTaskBinding(input: Pick<RenderContext, "binding" | "environment"> & {
+  approvalSha256: string; parametersSha256: string; express: ExpressBinding;
+}) {
+  const binding = input.binding && structuredClone(input.binding), { environment, express } = input;
+  if (!binding || !/^[a-f0-9]{64}$/.test(input.approvalSha256) || environment.id !== "env_aws_sandbox_ca_central_1" ||
+    environment.key !== "aws-sandbox-ca-central-1" || environment.kind !== "aws_sandbox" || environment.applyEnabled !== false || environment.status !== "active" ||
+    environment.expectedAccountId !== "402010193138" || environment.region !== "ca-central-1" || environment.cellKey !== "cell-sandbox-1" ||
+    binding.tenantStackParameters?.ControlPublicKeyValueFrom !== express.controlRef ||
+    await sha256Hex(binding.tenantStackParameters) !== input.parametersSha256) fail("FIRST_OPEN_TASK_BINDING_SEAL");
+  scopedBindings.set(binding, input.approvalSha256);
+  validateBinding({ binding, environment }, express);
+  assertFirstOpenBuyerParameters(binding.tenantStackParameters);
+  const parent = (arn: string) => arn.slice(0, arn.lastIndexOf("/"));
+  if (parent(binding.tenantStackParameters.HttpsListenerArn) !== parent(binding.tenantStackParameters.ControlListenerArn)) {
+    fail("FIRST_OPEN_TASK_BINDING_LISTENER_GENERATION");
+  }
+  return freeze(binding);
+}
+
+export function isFirstOpenTaskBinding(binding: DeploymentExecutionBinding, approvalSha256: string) {
+  return scopedBindings.get(binding) === approvalSha256;
+}
+
+/** No substitution if a shared row appeared after the preclaim readiness read. */
+export function attachFirstOpenTaskBinding(context: DeploymentExecutionContext, binding: DeploymentExecutionBinding, approvalSha256: string) {
+  if (!isFirstOpenTaskBinding(binding, approvalSha256) || context.job.id !== FIRST_OPEN_BASELINE_BINDING.jobId ||
+    context.environment.id !== binding.environmentId || context.environment.applyEnabled !== false || context.binding !== null) {
+    fail("FIRST_OPEN_TASK_BINDING_CONTEXT_CHANGED");
+  }
+  return { ...context, binding };
 }
 export function assertFinalizedSupervisedTenantStack(stack: SupervisedTenantStack): void {
   if (!stack || !finalized.has(stack)) fail("SUPERVISED_STACK_NOT_FINALIZED");
@@ -79,8 +140,8 @@ export function finalizeSupervisedTenantStack(input: {
 }
 
 function finalizeRenderedStack(input: {
-  rendered: Rendered; context: DeploymentExecutionContext; expectedRuntimeSecretName: string;
-  express?: FirstOnboardingExpressComposition;
+  rendered: Rendered; context: RenderContext; expectedRuntimeSecretName: string;
+  express?: ExpressBinding;
 }): SupervisedTenantStack {
   const { rendered, context } = input, binding = context.binding;
   validateBinding(context, input.express);
@@ -104,7 +165,8 @@ function finalizeRenderedStack(input: {
   const runtimeOnly = "OneShotTaskSecurityGroupId";
   if (canonicalJson(Object.keys(parameters).filter(key => key !== runtimeOnly).sort()) !==
     canonicalJson([...rendered.requiredExternalParameters].sort())) fail("SUPERVISED_PARAMETER_SET_INVALID");
-  for (const name of [...rendered.requiredExternalParameters, runtimeOnly]) {
+  const names = scopedBindings.has(binding) ? rendered.requiredExternalParameters : [...rendered.requiredExternalParameters, runtimeOnly];
+  for (const name of names) {
     if (input.express && name === "ControlPublicKeyValueFrom") continue;
     validateExternalParameter({ name, value: parameters[name], environment: context.environment });
   }
@@ -119,9 +181,10 @@ function finalizeRenderedStack(input: {
   return stack;
 }
 
-async function renderFirstOnboardingStack(input: AwsSandboxTenantStackInput, context: DeploymentExecutionContext, reviewedImage: string,
-  express?: FirstOnboardingExpressComposition) {
-  if (input.imageUri !== reviewedImage || input.resourceGeneration !== 1 ||
+async function renderFirstOnboardingStack(input: AwsSandboxTenantStackInput, context: RenderContext, reviewedImage: string,
+  express?: ExpressBinding & { render(input: AwsSandboxTenantStackInput): ReturnType<FirstOnboardingExpressComposition["render"]> },
+  window?: FirstOpenExecutionWindow) {
+  if ((context.binding && scopedBindings.has(context.binding) && !window) || input.imageUri !== reviewedImage || input.resourceGeneration !== 1 ||
     !/^402010193138\.dkr\.ecr\.ca-central-1\.amazonaws\.com\/techlong-sandbox-speedfeast@sha256:[a-f0-9]{64}$/.test(reviewedImage) ||
     input.environment.policy.budgetLimitCents !== 5000 || input.environment.policy.maxTaskCount !== 1 ||
     input.plan.deploymentProfileKey !== "standard-v1" || input.environment.baseDomain !== "sandbox.techlong.cloud") {
@@ -130,9 +193,31 @@ async function renderFirstOnboardingStack(input: AwsSandboxTenantStackInput, con
   // Reuse the unchanged pinned renderer's data-only transform. This entry
   // validates the new digest before privately finalizing that exact output.
   const rendered = express
-    ? { ...await express.render(input, context), protocol: "single-tenant-supervised-workload" as const }
+    ? { ...await express.render(input), protocol: "single-tenant-supervised-workload" as const }
     : await renderSupervisedTenantWorkloadBase(input);
+  if (window) {
+    // The supervised template has no scheduler. Retag only this first-open
+    // output; the immutable requestedAt and legacy renderers stay untouched.
+    const expiration = new Date(window.workloadExpiresAt).toISOString(), old = rendered.tags.ExpiresAt;
+    const resources = rendered.template.Resources as Record<string, { Properties?: { Tags?: { Key: string; Value: unknown }[] } }>;
+    for (const resource of Object.values(resources)) {
+      const properties = resource.Properties, tags = properties?.Tags;
+      if (!tags) continue;
+      const expiry = tags.filter(tag => tag.Key === "ExpiresAt");
+      if (expiry.length !== 1 || expiry[0].Value !== old) fail("FIRST_ONBOARDING_EXPIRY_TAG_DRIFT");
+      // The base template shares tag entries between resources.
+      properties.Tags = tags.map(tag => tag.Key === "ExpiresAt" ? { ...tag, Value: expiration } : tag);
+    }
+    rendered.tags = { ...rendered.tags, ExpiresAt: expiration };
+    rendered.templateBody = canonicalJson(rendered.template);
+    rendered.templateSha256 = await sha256Hex(rendered.template);
+  }
   return finalizeRenderedStack({ rendered, context, express, expectedRuntimeSecretName: input.runtimeSecretName });
+}
+
+/** Inspector gets only data, never the apply-capable, process-local object. */
+export async function renderFirstOnboardingExpectation(...args: Parameters<typeof renderFirstOnboardingStack>) {
+  return structuredClone(await renderFirstOnboardingStack(...args));
 }
 
 /** Wired into the existing Worker without changing its lease, epoch, database,
@@ -148,15 +233,17 @@ export function createSingleTenantWorkloadStrategy(input: {
 /** Not reachable via flags or the ordinary worker composition. */
 export function createFirstOnboardingWorkloadStrategy(input: {
   scope: SingleDeploymentClaimScope; cleanupReadiness: SupervisedCleanupReadinessPort;
-  express?: FirstOnboardingExpressComposition;
+  express?: FirstOnboardingExpressComposition; window?: FirstOpenExecutionWindow;
 }): TenantWorkloadExecutionStrategy {
-  return createSupervisedStrategy(Object.freeze(structuredClone(input.scope)), input.cleanupReadiness, true, input.express);
+  return createSupervisedStrategy(Object.freeze(structuredClone(input.scope)), input.cleanupReadiness, true, input.express, input.window);
 }
 
 function createSupervisedStrategy(scope: Readonly<SingleDeploymentClaimScope>, cleanup: SupervisedCleanupReadinessPort,
-  firstOnboarding: boolean, express?: FirstOnboardingExpressComposition): TenantWorkloadExecutionStrategy {
+  firstOnboarding: boolean, express?: FirstOnboardingExpressComposition, window?: FirstOpenExecutionWindow): TenantWorkloadExecutionStrategy {
   if (!cleanup || typeof cleanup.verify !== "function") fail("SUPERVISED_CLEANUP_VERIFIER_MISSING");
   const assertScope = (context: DeploymentExecutionContext) => {
+    if (firstOnboarding && ((context.job.id === FIRST_OPEN_BASELINE_BINDING.jobId) !== Boolean(window) ||
+      (window && context.environment.policy.ttlSeconds !== FIRST_OPEN_TTL_SECONDS))) fail("FIRST_ONBOARDING_WINDOW_SCOPE_CHANGED");
     if (context.deployment.id !== scope.deploymentId || context.deployment.appInstanceId !== scope.appInstanceId ||
       context.appInstance.id !== scope.appInstanceId || context.deployment.environmentId !== scope.environmentId ||
       context.environment.id !== scope.environmentId || context.deployment.planHash !== scope.planHash ||
@@ -175,6 +262,10 @@ function createSupervisedStrategy(scope: Readonly<SingleDeploymentClaimScope>, c
       const startedAt = performance.now();
       const observed = structuredClone(await cleanup.verify({ scope, context, signal })); signal.throwIfAborted();
       const checkedAt = now + Math.max(0, performance.now() - startedAt);
+      if (window) {
+        await assertFirstOpenCleanupReadiness(observed, scope, window, checkedAt);
+        return `supervised-review:${observed.reviewSha256}`;
+      }
       const expiresAt = context.deployment.createdAt + context.environment.policy.ttlSeconds * 1000;
       if (observed.scopeSha256 !== await sha256Hex(scope) ||
         !/^[a-f0-9]{64}$/.test(observed.reviewSha256) || !/^[a-f0-9]{64}$/.test(observed.permissionsEvidenceSha256) ||
@@ -196,7 +287,9 @@ function createSupervisedStrategy(scope: Readonly<SingleDeploymentClaimScope>, c
         stackInput.externalOperation.epoch !== context.tenantExternalOperation?.epoch ||
         stackInput.externalOperation.marker !== context.tenantExternalOperation?.marker ||
         stackInput.externalOperation.operationHash !== context.tenantExternalOperation?.operationHash) fail("SUPERVISED_RENDER_CONTEXT_MISMATCH");
-      if (firstOnboarding) return renderFirstOnboardingStack(stackInput, context, scope.artifactRef, express);
+      if (firstOnboarding) return renderFirstOnboardingStack(stackInput, context, scope.artifactRef,
+        express && { controlRef: express.controlRef, applicationRoleArn: express.applicationRoleArn,
+          render: x => express.render(x, context) }, window);
       return finalizeSupervisedTenantStack({ rendered: await renderSingleTenantAcceptanceWorkload(stackInput), context,
         expectedRuntimeSecretName: stackInput.runtimeSecretName });
     },

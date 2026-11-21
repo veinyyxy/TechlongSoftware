@@ -3,6 +3,7 @@ import type { InstanceBinding, InstanceReleaseObservation, SoftwareRelease } fro
 import { samplingBinding, type ReleaseSamplingBinding } from "../releases/sampling.ts";
 import type { ReleaseRuntimeFacts } from "../releases/inspection.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
+import { assertFirstOpenTaskRelease, verifyFirstOpenTaskRelease } from "./first-onboarding-version.ts";
 
 export interface FirstOnboardingCompletionApproval {
   clientApiVersion: string;
@@ -15,6 +16,14 @@ export async function buildFirstOnboardingBinding(input: {
 }) {
   const { runtime, facts, sampling, hostname, approved, release, review } = input;
   const scope = review.payload.scope;
+  if (release.status === "candidate") {
+    assertFirstOpenTaskRelease(release);
+    await verifyFirstOpenTaskRelease(release);
+    if (release.firstOpenScope.jobId !== review.jobId || release.firstOpenScope.instanceId !== scope.appInstanceId ||
+      review.catalogSha256 !== await sha256Hex(release) || scope.releaseId !== release.id ||
+      scope.artifactRef !== runtime.imageUri || scope.artifactRef !== release.image.repository + "@" + release.image.manifestDigest ||
+      runtime.platformDigest !== release.image.platformDigest) throw Error("FIRST_ONBOARDING_COMPLETION_TASK_RELEASE_CHANGED");
+  }
   if (!sampling || !runtime.persistentUploadsReady || sampling.apiHostname !== hostname ||
     sampling.database.kind !== "cluster" || sampling.database.profile !== "express_iam" ||
     sampling.database.schemaVersion !== runtime.databaseSchemaVersion ||

@@ -1,0 +1,7 @@
+{
+  "schema": "techlong/first-open-sandbox-publication-review/v1",
+  "enabled": false,
+  "jobId": "job_fc41597f9b5ba8e02b338ecf",
+  "instanceId": "app_bbd626d7d3806af686073211",
+  "reason": "No fresh target tag, permanent slot, OIDC and environment readback or approved execution window. This document cannot authorize publication."
+}

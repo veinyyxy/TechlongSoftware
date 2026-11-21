@@ -4,6 +4,8 @@ import { canonicalJson } from "./hash.ts";
 import { assertFirstOnboardingTechnicalRuntime, assertReleaseArtifact, releaseRuntimeDigests, type ReleaseRuntimeFacts } from "../releases/inspection.ts";
 import { buildFirstOnboardingBinding } from "./first-onboarding-completion.ts";
 import type { ReleaseSamplingBinding } from "../releases/sampling.ts";
+import type { FirstOnboardingExpressComposition } from "./first-onboarding-express.ts";
+import type { TenantExternalOperationFence } from "./contracts.ts";
 
 /** In an approved live composition this must be a separate read-only reader,
  * not the executor or its cached CreateStack response. No live reader is wired. */
@@ -17,8 +19,22 @@ export interface FirstOnboardingRuntimeReader {
   }>;
 }
 
+/** Exact first-open only. A receipt is never returned as raw provider facts. */
+export interface FirstOnboardingIndependentHandoff {
+  checkIdentity(signal: AbortSignal): Promise<void>;
+  verifyInitialSecret(ack: { arn: string; versionId: string; externalFence: TenantExternalOperationFence }, signal: AbortSignal): Promise<void>;
+  verifyRuntime(input: Omit<Parameters<typeof verifyFirstOnboardingRuntime>[0], "reader" | "now"> & {
+    material: ReturnType<FirstOnboardingExpressComposition["material"]>;
+  }): ReturnType<typeof verifyFirstOnboardingRuntime>;
+}
+
 export async function verifyFirstOnboardingRuntime(input: {
-  context: DeploymentExecutionContext; stack: WorkerTenantStack; stackId: string; dnsTarget: string; databaseSchemaVersion: string;
+  context: Pick<DeploymentExecutionContext, "tenantExternalOperation"> & {
+    tenantResources?: Pick<NonNullable<DeploymentExecutionContext["tenantResources"]>,
+      "identity" | "ownershipMarker" | "generation" | "lifecycleStatus" | "baselineDigest"> | null;
+    appInstance: Pick<DeploymentExecutionContext["appInstance"], "id">;
+    deployment: Pick<DeploymentExecutionContext["deployment"], "id" | "artifactRef" | "configurationHash">;
+  }; stack: WorkerTenantStack; stackId: string; dnsTarget: string; databaseSchemaVersion: string;
   baselineDigest: string; platformDigest: string; reader: FirstOnboardingRuntimeReader; now: () => number; signal: AbortSignal;
   completion?: Pick<Parameters<typeof buildFirstOnboardingBinding>[0], "approved" | "review" | "release">;
 }) {

@@ -1,0 +1,112 @@
+{
+  "schema": "techlong/sandbox-first-open-session-deltas/v1",
+  "status": "OFFLINE_SCOPE_ONLY_BLOCKED_ON_CREDENTIAL_SOURCES",
+  "jobId": "job_fc41597f9b5ba8e02b338ecf",
+  "instanceId": "app_bbd626d7d3806af686073211",
+  "account": "402010193138",
+  "region": "ca-central-1",
+  "basis": {
+    "iamObservation": "docs/evidence/sandbox-first-open-fc41597f-preclaim-iam.observed.json",
+    "observedAtUtc": "2026-11-19T16:26:32.404Z",
+    "otherFactsExpireAtUtc": "2026-11-19T19:56:56.789Z",
+    "otherFactsExtended": false
+  },
+  "executionApprovalSha256": null,
+  "unboundInputs": {
+    "nonAdministratorProvisionerSource": null,
+    "preclaimLifecycleSessionSource": null,
+    "independentInspectorSourcePrincipalArn": null,
+    "sessionIssueNotBeforeUtc": null,
+    "sessionIssueBeforeUtc": null,
+    "sessionAccessBeforeUtc": null,
+    "verifiedCurrentStackOriginalsForAssembly": null
+  },
+  "ownership": {
+    "sharedStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917",
+    "sharedLogicalResource": "ProvisionerBoundary",
+    "identityStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-first-open-fc41597f-identities/483fa2e0-e42c-11f1-b49f-02ffcd94927f",
+    "identityLogicalResources": ["ApplicationRole", "ApplicationPermissions", "LockedInspectorRole"],
+    "createNewIamRoles": false,
+    "directIamWrites": false,
+    "statementsAreDeltasNotReplacementDocuments": true
+  },
+  "applicationProbe": {
+    "callerRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole",
+    "callerRoleId": "AROAV3GNMXTZMEBX7MOF7",
+    "targetRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxFirstOpen-e9fdccd5d8c7685c",
+    "targetRoleId": "AROAV3GNMXTZKCARKUCQJ",
+    "sessionName": "first-open-fc41597f-probe-g1",
+    "sessionUserId": "AROAV3GNMXTZKCARKUCQJ:first-open-fc41597f-probe-g1",
+    "maxAssumeRoleCalls": 1,
+    "requestedDurationSeconds": 900,
+    "credentialRefreshOrExport": false,
+    "connectResource": "arn:aws:rds-db:ca-central-1:402010193138:dbuser:cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM/tenant_e9fdccd5d8c7685c_role",
+    "provisionerPolicyDelta": {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "arn:aws:iam::402010193138:role/TechlongSandboxFirstOpen-e9fdccd5d8c7685c",
+      "Condition": {
+        "StringEquals": {"sts:RoleSessionName": "first-open-fc41597f-probe-g1"},
+        "DateGreaterThanEquals": {"aws:CurrentTime": "BIND_FROM_APPROVED_SESSION_ISSUE_START"},
+        "DateLessThan": {"aws:CurrentTime": "BIND_FROM_APPROVED_SESSION_ISSUE_CUTOFF"}
+      }
+    },
+    "targetTrustDeltaDuringApprovedWindow": {
+      "Effect": "Allow",
+      "Principal": {"AWS": "arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole"},
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {"sts:RoleSessionName": "first-open-fc41597f-probe-g1"},
+        "DateGreaterThanEquals": {"aws:CurrentTime": "BIND_FROM_APPROVED_SESSION_ISSUE_START"},
+        "DateLessThan": {"aws:CurrentTime": "BIND_FROM_APPROVED_SESSION_ISSUE_CUTOFF"}
+      }
+    },
+    "targetSessionDenyDeltas": [
+      {
+        "Effect": "Deny",
+        "NotAction": "rds-db:connect",
+        "Resource": "*",
+        "Condition": {"StringEquals": {"aws:userid": "AROAV3GNMXTZKCARKUCQJ:first-open-fc41597f-probe-g1"}}
+      },
+      {
+        "Effect": "Deny",
+        "Action": "rds-db:connect",
+        "NotResource": "arn:aws:rds-db:ca-central-1:402010193138:dbuser:cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM/tenant_e9fdccd5d8c7685c_role",
+        "Condition": {"StringEquals": {"aws:userid": "AROAV3GNMXTZKCARKUCQJ:first-open-fc41597f-probe-g1"}}
+      },
+      {
+        "Effect": "Deny",
+        "Action": "rds-db:connect",
+        "Resource": "*",
+        "Condition": {
+          "StringEquals": {"aws:userid": "AROAV3GNMXTZKCARKUCQJ:first-open-fc41597f-probe-g1"},
+          "DateGreaterThanEquals": {"aws:CurrentTime": "BIND_FROM_APPROVED_SESSION_ACCESS_CUTOFF"}
+        }
+      }
+    ],
+    "revokeThroughOriginalStacks": true,
+    "retainSessionDeniesUntilLastIssuedSessionExpired": true,
+    "normalEcsTrustRequiresSeparatelyReviewedWorkloadState": true
+  },
+  "inspector": {
+    "awsRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxFirstOpenInspector",
+    "awsRoleId": "AROAV3GNMXTZONT55QARZ",
+    "trustMustUseIndependentConfirmedPrincipal": true,
+    "awsConnectResource": "arn:aws:rds-db:ca-central-1:402010193138:dbuser:cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM/tenant_e9fdccd5d8c7685c_inspect",
+    "database": "tenant_e9fdccd5d8c7685c_db",
+    "username": "tenant_e9fdccd5d8c7685c_inspect",
+    "usernameOidFromCreateAndIndependentReadback": true,
+    "proposedSqlGrants": [
+      "CONNECT on the exact tenant database",
+      "USAGE on public in the exact tenant database",
+      "SELECT (singleton_key) on public.saas_instances in the exact tenant database"
+    ],
+    "managementOrApplicationSqlUserFallback": false,
+    "otherConnectableDatabases": 0,
+    "maxTargetTlsReadOnlyConnections": 1,
+    "maxSqlStatements": 7,
+    "fixedSelects": ["session identity, ownership and isolation", "existing application role catalog projection", "schema singleton boolean"],
+    "directBroadCatalogGrantOrSecurityDefinerFallback": false
+  },
+  "actualThisPreparation": {"awsCalls": 0, "assumeRole": 0, "privateReads": 0, "dbConnections": 0, "installs": 0, "restores": 0, "claims": 0}
+}

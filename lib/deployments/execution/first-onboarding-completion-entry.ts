@@ -1,6 +1,11 @@
 import { COMPLETE_FIRST_ONBOARDING, READ_FIRST_ONBOARDING_COMPLETION, type FirstOnboardingCompletionWriter } from "./first-onboarding-completion.ts";
+import { firstOpenVersion, type FirstOpenTaskRelease } from "./first-onboarding-version.ts";
+import { firstOpenSqlJson } from "./first-onboarding-sql-value.ts";
 
-interface Scope { jobId: string; deploymentId: string; instanceId: string; approvalSha256: string; writeBefore: number }
+interface Scope {
+  jobId: string; deploymentId: string; instanceId: string; approvalSha256: string; writeBefore: number;
+  buyerOrigin?: string; taskRelease?: FirstOpenTaskRelease;
+}
 interface Roles { definer: string; writer: string; reader: string }
 interface SqlPort { query(sql: string, bindings: string[]): Promise<{ rows: unknown[] }> }
 const schema = "techlong_first_onboarding";
@@ -11,6 +16,10 @@ function checkScope(s: Scope) {
   if (!/^job_[a-f0-9]{24}$/.test(s.jobId) || !/^dep_[a-f0-9]{24}$/.test(s.deploymentId) ||
     !/^app_[a-zA-Z0-9_-]{3,120}$/.test(s.instanceId) || !/^[a-f0-9]{64}$/.test(s.approvalSha256) ||
     !Number.isSafeInteger(s.writeBefore) || s.writeBefore <= 0) throw Error("FIRST_ONBOARDING_COMPLETION_INSTALL_SCOPE_INVALID");
+  if (s.buyerOrigin !== undefined && (!/^app_[a-f0-9]{24}$/.test(s.instanceId) ||
+    s.buyerOrigin !== `https://${s.instanceId.replace("_", "-")}.sandbox.techlong.cloud`)) {
+    throw Error("FIRST_ONBOARDING_COMPLETION_BUYER_ORIGIN_INVALID");
+  }
 }
 
 /** Pure DDL candidate for one approved job. Never installed by the worker.
@@ -21,12 +30,45 @@ export function firstOnboardingCompletionDdl(scope: Scope, roles: Roles) {
     !/^first_onboarding_[a-z][a-z0-9_]{2,38}$/.test(r))) throw Error("FIRST_ONBOARDING_COMPLETION_INSTALL_ROLES_INVALID");
   const { definer, writer, reader } = roles;
   const known = rpcScopePredicates(scope);
-  const complete = COMPLETE_FIRST_ONBOARDING.replace("  WHERE j.status='running'", `  WHERE ${known} AND j.status='running'`);
-  const inspect = READ_FIRST_ONBOARDING_COMPLETION.replace("j.id=$1 AND d.id=$2 AND a.id=$3",
+  let complete = COMPLETE_FIRST_ONBOARDING.replace("  WHERE j.status='running'", `  WHERE ${known} AND j.status='running'`);
+  let inspect = READ_FIRST_ONBOARDING_COMPLETION.replace("j.id=$1 AND d.id=$2 AND a.id=$3",
     `j.id='${scope.jobId}' AND d.id='${scope.deploymentId}' AND a.id='${scope.instanceId}'`)
     .replace("s.last_evidence->>'bindingSha256'=$4", `s.last_evidence->>'bindingSha256'=$1 AND s.last_evidence->>'approvalSha256'='${scope.approvalSha256}'`);
   if (complete === COMPLETE_FIRST_ONBOARDING || !complete.includes(known) ||
     inspect === READ_FIRST_ONBOARDING_COMPLETION || inspect.includes("$4")) throw Error("FIRST_ONBOARDING_COMPLETION_CONTRACT_DRIFT");
+  if (scope.buyerOrigin !== undefined) {
+    // The verifier receipt/D2 binding continues to name the API. Only this
+    // job-scoped install publishes the separate, ID-derived customer entry.
+    const accessWrite = "access_url='https://' || (e.req#>>'{receipt,hostname}')";
+    const hostOutput = "'tenantHostname',e.req#>>'{receipt,hostname}'";
+    const accessRead = "a.access_url='https://' || (d.outputs::jsonb->>'tenantHostname')";
+    if (!complete.includes(accessWrite) || !complete.includes(hostOutput) || !inspect.includes(accessRead)) {
+      throw Error("FIRST_ONBOARDING_COMPLETION_CONTRACT_DRIFT");
+    }
+    const origin = `'${scope.buyerOrigin}'`; // Exact instance/DNS shape enforced above.
+    complete = complete.replace(accessWrite, `access_url=${origin}`)
+      .replace(hostOutput, `${hostOutput},'buyerOrigin',${origin}`);
+    inspect = inspect.replace(accessRead, `a.access_url=${origin} AND d.outputs::jsonb->>'buyerOrigin'=${origin}
+    AND d.outputs::jsonb->>'tenantHostname'=a.slug || '.sandbox.techlong.cloud'`);
+  }
+  if (scope.taskRelease !== undefined) {
+    const v = firstOpenVersion(scope.taskRelease);
+    if (scope.taskRelease.firstOpenScope.jobId !== scope.jobId || scope.taskRelease.firstOpenScope.instanceId !== scope.instanceId ||
+      scope.deploymentId !== "dep_746535593025bf97a9efeccd") throw Error("FIRST_ONBOARDING_COMPLETION_TASK_RELEASE_SCOPE");
+    const releaseDoc = firstOpenSqlJson(scope.taskRelease);
+    const catalog = `l.id='${v.releaseId}' AND l.status='candidate' AND l.product_id='${scope.taskRelease.productId}'
+      AND l.component='tenant_api' AND l.document=${releaseDoc}`;
+    const expectedBinding = `i.binding_text::jsonb#>>'{currentRelease,id}'='${v.releaseId}'
+      AND i.binding_text::jsonb#>>'{currentRelease,manifestDigest}'='${v.imageDigest}'
+      AND i.binding_text::jsonb#>>'{currentRelease,platformDigest}'='${scope.taskRelease.image.platformDigest}'`;
+    const status = "l.status='ecr_verified'";
+    const revision = "s.revision=0 AND s.active_request_id IS NULL";
+    if (!complete.includes(status) || !inspect.includes(revision)) throw Error("FIRST_ONBOARDING_COMPLETION_CONTRACT_DRIFT");
+    complete = complete.replace(status, `(${catalog}) AND (${expectedBinding}) AND d.artifact_ref='${v.artifactRef}'`);
+    inspect = inspect.replace(revision, `${revision} AND s.current_release_id='${v.releaseId}' AND d.artifact_ref='${v.artifactRef}'
+       AND j.payload::jsonb#>>'{scope,releaseId}'='${v.releaseId}' AND j.payload::jsonb#>>'{scope,artifactRef}'='${v.artifactRef}'
+       AND EXISTS (SELECT 1 FROM deployment_release.releases l WHERE ${catalog})`);
+  }
   // PostgreSQL row locks also require UPDATE privilege. For lock-only
   // relations that capability stays in the NOLOGIN definer, on one key column.
   const projections = {
@@ -40,7 +82,8 @@ export function firstOnboardingCompletionDdl(scope: Scope, roles: Roles) {
     "public.deployment_tenant_external_operations": "app_instance_id,generation,epoch,state,intent,owner_deployment_id,created_by_job_id,created_by_attempt,marker,operation_hash",
     "public.deployment_step_runs": "id,job_id,deployment_id,attempt,step_key,status,input_hash,output,finished_at",
     "deployment_release.releases": "id,product_id,component,status,document",
-    "deployment_release.instance_state": "instance_id,revision,active_request_id,last_evidence",
+    "deployment_release.instance_state": "instance_id,revision,active_request_id,last_evidence" +
+      (scope.taskRelease === undefined ? "" : ",current_release_id"),
   };
   const updates = {
     "public.deployment_jobs": "status,lease_owner,lease_token,lease_expires_at,completed_at,updated_at",

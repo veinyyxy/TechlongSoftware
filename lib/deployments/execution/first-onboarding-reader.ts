@@ -46,6 +46,20 @@ export function firstOnboardingReadOnlyBoundary(api: FirstOnboardingReadOnlyPort
   }
   return {
     checkIdentity,
+    async createdStackId(stackName: string, signal: AbortSignal) {
+      await checkIdentity(signal);
+      const result = await read<{ Stacks?: { StackId?: string; StackName?: string; StackStatus?: string }[] }>(
+        signal, "cloudformation", "describe-stacks", { StackName: stackName });
+      const stack = result.Stacks?.[0];
+      if (result.Stacks?.length !== 1 || stack?.StackName !== stackName || stack.StackStatus !== "CREATE_COMPLETE" ||
+        typeof stack.StackId !== "string") throw Error("FIRST_ONBOARDING_INDEPENDENT_STACK_UNPROVED");
+      return stack.StackId;
+    },
+    async verifyInitialSecret(ack: { arn: string; versionId: string }, signal: AbortSignal) {
+      await checkIdentity(signal);
+      const result = await read<Parameters<typeof assertInitialSecretVersion>[0]>(signal, "secretsmanager", "describe-secret", { SecretId: ack.arn });
+      assertInitialSecretVersion(result, ack.arn, ack.versionId);
+    },
     async secret(arn: string, signal: AbortSignal) {
       await checkIdentity(signal);
       return read<{ ARN?: string; DeletedDate?: unknown; RotationEnabled?: boolean;

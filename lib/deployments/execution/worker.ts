@@ -7,13 +7,16 @@ import {
   type AwsSandboxTenantStackInput,
 } from "../cloudformation/tenant-stack.ts";
 import type { TenantWorkloadExecutionStrategy, WorkerTenantStack } from "./single-tenant-workload-strategy.ts";
-import { createFirstOnboardingWorkloadStrategy, type SupervisedCleanupReadinessPort } from "./single-tenant-workload-strategy.ts";
+import { assertFirstOpenCleanupReadiness, createFirstOnboardingWorkloadStrategy, type SupervisedCleanupReadinessPort } from "./single-tenant-workload-strategy.ts";
+import { assertFirstOpenClaimTime, firstOpenExecutionWindow, type FirstOpenControlledWindow, type FirstOpenExecutionWindow } from "./first-onboarding-window.ts";
+import type { FirstOpenTaskRelease } from "./first-onboarding-version.ts";
 import { reviewFirstOnboarding, SELECT_FIRST_ONBOARDING, CLAIM_FIRST_ONBOARDING, firstOnboardingClaimBindings,
   isFirstOnboardingScope, type FirstOnboardingReview, type FirstOnboardingReviewRow } from "../first-onboarding.ts";
-import { verifyFirstOnboardingRuntime, type FirstOnboardingRuntimeReader } from "./first-onboarding-inspection.ts";
+import { verifyFirstOnboardingRuntime, type FirstOnboardingIndependentHandoff, type FirstOnboardingRuntimeReader } from "./first-onboarding-inspection.ts";
 import { COMPLETE_FIRST_ONBOARDING, type FirstOnboardingCompletionApproval, type FirstOnboardingCompletionWriter } from "./first-onboarding-completion.ts";
 import { firstOnboardingCompletionWriter, readFirstOnboardingCompletion } from "./first-onboarding-completion-entry.ts";
 import { composeFirstOnboardingExpress, type FirstOnboardingExpressApproval, type FirstOnboardingExpressPorts } from "./first-onboarding-express.ts";
+import { FIRST_OPEN_MANAGEMENT_SQL_USER, compileExpressBootstrapCandidateV3, expressBootstrapCandidateDigestV3 } from "./aurora-express-bootstrap-v3.ts";
 import { firstOnboardingReadOnlyBoundary, type FirstOnboardingReadOnlyPort } from "./first-onboarding-reader.ts";
 import type { SoftwareRelease } from "../releases/contract.ts";
 import { randomUUID } from "node:crypto";
@@ -1295,7 +1298,7 @@ async function handleApply(input: {
   workerId: string;
   aws: AwsDeploymentPort;
   stack?: WorkerTenantStack;
-  firstOnboarding?: { baselineDigest: string };
+  firstOnboarding?: { baselineDigest: string; window?: FirstOpenExecutionWindow };
 }): Promise<{ stack: WorkerTenantStack; stackId: string } | void> {
   if (["planned", "retry_wait"].includes(input.context.deployment.status)) {
     await moveState({
@@ -1459,8 +1462,8 @@ async function handleApply(input: {
   await reserveEnvironmentCapacity(input);
   const currentTime = (input.dependencies.now ?? Date.now)();
   const expiresAt =
-    input.context.deployment.createdAt +
-    input.context.environment.policy.ttlSeconds * 1_000;
+    input.firstOnboarding?.window?.workloadExpiresAt ??
+    (input.context.deployment.createdAt + input.context.environment.policy.ttlSeconds * 1_000);
   if (expiresAt <= currentTime + 5 * 60_000) {
     if (input.firstOnboarding) throw Error("FIRST_ONBOARDING_WINDOW_CLOSED");
     const existing = await checkpoint({
@@ -1766,9 +1769,14 @@ export interface FirstOnboardingExecutionApproval {
   hostname: string;
   dnsTarget: string;
   writeBefore: number;
+  controlledWindow?: FirstOpenControlledWindow;
+  taskRelease?: FirstOpenTaskRelease;
   completion?: FirstOnboardingCompletionApproval | { clientApiVersion: string; deriveG1Secret: true };
   express?: FirstOnboardingExpressApproval;
 }
+
+type FirstOnboardingDatabaseAdmission = { profile: "express_iam"; evidenceSha256: string } &
+  ({ emptyDatabaseInitializationVerified: true } | { restrictedManagementReady: true });
 
 /** One held job through the existing stages. No default network composition
  * or ordinary claimNext path; callers must verify approval and supply reviewed adapters. */
@@ -1781,11 +1789,12 @@ export async function runReviewedFirstOnboarding(input: {
   readRelease: (id: string) => Promise<SoftwareRelease | null>;
   claimJob: (sql: typeof CLAIM_FIRST_ONBOARDING, bindings: ReturnType<typeof firstOnboardingClaimBindings>) => Promise<{ jobId: string } | null>;
   verifyEmptyExpressCapability: (input: { review: FirstOnboardingReview; baselineDigest: string; databaseSchemaVersion: string }) =>
-    Promise<{ profile: "express_iam"; emptyDatabaseInitializationVerified: true; evidenceSha256: string } | null>;
+    Promise<FirstOnboardingDatabaseAdmission | null>;
   cleanupReadiness: SupervisedCleanupReadinessPort;
   independentReader?: FirstOnboardingRuntimeReader;
   completeFirstOnboarding?: FirstOnboardingCompletionWriter;
-  expressPorts?: FirstOnboardingExpressPorts & { independent: FirstOnboardingReadOnlyPort;
+  expressPorts?: FirstOnboardingExpressPorts & ({ independent: FirstOnboardingReadOnlyPort; handoff?: never } |
+    { handoff: FirstOnboardingIndependentHandoff; independent?: never }) & {
     completionClient: Parameters<typeof firstOnboardingCompletionWriter>[0];
     completionReadClient: Parameters<typeof readFirstOnboardingCompletion>[0] };
 }) {
@@ -1799,12 +1808,16 @@ export async function runReviewedFirstOnboarding(input: {
     !/^job_[a-f0-9]{24}$/.test(a.jobId) || ![a.reviewSha256, a.capabilitySha256, a.baselineDigest].every(hash => /^[a-f0-9]{64}$/.test(hash)) ||
     !/^[a-zA-Z0-9._-]{1,100}$/.test(a.databaseSchemaVersion) || !/^[a-z0-9][a-z0-9.-]{2,252}$/.test(a.dnsTarget) ||
     await sha256Hex(a) !== input.approvedSha256) throw Error("FIRST_ONBOARDING_APPROVAL_MISMATCH");
+  const window = firstOpenExecutionWindow(a.jobId, a.writeBefore, a.controlledWindow);
+  if (window) assertFirstOpenClaimTime(window, now());
+  if (a.taskRelease && (!window || a.express?.target.managementUsername !== FIRST_OPEN_MANAGEMENT_SQL_USER ||
+    a.taskRelease.firstOpenScope?.jobId !== a.jobId)) throw Error("FIRST_ONBOARDING_TASK_RELEASE_SCOPE");
   const derived = a.completion && "deriveG1Secret" in a.completion ? a.completion : undefined;
   const fixed = a.completion && "samplingSha256" in a.completion ? a.completion : undefined;
   // Catalog A uses the versioned digest form. Keep legacy plain names and
   // permit the digest form only for the existing Express first-open branch.
   const clientApi = a.completion?.clientApiVersion;
-  if ((a.completion && !(typeof clientApi === "string" && (/^[a-zA-Z0-9._-]{1,100}$/.test(clientApi) ||
+  if ((window && !derived) || (a.completion && !(typeof clientApi === "string" && (/^[a-zA-Z0-9._-]{1,100}$/.test(clientApi) ||
     (derived && /^speedfeast-client-api-sha256:[a-f0-9]{64}$/.test(clientApi))))) ||
     (fixed && !/^[a-f0-9]{64}$/.test(fixed.samplingSha256)) ||
     (derived && derived.deriveG1Secret !== true) ||
@@ -1826,37 +1839,75 @@ export async function runReviewedFirstOnboarding(input: {
   const release = await input.readRelease(scope.releaseId);
   const review = await reviewFirstOnboarding({ ...row, scope: { ...scope, appInstanceId: row.appInstanceId, workspaceId: row.workspaceId,
     subscriptionId: row.subscriptionId, tenantKey: row.tenantKey, environmentId: row.environmentId, planId: row.planId,
-    templateVersionId: row.templateVersionId, accountId: row.accountId }, release });
+    templateVersionId: row.templateVersionId, accountId: row.accountId }, release }, a.taskRelease);
   if (!review || review.reviewSha256 !== a.reviewSha256 || release?.compatibility.applicationPort !== 3000 ||
     !release.compatibility.schemaVersions.includes(a.databaseSchemaVersion) || !scope.artifactRef) throw Error("FIRST_ONBOARDING_REVIEW_CHANGED");
   if (a.completion && !release.compatibility.clientApiVersions.includes(a.completion.clientApiVersion)) {
     throw Error("FIRST_ONBOARDING_D2_BINDING_UNPROVED");
   }
+  const restricted = a.express?.target.managementUsername === FIRST_OPEN_MANAGEMENT_SQL_USER ? a.express : undefined;
+  if (restricted) {
+    // Bind the approved *program*, not a claimed pre-run initialization result.
+    // The protected manager reads the maintenance catalog before permitting
+    // claim. Actual initialization has not happened and is verified later.
+    const program = compileExpressBootstrapCandidateV3({ target: restricted.target, nonce: restricted.nonce, scope: {
+      appInstanceId: scope.appInstanceId, workspaceId: scope.workspaceId, productId: scope.productId,
+      environmentId: scope.environmentId, cellKey: "cell-sandbox-1",
+    } });
+    if (!window || expressBootstrapCandidateDigestV3(program) !== a.capabilitySha256) throw Error("FIRST_ONBOARDING_MANAGEMENT_PROGRAM_CHANGED");
+  }
   const capability = await input.verifyEmptyExpressCapability({ review, baselineDigest: a.baselineDigest, databaseSchemaVersion: a.databaseSchemaVersion });
-  if (capability?.profile !== "express_iam" || capability.emptyDatabaseInitializationVerified !== true ||
-    capability.evidenceSha256 !== a.capabilitySha256) throw Error("FIRST_ONBOARDING_EMPTY_EXPRESS_UNPROVED");
-  const readOnly = a.express && input.expressPorts
+  if (capability?.profile !== "express_iam" || capability.evidenceSha256 !== a.capabilitySha256 ||
+    (restricted ? !("restrictedManagementReady" in capability && capability.restrictedManagementReady === true) :
+      !("emptyDatabaseInitializationVerified" in capability && capability.emptyDatabaseInitializationVerified === true))) {
+    throw Error("FIRST_ONBOARDING_EMPTY_EXPRESS_UNPROVED");
+  }
+  const handoff = input.expressPorts?.handoff;
+  const readOnly = a.express && input.expressPorts?.independent
     ? firstOnboardingReadOnlyBoundary(input.expressPorts.independent, a.express.independentRoleArn, now, a.writeBefore) : undefined;
-  const express = a.express && input.expressPorts && readOnly ? await composeFirstOnboardingExpress({
+  if (input.expressPorts && ((Boolean(handoff) === Boolean(readOnly)) || (handoff && !window))) {
+    throw Error("FIRST_ONBOARDING_INDEPENDENT_PORT_SCOPE");
+  }
+  const express = a.express && input.expressPorts ? await composeFirstOnboardingExpress({
     approval: a.express, approvalSha256: input.approvedSha256, review, hostname: a.hostname, schemaVersion: a.databaseSchemaVersion,
     baselineDigest: a.baselineDigest, plan: row.desiredPlan as DeploymentExecutionContext["deployment"]["desiredPlan"],
-    ports: input.expressPorts, now, deadline: a.writeBefore, readSecretMetadata: readOnly.secret,
+    ports: input.expressPorts, now, deadline: a.writeBefore,
+    verifyInitialSecret: (ack, signal) => handoff ? handoff.verifyInitialSecret(ack, signal) :
+      readOnly!.verifyInitialSecret(ack, signal),
   }) : undefined;
   const independentReader = express && readOnly && derived && a.express ? readOnly.runtimeReader({
     material: express.material, release, review, clientApiVersion: derived.clientApiVersion,
     mediaPublicBaseUrl: a.express.mediaPublicBaseUrl, applicationRoleArn: express.applicationRoleArn,
   }) : input.independentReader!;
   const completionWriter = input.expressPorts ? firstOnboardingCompletionWriter(input.expressPorts.completionClient) : input.completeFirstOnboarding;
-  if (readOnly) await readOnly.checkIdentity(new AbortController().signal);
-  const strategy = createFirstOnboardingWorkloadStrategy({ cleanupReadiness: input.cleanupReadiness, express, scope: {
+  if (handoff) {
+    const t = now();
+    assertFirstOpenClaimTime(window!, t);
+    await handoff.checkIdentity(AbortSignal.timeout(window!.claimBefore - t));
+    assertFirstOpenClaimTime(window!, now());
+  } else if (readOnly) await readOnly.checkIdentity(new AbortController().signal);
+  const workloadScope = Object.freeze({
     deploymentId: scope.deploymentId, appInstanceId: scope.appInstanceId, environmentId: scope.environmentId,
     planHash: scope.planHash, configurationHash: scope.configurationHash, artifactRef: scope.artifactRef,
-  } });
+  });
+  const strategy = createFirstOnboardingWorkloadStrategy({ cleanupReadiness: input.cleanupReadiness, express, scope: workloadScope, window });
   const dependencies = { ...input.dependencies, tenantWorkloadStrategy: strategy,
     ...(express ? { tenantDatabase: express.database } : {}) }, repository = dependencies.repository;
   const workerId = `first-onboarding:${a.jobId}`, leaseToken = `lease_${randomUUID().replaceAll("-", "")}`;
   const config = { ...input.config, firstOnboardingDeadline: a.writeBefore, firstOnboardingHostname: a.hostname };
   checkWindow();
+  if (window) {
+    const current = now();
+    assertFirstOpenClaimTime(window, current);
+    if (!input.cleanupReadiness.verifyBeforeClaim) throw Error("FIRST_ONBOARDING_PRECLAIM_CLEANUP_REQUIRED");
+    const signal = AbortSignal.timeout(window.claimBefore - current);
+    const observed = structuredClone(await input.cleanupReadiness.verifyBeforeClaim({
+      scope: workloadScope, jobId: a.jobId, approvalSha256: input.approvedSha256, window, signal,
+    }));
+    signal.throwIfAborted();
+    await assertFirstOpenCleanupReadiness(observed, workloadScope, window, now());
+    assertFirstOpenClaimTime(window, now());
+  }
   const claimed = await input.claimJob(CLAIM_FIRST_ONBOARDING, firstOnboardingClaimBindings(review, row, workerId, leaseToken, a.writeBefore));
   if (claimed?.jobId !== a.jobId) throw Error("FIRST_ONBOARDING_CLAIM_NOT_PROVED");
   // Adapt only the in-memory job to the existing worker envelope. SQL did not
@@ -1882,7 +1933,7 @@ export async function runReviewedFirstOnboarding(input: {
   await ensureExecutionCleanup({ ...base, context, now: now() });
   checkWindow();
   const aws = await dependencies.awsFactory({ region: context.environment.region, workerRoleArn: context.binding!.workerRoleArn });
-  const applied = await handleApply({ ...base, context, aws, firstOnboarding: { baselineDigest: a.baselineDigest } });
+  const applied = await handleApply({ ...base, context, aws, firstOnboarding: { baselineDigest: a.baselineDigest, window } });
   if (!applied) throw Error("FIRST_ONBOARDING_CREATE_NOT_PROVED");
   await handleReconcile({ ...base, context: await loadContext(), aws, stack: applied.stack, firstOnboarding: { stackId: applied.stackId } });
   context = await loadContext();
@@ -1893,9 +1944,13 @@ export async function runReviewedFirstOnboarding(input: {
   const receipt = await checkpoint({ ...base, context, stepKey: "first_onboarding_independent_inspection", stepInput, execute: async signal => {
     const completion = express && derived ?
       { clientApiVersion: derived.clientApiVersion, samplingSha256: await sha256Hex(express.material().sampling) } : fixed;
-    const checked = await verifyFirstOnboardingRuntime({ context, ...applied, dnsTarget: a.dnsTarget, baselineDigest: a.baselineDigest,
-      databaseSchemaVersion: a.databaseSchemaVersion, platformDigest: review.platformDigest, reader: independentReader, now, signal,
-      completion: completion ? { approved: completion, review, release } : undefined });
+    const inspection = { context, ...applied, dnsTarget: a.dnsTarget, baselineDigest: a.baselineDigest,
+      databaseSchemaVersion: a.databaseSchemaVersion, platformDigest: review.platformDigest, signal,
+      completion: completion ? { approved: completion, review, release } : undefined };
+    const checked = handoff
+      ? await handoff.verifyRuntime({ ...inspection, material: express!.material() })
+      : await verifyFirstOnboardingRuntime({ ...inspection, reader: independentReader, now });
+    signal.throwIfAborted();
     initialBindingText = checked.initialBindingText;
     return { outcome: "TECHNICALLY_VERIFIED" as const, jobId: a.jobId, deploymentId: scope.deploymentId, instanceId: scope.appInstanceId,
       releaseId: scope.releaseId, approvalSha256: input.approvedSha256, reviewSha256: review.reviewSha256,

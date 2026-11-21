@@ -2,6 +2,7 @@ import { stableId } from "../domain/ids.ts";
 import { canonicalJson, sha256Hex } from "./execution/hash.ts";
 import type { SoftwareRelease } from "./releases/contract.ts";
 import type { DeploymentEnvironment } from "./environment.ts";
+import { verifyFirstOpenTaskRelease, type FirstOpenTaskRelease } from "./execution/first-onboarding-version.ts";
 
 export const FIRST_ONBOARDING_PREFIX = "first-onboarding:v1:";
 export const FIRST_ONBOARDING_HOLD_AT = Number.MAX_SAFE_INTEGER;
@@ -113,7 +114,7 @@ export interface FirstOnboardingReviewFacts {
 }
 
 /** Prepares material for review only, never claims a row or admits cloud execution. */
-export async function reviewFirstOnboarding(facts: FirstOnboardingReviewFacts) {
+export async function reviewFirstOnboarding(facts: FirstOnboardingReviewFacts, taskRelease?: FirstOpenTaskRelease) {
   const expected = await buildFirstOnboardingJob(facts.scope);
   const { deployment: d, job: j, release: r } = facts;
   if (!expected || !facts.instancePendingFirstOpen || !facts.subscriptionActiveAndCurrent || !facts.scopeStillEligible || !facts.noOtherDeploymentOrTenantGeneration ||
@@ -123,7 +124,15 @@ export async function reviewFirstOnboarding(facts: FirstOnboardingReviewFacts) {
     j.status !== "pending" || j.attempts !== 0 || j.maxAttempts !== 1 || j.availableAt !== FIRST_ONBOARDING_HOLD_AT ||
     j.leaseOwner !== null || j.leaseToken !== null || j.leaseExpiresAt !== null || j.completedAt !== null ||
     canonicalJson(j.payload) !== canonicalJson(expected.payload)) return null;
-  if (!r || r.id !== facts.scope.releaseId || r.productId !== productId || r.component !== "tenant_api" || r.status !== "ecr_verified" ||
+  // A normal catalog reader cannot authorize this exception. The exact
+  // task-only document must come independently from the protected approval.
+  if (taskRelease !== undefined) {
+    await verifyFirstOpenTaskRelease(taskRelease);
+    if (j.id !== taskRelease.firstOpenScope.jobId || facts.scope.appInstanceId !== taskRelease.firstOpenScope.instanceId ||
+      canonicalJson(r) !== canonicalJson(taskRelease)) return null;
+  }
+  if (!r || r.id !== facts.scope.releaseId || r.productId !== productId || r.component !== "tenant_api" ||
+    r.status !== (taskRelease ? "candidate" : "ecr_verified") ||
     `${r.image.repository}@${r.image.manifestDigest}` !== facts.scope.artifactRef || r.image.runtimePlatform !== "linux/amd64" ||
     !/^sha256:[a-f0-9]{64}$/.test(r.image.platformDigest) || !digest.test(r.image.verificationSha256) ||
     !r.compatibility.databaseProfiles.includes("express_iam") || r.compatibility.requiresMigration || r.compatibility.startupWrites) return null;

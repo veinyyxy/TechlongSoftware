@@ -14,7 +14,7 @@ import type {
   TenantSecretStorePort,
 } from "./contracts.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
-import { isFixedFirstOpenBaseline } from "./first-onboarding-baseline-versions.ts";
+import { FIRST_OPEN_BASELINE_BINDING, isFixedFirstOpenBaseline } from "./first-onboarding-baseline-versions.ts";
 import { assertTenantApplicationAccessProof } from "./tenant-application-access-proof.ts";
 
 const postgresIdentifierPattern = /^[a-z][a-z0-9_]{0,62}$/;
@@ -136,17 +136,21 @@ export async function deriveTenantResourceIdentity(
     );
   }
 
-  const ownership = {
+  return deriveTenantResourceIdentityFromPlan({
     appInstanceId: context.appInstance.id,
     workspaceId: context.workspace.id,
     productId: context.appInstance.productId,
     environmentId: context.environment.id,
     cellKey: context.environment.cellKey,
-  };
+  }, context.deployment.desiredPlan.resources.tenant.database);
+}
+
+/** Shared immutable identity derivation; no ownership claim or provider call. */
+export async function deriveTenantResourceIdentityFromPlan(ownership: Pick<TenantResourceIdentity,
+  "appInstanceId" | "workspaceId" | "productId" | "environmentId" | "cellKey">,
+  plannedDatabase: Pick<TenantResourceIdentity, "databaseName" | "roleName">) {
   const stableIdentityHash = await sha256Hex(ownership);
-  const token = `${stableStem(context.appInstance.id)}_${stableIdentityHash.slice(0, 10)}`;
-  const plannedDatabase =
-    context.deployment.desiredPlan.resources.tenant.database;
+  const token = `${stableStem(ownership.appInstanceId)}_${stableIdentityHash.slice(0, 10)}`;
   // The immutable deployment plan is the audit source of truth for physical
   // database names. Re-deriving different names here would make the plan,
   // Worker steps and actual resources disagree and could bypass uniqueness
@@ -553,7 +557,7 @@ function assertMutationReceipt(
 
 export function validateApprovedBaseline(
   baseline: TenantApprovedBaseline | null,
-  fixedFirstOpenBaseline = false,
+  reviewedFirstOpenJobId?: string,
 ): TenantApprovedBaseline {
   if (!baseline) {
     throw new TenantDatabaseLifecycleError(
@@ -561,10 +565,12 @@ export function validateApprovedBaseline(
       "No independently approved tenant baseline is configured; restore remains blocked.",
     );
   }
+  const locationMatches = reviewedFirstOpenJobId === FIRST_OPEN_BASELINE_BINDING.jobId
+    ? isFixedFirstOpenBaseline(baseline, reviewedFirstOpenJobId)
+    : baselineArchivePattern.test(baseline.archiveS3Uri) && baselineManifestPattern.test(baseline.manifestS3Uri);
   if (
     baseline.contract !== "speedfeast-pg16.14-tenant-baseline-v1" ||
-    (!(baselineArchivePattern.test(baseline.archiveS3Uri) && baselineManifestPattern.test(baseline.manifestS3Uri)) &&
-      !(fixedFirstOpenBaseline && isFixedFirstOpenBaseline(baseline))) ||
+    !locationMatches ||
     baseline.archiveS3Uri.includes("..") ||
     baseline.manifestS3Uri.includes("..") ||
     !sha256Pattern.test(baseline.archiveSha256) ||
@@ -811,7 +817,7 @@ export class GuardedTenantDatabasePort implements TenantDatabasePort {
       accountId: input.context.environment.expectedAccountId,
       region: input.context.environment.region,
     };
-    const baseline = validateApprovedBaseline(this.baseline, this.fixedFirstOpenBaseline);
+    const baseline = validateApprovedBaseline(this.baseline, this.fixedFirstOpenBaseline ? input.context.job.id : undefined);
     const secret = await this.secrets.inspectRuntimeSecret({
       fence,
       externalFence,

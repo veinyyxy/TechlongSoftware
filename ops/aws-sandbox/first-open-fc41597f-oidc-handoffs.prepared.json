@@ -1,0 +1,164 @@
+{
+  "schema": "techlong/sandbox-first-open-oidc-handoffs/v1",
+  "status": "OFFLINE_CONTRACT_ONLY_NO_EXECUTION_APPROVAL",
+  "jobId": "job_fc41597f9b5ba8e02b338ecf",
+  "deploymentId": "dep_746535593025bf97a9efeccd",
+  "instanceId": "app_bbd626d7d3806af686073211",
+  "generation": 1,
+  "epoch": 1,
+  "releaseId": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+  "basis": {
+    "roleObservation": "docs/evidence/sandbox-first-open-fc41597f-preclaim-iam.observed.json",
+    "sessionDeltas": "ops/aws-sandbox/first-open-fc41597f-session-deltas.prepared.json",
+    "oidcClaimPrecedent": "ops/cloud-worker/install/plan-v5.mjs",
+    "otherFactsExpireAtUtc": "2026-11-19T19:56:56.789Z",
+    "factsExtended": false
+  },
+  "executionApprovalSha256": null,
+  "unbound": {
+    "callerCommitSha": null,
+    "runtimeCommitSha": null,
+    "runOnceReusableCommitSha": null,
+    "inspectReusableCommitSha": null,
+    "verifiedActorId": null,
+    "verifiedEffectivePolicyAndSessionContext": null,
+    "verifiedCurrentStackOriginals": null,
+    "approvedWindow": null,
+    "verifiedArtifactAvailabilityDuringRun": null,
+    "verifiedSafeProjectionSufficientForExistingVerifier": null,
+    "approvedArtifactWaitBudgets": null,
+    "inspectRunId": null,
+    "runOnceRunId": null
+  },
+  "federatedTrust": {
+    "existingProviderArn": "arn:aws:iam::402010193138:oidc-provider/token.actions.githubusercontent.com",
+    "action": "sts:AssumeRoleWithWebIdentity",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "conditionOperator": "StringEquals",
+    "commonClaims": {
+      "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+      "token.actions.githubusercontent.com:sub": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:environment:techlong-sandbox-deploy",
+      "token.actions.githubusercontent.com:repository_id": "1323312747",
+      "token.actions.githubusercontent.com:repository_owner_id": "14145707",
+      "token.actions.githubusercontent.com:ref": "refs/heads/main",
+      "token.actions.githubusercontent.com:environment": "techlong-sandbox-deploy"
+    },
+    "mustBindActorConditionKey": "token.actions.githubusercontent.com:actor_id",
+    "mustBindReusableConditionKey": "token.actions.githubusercontent.com:job_workflow_ref",
+    "issueStartOperator": "DateGreaterThanEquals",
+    "issueCutoffOperator": "DateLessThan",
+    "issueTimeConditionKey": "aws:CurrentTime",
+    "requireHumanEnvironmentApprovalForEachExactRun": true,
+    "reuseExistingSubjectConfiguration": true,
+    "doNotUseSourceOrDefaultCredentials": true,
+    "callerPathCandidate": ".github/workflows/sandbox-first-open-v1.yml",
+    "pathsNotYetPublished": true,
+    "runOnce": {
+      "reusablePathCandidate": ".github/workflows/sandbox-first-open-run-once-job-v1.yml",
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917",
+      "targets": [
+        {"logicalId": "ProvisionerRole", "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole", "roleId": "AROAV3GNMXTZMEBX7MOF7"},
+        {"logicalId": "TenantLifecycleTaskRole", "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole", "roleId": "AROAV3GNMXTZDIWVT3BKN"}
+      ],
+      "change": "append one time-bounded federated Allow per role; preserve original non-OIDC trust",
+      "explicitEffectiveDenyRequiredForSharedPrivileges": true
+    },
+    "inspect": {
+      "reusablePathCandidate": ".github/workflows/sandbox-first-open-inspect-job-v1.yml",
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-first-open-fc41597f-identities/483fa2e0-e42c-11f1-b49f-02ffcd94927f",
+      "targets": [
+        {"logicalId": "LockedInspectorRole", "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxFirstOpenInspector", "roleId": "AROAV3GNMXTZONT55QARZ"}
+      ],
+      "change": "append one time-bounded federated Allow; retain the existing Deny on sts:AssumeRole",
+      "writerCannotObtainInspectorCredentials": true
+    },
+    "newRolesOrOidcProviders": 0,
+    "assumeRoleWithWebIdentityMaxPerTarget": 1,
+    "applicationProbeAssumeRoleMax": 1,
+    "sessionTraitForSharedRoleDenies": ["exact aws:PrincipalArn", "exact authenticated OIDC sub when proved present at resource calls"],
+    "ifCannotProveEffectiveScopeDoNotEnableTrust": true
+  },
+  "pairing": {
+    "event": "workflow_dispatch",
+    "runAttempt": 1,
+    "maxRuns": {"inspect": 1, "runOnce": 1},
+    "pairDomain": "techlong/sandbox-first-open-pair/v1",
+    "pairSha256Fields": ["domain", "jobId", "approvalSha256", "callerCommitSha", "runtimeCommitSha", "runOnceReusableRef", "inspectReusableRef", "pairNonce", "approvedWindowSha256"],
+    "firstDispatch": "Inspect with fixed pair inputs",
+    "secondDispatch": "RunOnce with fixed pair inputs and exact Inspect run ID",
+    "runOnceDisplayTitle": "first-open-fc41597f-runonce-<pairSha256>-<inspectRunId>",
+    "inspectDisplayTitle": "first-open-fc41597f-inspect-<pairSha256>",
+    "inspectDiscoversWriterFrom": "unique exact dispatcher workflow run in the approved dispatch interval, authenticated GitHub API, one page maximum per bounded poll",
+    "lockPairAtPreclaimReceipt": true,
+    "rejectOtherRunOrAttemptAndDoNotDispatchAgain": true
+  },
+  "artifactContract": {
+    "platform": "GitHub Actions artifacts bound to producer run",
+    "exactProducerAndAttemptFromServiceMetadata": true,
+    "authenticatedReaderPermission": "actions:read",
+    "immutableArtifactIdAndServerArchiveDigestRequired": true,
+    "overwrite": false,
+    "maxPerNamedArtifact": 1,
+    "maxSuccessfulArtifactUploads": {"runOnceIntents": 2, "inspectReceipts": 3},
+    "maxJsonBytes": 16384,
+    "maxZipBytes": 65536,
+    "namePattern": "fc41597f-<pairSha256>-<exactStageSuffix>",
+    "soleArchiveMember": "handoff.json",
+    "bodySchema": "techlong/sandbox-first-open-handoff/v1",
+    "bodyEncoding": "UTF-8 canonical JSON, one exact JSON member, no extra fields or files",
+    "producerSourceSha256Meaning": "SHA-256 of the approved runtime source closure, not the Git commit ID",
+    "envelopeKeys": ["schema", "kind", "pairSha256", "jobId", "approvalSha256", "runOnceId", "inspectId", "producerAttempt", "producerSourceSha256", "producedAtUtc", "previousBodySha256", "payload"],
+    "chain": [
+      "01-inspector-ready",
+      "02-g1-check-request",
+      "02-g1-metadata-observed",
+      "03-runtime-check-request",
+      "03-runtime-observed"
+    ],
+    "firstPreviousBodySha256": null,
+    "noCredentialOrRawSnapshots": true,
+    "treatArtifactsAsPublic": true,
+    "noNewInspectorS3Writes": true,
+    "stopsOnUnknownProvenanceDigestDuplicateOrExpired": true
+  },
+  "handoffs": [
+    {
+      "stage": "preclaim",
+      "producer": "Inspect",
+      "intent": null,
+      "receiptSuffix": "01-inspector-ready",
+      "receiptPayloadKeys": ["inspectorRoleId", "inspectorSessionArnSha256", "credentialExpiresAtUtc", "verifiedAtUtc"],
+      "consumerGate": "readOnly.checkIdentity before claim",
+      "deadlineGate": "claimBefore and all remaining session and cleanup reserves",
+      "beforeAnyClaimOrWorkloadMutation": true,
+      "inspectorDatabaseConnections": 0
+    },
+    {
+      "stage": "after-secret-create-before-db-write",
+      "intentProducer": "RunOnce",
+      "intentSuffix": "02-g1-check-request",
+      "intentPayloadKeys": ["secretReferenceSha256", "versionIdSha256", "g1e1FenceSha256"],
+      "producer": "Inspect",
+      "receiptSuffix": "02-g1-metadata-observed",
+      "receiptPayloadKeys": ["requestBodySha256", "secretReferenceSha256", "versionIdSha256", "g1e1FenceSha256", "onlyCurrentVersionVerified", "notDeletingOrRotatingVerified", "observedAtUtc"],
+      "consumerGate": "independent metadata read after CreateSecret ack, before database mutation",
+      "deadlineGate": "approved g1 receipt cutoff and remaining application probe login reserve, bounded by writeBefore",
+      "secretValueReads": 0
+    },
+    {
+      "stage": "after-runtime-config-before-atomic-completion",
+      "intentProducer": "RunOnce",
+      "intentSuffix": "03-runtime-check-request",
+      "intentPayloadKeys": ["stackIdSha256", "expectedRuntimeScopeSha256", "samplingSha256", "g1e1FenceSha256", "databaseIdentitySha256", "configurationAckSha256"],
+      "expectedRuntimeScopeDigestInputs": ["templateSha256", "parametersSha256", "tagsSha256", "expectedDnsTargetSha256", "listenerBindingsSha256", "releaseId", "imageDigest", "platformDigest", "baselineDigest"],
+      "producer": "Inspect",
+      "receiptSuffix": "03-runtime-observed",
+      "receiptPayloadKeys": ["requestBodySha256", "stackIdSha256", "expectedRuntimeScopeSha256", "samplingSha256", "g1e1FenceSha256", "databaseIdentitySha256", "runtimeConfigurationSha256", "runtimeTemplateSha256", "runtimeObservationSha256", "initialBindingSha256", "releaseId", "observedAtUtc"],
+      "runtimeObservationDigest": "canonical InstanceReleaseObservation with parameterKeys sorted for this handoff only",
+      "consumerGate": "first_onboarding_independent_inspection checkpoint before unchanged atomic SQL completion",
+      "deadlineGate": "receipt must leave the approved completion and readback reserve before writeBefore and actual lease expiry",
+      "bothSidesMustRebuildBindingWithoutUploadingItsText": true
+    }
+  ],
+  "actualThisPreparation": {"awsCalls": 0, "githubApiCalls": 0, "workflowChanges": 0, "credentialReadsOrTransfers": 0, "dbConnections": 0, "installs": 0, "restores": 0, "dispatches": 0, "claims": 0}
+}

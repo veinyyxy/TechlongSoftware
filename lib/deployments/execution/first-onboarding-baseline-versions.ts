@@ -1,4 +1,4 @@
-/** Offline request/projection contract. No credentials, discovery, or S3 client. */
+/** Original source and offline HEAD contract, retained for historical evidence. */
 export const FIRST_OPEN_BASELINE_BUCKET = "techlong-sandbox-402010193138-ca-central-1-tenant-baselines";
 const owner = "402010193138";
 const archiveSha = "1a65288b4628018932a8d9af4658db5702b6cf49966a2032bc2d919bc591d70a";
@@ -11,12 +11,28 @@ export type FirstOpenBaselineKind = keyof typeof FIRST_OPEN_BASELINE_OBJECTS;
 export const validFirstOpenVersionId = (id: unknown): id is string =>
   typeof id === "string" && /^[A-Za-z0-9_+=./-]{1,1024}$/.test(id) && id !== "null";
 
-export function isFixedFirstOpenBaseline(baseline: object) {
+const jobId = "job_fc41597f9b5ba8e02b338ecf";
+const prefix = `first-open-baselines/${jobId}/g1/`;
+const fixedVersion = (kind: FirstOpenBaselineKind, versionId: string) => {
+  const original = FIRST_OPEN_BASELINE_OBJECTS[kind];
+  return Object.freeze({ ...original, key: prefix + original.key.slice("approved/".length), versionId });
+};
+// The two fixed-version HEAD receipts in sandbox-first-open-baseline-copy-fc41597f-continuation.verified.json.
+export const FIRST_OPEN_BASELINE_BINDING = Object.freeze({
+  jobId,
+  bucket: "techlong-sandbox-cloud-worker-evidence-402010193138",
+  objects: Object.freeze({
+    archive: fixedVersion("archive", "F0IEF0BdsnrwTj6lhYHNeBSbzsz7Sx7K"),
+    manifest: fixedVersion("manifest", "FYqR4mLX2pK3tcQjbyW1UtoJ1.LX3dFc"),
+  }),
+});
+
+export function isFixedFirstOpenBaseline(baseline: object, reviewedJobId: string) {
+  const { jobId, bucket, objects } = FIRST_OPEN_BASELINE_BINDING;
   const b = baseline as Record<string, unknown>;
-  return b.approvedArchiveSha256 === FIRST_OPEN_BASELINE_OBJECTS.archive.sha256 &&
-    (["archive", "manifest"] as const).every(kind => b[`${kind}S3Uri`] ===
-      `s3://${FIRST_OPEN_BASELINE_BUCKET}/${FIRST_OPEN_BASELINE_OBJECTS[kind].key}` &&
-      b[`${kind}Sha256`] === FIRST_OPEN_BASELINE_OBJECTS[kind].sha256 && validFirstOpenVersionId(b[`${kind}VersionId`]));
+  return reviewedJobId === jobId && b.approvedArchiveSha256 === objects.archive.sha256 &&
+    (["archive", "manifest"] as const).every(kind => b[`${kind}S3Uri`] === `s3://${bucket}/${objects[kind].key}` &&
+      b[`${kind}Sha256`] === objects[kind].sha256 && b[`${kind}VersionId`] === objects[kind].versionId);
 }
 
 export function firstOpenBaselineHeadRequest(kind: FirstOpenBaselineKind) {

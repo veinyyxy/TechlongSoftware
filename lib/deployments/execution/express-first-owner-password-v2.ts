@@ -1,4 +1,4 @@
-import { hkdfSync } from 'node:crypto';
+import { deriveExpressFirstOwnerPassword } from './express-first-owner-derive.ts';
 import type { FirstOwnerPasswordSource } from './control-payload.ts';
 import type { FirstOwnerRuntimeBindingSource } from './single-tenant-control-bindings.ts';
 import type { FirstOwnerSecretReadonlyPort } from './single-tenant-first-owner-password.ts';
@@ -67,10 +67,8 @@ export async function createExpressFirstOwnerPasswordSourceV2(input: {
       if (key.length !== 32 || key.toString('base64url') !== material.hmac_secret_key) fail('EXPRESS_FIRST_OWNER_VALUE_REJECTED');
       // Same domain separation as Full: same scope/version derives the same
       // retry payload, without exposing/reusing the HMAC key as a password.
-      held = Buffer.from(hkdfSync('sha256', key, Buffer.from(stable, 'hex'), Buffer.from(canonicalJson({
-        protocol: 'techlong-first-owner-password-v1', appInstanceId: scope.appInstanceId, templateVersionId: scope.templateVersionId,
-        generation: b.resourceGeneration, versionId: b.runtimeSecret.versionId,
-      })), 32));
+      held = deriveExpressFirstOwnerPassword(key, { stableIdentity: stable, appInstanceId: scope.appInstanceId,
+        templateVersionId: scope.templateVersionId, generation: b.resourceGeneration, versionId: b.runtimeSecret.versionId });
       verify(await input.sdk.describe(b.runtimeSecret.arn, request.signal)); request.signal.throwIfAborted();
       const after = await input.bindings.load(request); request.signal.throwIfAborted();
       if (canonicalJson(after) !== canonicalJson(current)) fail('EXPRESS_FIRST_OWNER_BINDING_RACE');

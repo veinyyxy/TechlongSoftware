@@ -1,0 +1,46 @@
+name: Sandbox fc41597f app publication - No deployment
+on:
+  workflow_dispatch:
+    inputs:
+      approved_scope_sha:
+        description: Exact approved one-task publication review SHA
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: sandbox-first-open-image-publish-fc41597f
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'veinyyxy/TechlongSoftware' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.actor_id == '14145707'
+    environment: techlong-sandbox-deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Publish only the approved Sandbox task app
+        run: node --experimental-strip-types scripts/sandbox-first-open-image-publish.ts publish
+        env:
+          FIRST_OPEN_PUBLICATION_REVIEW_SHA: ${{ inputs.approved_scope_sha }}
+          FIRST_OPEN_PUBLICATION_GITHUB_REVIEW_TOKEN: ${{ github.token }}
+      - name: Preserve publication evidence, not a release catalog entry
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: sandbox-first-open-app-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/first-open-publish-${{ github.run_id }}/publication-result.json
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,0 +1,461 @@
+{
+  "schema": "techlong/sandbox-first-open-fc41597f-remaining-install/v1",
+  "status": "SCOPE_SEALED_NOT_EXECUTABLE",
+  "sourceCommit": "c367d67c6b62435b6b78f4e1cae56f3b07f32b8b",
+  "executableApprovalSha256": null,
+  "reason": "CloudFormation and Neon role shells were already installed. This package has fixed policy fragments and port bindings, but lacks the real new-tenant Express/Secret/independent adapters and runtime-derived installation inputs. No operation is authorized by this file.",
+  "scope": {
+    "jobId": "job_fc41597f9b5ba8e02b338ecf",
+    "deploymentId": "dep_746535593025bf97a9efeccd",
+    "instanceId": "app_bbd626d7d3806af686073211",
+    "subscriptionId": "sub_f0dea547d45bcd26ed823fd7",
+    "environmentId": "env_aws_sandbox_ca_central_1",
+    "workspaceSha256": "7359ccf32c3bebd4c4b754caac4cdfbdd471a8202c9206f67a298a8f020ca0fc",
+    "region": "ca-central-1",
+    "accountId": "402010193138",
+    "generation": 1,
+    "epoch": 1,
+    "stackName": "techlong-sandbox-tenant-d3806af686073211",
+    "hostname": "pending-app-bbd626d7d3806af686073211.sandbox.techlong.cloud",
+    "zoneId": "Z01473621BTTHKXBGOOEJ",
+    "releaseId": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+    "artifactRef": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+    "planSha256": "caf7e2ba8134911dfcddf2cb0c36ee9303fd1fc992add720f83c99cac4eceee0",
+    "configurationSha256": "c487421e94c331cd28139d88f4e8217d340d2207fe36db2fa3aaf35020b25534",
+    "expectedProvisionOperationSha256": "499bc72e2b5de41a1f477d9718f6d714156a2ea753137c06fccab913c56c5910"
+  },
+  "preparationFacts": {
+    "originalExpiresAtUtc": "2026-11-19T19:56:56.789Z",
+    "subscriptionEndUtc": "2026-12-19T03:54:22.780Z",
+    "refreshExtendsOriginal": false,
+    "originalIdentityInstallationComplete": true,
+    "oldInstallationNotReplayable": true
+  },
+  "immutableInputs": [
+    {
+      "path": "docs/evidence/sandbox-first-open-fc41597f-preflight.observed.json",
+      "lfSha256": "ab43336c98b02cc52495ec5aca590010f3bf4e5e0274787f0d26ba918ed08889"
+    },
+    {
+      "path": "docs/evidence/sandbox-first-open-fc41597f-static-install.verified.json",
+      "lfSha256": "4965a1bb5bc626bdb197689f77d6d1de493d445b7d3c6f5a6ed37c472c990483"
+    },
+    {
+      "path": "docs/evidence/sandbox-first-open-baseline-copy-fc41597f-continuation.verified.json",
+      "lfSha256": "0188f4192f44191c7b562ac8bf83f0223006a3f53c6aeca125036c27a0c2ad01"
+    },
+    {
+      "path": "docs/aws-instance-release-initial-publication-observed-20261117.json",
+      "lfSha256": "656a841c8c548870c38806f0ec50c4b4a4e7ebba06484593dbf87a97ee24f89c"
+    },
+    {
+      "path": "lib/deployments/execution/first-onboarding-run-composition.ts",
+      "lfSha256": "e49aec4f0e90c30427496c5ba67c89714b3efac58a9236f2834486dc45d7ae74"
+    },
+    {
+      "path": "lib/deployments/execution/first-onboarding-middle.ts",
+      "lfSha256": "184d331d24819c2f8976c22530308ac3d16c787da36ef894f35fd0f2df1bfa7e"
+    },
+    {
+      "path": "ops/aws-sandbox/first-onboarding-middle-ddl.ts",
+      "lfSha256": "0a753359c59a075e4fac1a84c50ec7d52c7fcec16daa1bde4855a9f353d86c5d"
+    },
+    {
+      "path": "lib/deployments/execution/neon-repository.ts",
+      "lfSha256": "390e4f911056404a7c283c243143b51337dbbde422f6081f93a7bca37abe443a"
+    },
+    {
+      "path": "lib/deployments/execution/first-onboarding-claim-entry.ts",
+      "lfSha256": "16a34b59018dd1917281adde179e23c20134edd00a1558f643c729a478773f10"
+    },
+    {
+      "path": "lib/deployments/execution/first-onboarding-completion-entry.ts",
+      "lfSha256": "3a44d0f392ae033579a42b67cd50c1701f123e141e5985b58d02529a56959fa1"
+    },
+    {
+      "path": "lib/deployments/execution/first-onboarding-express.ts",
+      "lfSha256": "0738c27370e78ae52ae0426717ac858bf9a96226fb26e0356a9c5407f5d6ebe5"
+    },
+    {
+      "path": "lib/deployments/execution/first-onboarding-reader.ts",
+      "lfSha256": "7c013911d73c403fc8f442d3a96439072b47412b81ebbf4804292a323834cfe3"
+    },
+    {
+      "path": "lib/deployments/execution/first-onboarding-run-permissions.ts",
+      "lfSha256": "864ce95525bd9ba8a9fddefe0f6f5ad3e5c7cfe3df10f86f2b319d13877b3709"
+    },
+    {
+      "path": "ops/deployment-baseline/cell-reattach-draft.template.json",
+      "lfSha256": "a913a7534e0cfbf954ca6858112a0effd68efa1040d2c91b25ab21e204da27cb"
+    }
+  ],
+  "baselines": {
+    "jobId": "job_fc41597f9b5ba8e02b338ecf",
+    "bucket": "techlong-sandbox-cloud-worker-evidence-402010193138",
+    "objects": {
+      "archive": {
+        "key": "first-open-baselines/job_fc41597f9b5ba8e02b338ecf/g1/1a65288b4628018932a8d9af4658db5702b6cf49966a2032bc2d919bc591d70a/baseline.dump",
+        "sha256": "1a65288b4628018932a8d9af4658db5702b6cf49966a2032bc2d919bc591d70a",
+        "bytes": 203375,
+        "versionId": "F0IEF0BdsnrwTj6lhYHNeBSbzsz7Sx7K"
+      },
+      "manifest": {
+        "key": "first-open-baselines/job_fc41597f9b5ba8e02b338ecf/g1/62b5dc8cadcf276df140be86e002a08b64d9b713bd0257e14ac515c12a996971/baseline.manifest.json",
+        "sha256": "62b5dc8cadcf276df140be86e002a08b64d9b713bd0257e14ac515c12a996971",
+        "bytes": 26502,
+        "versionId": "FYqR4mLX2pK3tcQjbyW1UtoJ1.LX3dFc"
+      }
+    }
+  },
+  "portBinding": {
+    "root": "bindReviewedSandboxFirstOpenRunOnce",
+    "runtimeEnabled": false,
+    "realInvocationSource": null,
+    "currentTransport": "No reviewed live outer invocation; dependency injection exists only as library code plus isolated tests.",
+    "context": {
+      "repository": "Existing exact middle compiler and RPC",
+      "claimAndRelease": "Existing exact Neon claim RPC",
+      "completionAndInspection": "Existing exact Neon completion and independent read RPC",
+      "authority": "AwsSdkDynamoDbEpochAuthority injected into exact middle binder",
+      "awsTenantStack": "AwsSdkDeploymentAdapter createOnly"
+    },
+    "neon": {
+      "definerRoles": [
+        "first_onboarding_fc41597f_claim_owner",
+        "first_onboarding_fc41597f_middle_owner",
+        "first_onboarding_fc41597f_complete_owner"
+      ],
+      "runtimeLogins": {
+        "review": "first_onboarding_fc41597f_review",
+        "claim": "first_onboarding_fc41597f_claim",
+        "middle": "first_onboarding_fc41597f_middle",
+        "completion": "first_onboarding_fc41597f_complete",
+        "inspection": "first_onboarding_fc41597f_inspect"
+      },
+      "newlyRequiredRoles": [
+        "first_onboarding_fc41597f_middle_owner",
+        "first_onboarding_fc41597f_middle"
+      ],
+      "existingSixNoLoginRolesMustBeReused": true,
+      "schemas": [
+        "techlong_first_onboarding_claim",
+        "techlong_first_onboarding_middle",
+        "techlong_first_onboarding"
+      ],
+      "functions": [
+        "techlong_first_onboarding_claim.review",
+        "techlong_first_onboarding_claim.release",
+        "techlong_first_onboarding_claim.claim",
+        "techlong_first_onboarding_middle.run",
+        "techlong_first_onboarding.complete",
+        "techlong_first_onboarding.inspect"
+      ],
+      "dynamicInputs": [
+        "final first-open approval SHA",
+        "actual controlled window",
+        "exact DDL bodies/hashes from existing compilers",
+        "five separate TLS login credentials (never in Git)"
+      ],
+      "noOwnerCredentialInRunner": true,
+      "candidateMiddleRpc": "SELECT row FROM techlong_first_onboarding_middle.run($1::text,$2::text,$3::text,$4::jsonb) AS r(row)"
+    },
+    "authority": {
+      "tableArn": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+      "historicalTableId": "58c851f4-5b8e-45ce-8933-05c33b17fb21",
+      "key": "tenant:e9fdccd5d8c7685cb005f423e7a87fc5849163882f4e2f3ca066f2c51cd9e74a",
+      "identityCandidate": "arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole",
+      "readMax": 3,
+      "putMax": 1,
+      "firstWriteExpression": "attribute_not_exists(authority_key)",
+      "awsSdkAttemptsMax": 1,
+      "readBeforeClaim": true,
+      "independentReadAfter": true,
+      "noPreviousRecordAdoption": true
+    },
+    "express": {
+      "clusterArn": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001",
+      "clusterResourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+      "tenantDatabase": "tenant_e9fdccd5d8c7685c_db",
+      "applicationDatabaseLogin": "tenant_e9fdccd5d8c7685c_role",
+      "implementationReady": false,
+      "unbound": [
+        "read-only empty/privilege/compatibility capability",
+        "V3 initial create with controlled privileges, schema-only restore with two actual S3 VersionIds, SaaS migration, exact app LOGIN and post-verify",
+        "independent TLS read-only target database identity/OID metadata"
+      ]
+    },
+    "initialSecret": {
+      "generation": 1,
+      "implementationReady": false,
+      "createOnceMax": 1,
+      "versionIdDerivedAfterFirstOpenApprovalShaPinned": true,
+      "derive": "predictSandboxFirstOpenG1 (held scope and final first-open SHA); provider must pass exact ClientRequestToken and independently bind returned ARN/version",
+      "notEligibleForGenericEnsureOrExistingTenantSecret": true
+    },
+    "control": {
+      "reusable": "MtlsSaaSControlClient + immutable-template compiler",
+      "newTenantBindingReady": false,
+      "required": [
+        "existing Cell CA/mTLS trust and exact current client/signing identity",
+        "same-task tenant configuration proof and first-owner credential supply approved in memory"
+      ],
+      "configurePostMax": 1
+    },
+    "inspection": {
+      "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxFirstOpenInspector",
+      "currentTrust": "deny-all",
+      "roleUnlockAndReadPermissionsPending": true,
+      "awsMetadataMax": 24,
+      "databaseReadonlyConnectionsMax": 1,
+      "httpsTechnicalPaths": [
+        "/health",
+        "/ready"
+      ],
+      "noSecretValueReads": true
+    }
+  },
+  "awsOwnership": {
+    "existingLockedIdentityStack": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-first-open-fc41597f-identities/483fa2e0-e42c-11f1-b49f-02ffcd94927f",
+    "sharedIamOwnerStack": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917",
+    "originalCellStack": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+    "originalDetachedResources": 12,
+    "cellRestoreAdds": [
+      "CellLoadBalancer",
+      "BusinessHttpsListener",
+      "ControlMtlsListener",
+      "BusinessControlDenyRule"
+    ],
+    "existingRoleCandidates": {
+      "provisioner": "arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole",
+      "lifecycle": "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole",
+      "tenantCfnExecution": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+      "ecsTaskExecution": "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole"
+    },
+    "newLockedRolesAlreadyInstalled": {
+      "application": "arn:aws:iam::402010193138:role/TechlongSandboxFirstOpen-e9fdccd5d8c7685c",
+      "inspector": "arn:aws:iam::402010193138:role/TechlongSandboxFirstOpenInspector"
+    },
+    "changesToOwnedSharedResourcesOnlyThroughTheirOriginalCfnStack": true,
+    "immutableOriginalAndEffectivePolicyBodiesPresent": false,
+    "noUnprovedPolicyReplacement": true
+  },
+  "fixedPolicyFragmentsNotInstallableAlone": {
+    "submitter": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": "cloudformation:DescribeStacks",
+          "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-d3806af686073211/*"
+        },
+        {
+          "Effect": "Allow",
+          "Action": "cloudformation:CreateStack",
+          "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-d3806af686073211/*",
+          "Condition": {
+            "StringEquals": {
+              "cloudformation:RoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+              "aws:RequestTag/AppInstanceId": "app_bbd626d7d3806af686073211",
+              "aws:RequestTag/DeploymentId": "dep_746535593025bf97a9efeccd",
+              "aws:RequestTag/ResourceGeneration": "1"
+            }
+          }
+        },
+        {
+          "Effect": "Allow",
+          "Action": "iam:PassRole",
+          "Resource": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+          "Condition": {
+            "StringEquals": {
+              "iam:PassedToService": "cloudformation.amazonaws.com"
+            }
+          }
+        }
+      ]
+    },
+    "cfnPassEcsRoles": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": "iam:PassRole",
+          "Resource": [
+            "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+            "arn:aws:iam::402010193138:role/TechlongSandboxFirstOpen-e9fdccd5d8c7685c"
+          ],
+          "Condition": {
+            "StringEquals": {
+              "iam:PassedToService": "ecs-tasks.amazonaws.com"
+            }
+          }
+        }
+      ]
+    },
+    "secretSupplier": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": "secretsmanager:CreateSecret",
+          "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/appbbd626d7d3806af686073211_e9fdccd5d8/runtime/g1-??????",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestTag/AppInstanceId": "app_bbd626d7d3806af686073211",
+              "aws:RequestTag/DeploymentId": "dep_746535593025bf97a9efeccd",
+              "aws:RequestTag/ResourceGeneration": "1"
+            }
+          }
+        }
+      ]
+    },
+    "lifecycle": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": "rds-db:connect",
+          "Resource": "arn:aws:rds-db:ca-central-1:402010193138:dbuser:cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM/postgres"
+        },
+        {
+          "Effect": "Allow",
+          "Action": "s3:GetObjectVersion",
+          "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/first-open-baselines/job_fc41597f9b5ba8e02b338ecf/g1/1a65288b4628018932a8d9af4658db5702b6cf49966a2032bc2d919bc591d70a/baseline.dump",
+          "Condition": {
+            "StringEquals": {
+              "s3:VersionId": "F0IEF0BdsnrwTj6lhYHNeBSbzsz7Sx7K"
+            }
+          }
+        },
+        {
+          "Effect": "Allow",
+          "Action": "s3:GetObjectVersion",
+          "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/first-open-baselines/job_fc41597f9b5ba8e02b338ecf/g1/62b5dc8cadcf276df140be86e002a08b64d9b713bd0257e14ac515c12a996971/baseline.manifest.json",
+          "Condition": {
+            "StringEquals": {
+              "s3:VersionId": "FYqR4mLX2pK3tcQjbyW1UtoJ1.LX3dFc"
+            }
+          }
+        }
+      ]
+    },
+    "executionBeforeG1": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": "ecr:GetAuthorizationToken",
+          "Resource": "*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "ca-central-1"
+            }
+          }
+        },
+        {
+          "Effect": "Allow",
+          "Action": "ecr:BatchCheckLayerAvailability",
+          "Resource": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast"
+        },
+        {
+          "Effect": "Allow",
+          "Action": "ecr:BatchGetImage",
+          "Resource": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast"
+        },
+        {
+          "Effect": "Allow",
+          "Action": "ecr:GetDownloadUrlForLayer",
+          "Resource": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast"
+        },
+        {
+          "Effect": "Allow",
+          "Action": "logs:CreateLogStream",
+          "Resource": "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-d3806af686073211:log-stream:*"
+        },
+        {
+          "Effect": "Allow",
+          "Action": "logs:PutLogEvents",
+          "Resource": "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-d3806af686073211:log-stream:*"
+        },
+        {
+          "Effect": "Allow",
+          "Action": "secretsmanager:GetSecretValue",
+          "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/control-public-key-first-acceptance-PfBjiq",
+          "Condition": {
+            "StringEquals": {
+              "secretsmanager:VersionId": "75d8da0af103e1e10e6d3341cbd50226fea7ce5e5aac8d150ab9e447b6340680"
+            }
+          }
+        }
+      ]
+    },
+    "authority": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "dynamodb:GetItem",
+            "dynamodb:PutItem"
+          ],
+          "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+          "Condition": {
+            "ForAllValues:StringEquals": {
+              "dynamodb:LeadingKeys": [
+                "tenant:e9fdccd5d8c7685cb005f423e7a87fc5849163882f4e2f3ca066f2c51cd9e74a"
+              ]
+            },
+            "Null": {
+              "dynamodb:LeadingKeys": "false"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "orderedReleaseGates": [
+    {
+      "gate": "offline-real-port-binding",
+      "status": "BLOCKED",
+      "limit": "Reuse current providers where the exact new tenant can be bound. Do not adapt the old already-initialized tenant closure by swapping IDs.",
+      "missing": [
+        "Express new-tenant one-shot transport and its independent reader",
+        "CreateSecret initial request/ACK adapter with predicted version and approved runtime material (no .env/private material consumed in preparation)",
+        "exact operator/role transport, mTLS signer and first-owner sources"
+      ]
+    },
+    {
+      "gate": "exact-authoritative-install-material",
+      "status": "BLOCKED",
+      "limit": "No new inventory. First reuse saved exact Original/full policies; only a separately approved exact read if a required original is actually missing. Never merge into a historical template by assumption.",
+      "missing": [
+        "actual owning IAM stack Original and matching effective policy bodies, not just saved digests",
+        "effective version-constrained S3/Dynamo/Secrets IAM and exact Inspector/tenant scope",
+        "approved credential supply and recovery budget"
+      ]
+    },
+    {
+      "gate": "recovery-and-window-binding",
+      "status": "NOT_APPROVED",
+      "limit": "Current state stays stopped. Restore only original Express and the four original Cell Adds after the real port material is ready; never synthesize the listener IDs or Alias target.",
+      "missing": [
+        "fresh separately authorized original restoration receipts with actual 443/8443, ALB DNS and canonical zone",
+        "exact media persistence evidence, tenant/role vacancy and app trust prerequisites",
+        "real first-open window, cleanup capability and fixed predecessor observations"
+      ]
+    },
+    {
+      "gate": "remaining-install-then-first-open",
+      "status": "NOT_APPROVED",
+      "limit": "After the window and first-open scope are fixed, derive the three SQL batches and g1 version, freeze exact approval/changeset/DDL and independent readbacks. Actual IAM/Neon install, original resource restoration and one claim stay subject to the existing separate approvals. No new claim in this package."
+    }
+  ],
+  "noLiveActivity": {
+    "awsCalls": 0,
+    "neonConnections": 0,
+    "secretReads": 0,
+    "restored": false,
+    "claimed": false,
+    "writes": 0
+  },
+  "nextUniqueAction": "Offline bind and validate the existing Express V3 new-tenant transport, initial fixed-version Secret supplier and truly independent target reader for this exact held task only. No new runtime, permissions or environment restoration until they are complete."
+}
