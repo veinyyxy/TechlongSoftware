@@ -6,8 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { load } from 'js-yaml';
 import { C, FIRST_PURCHASE_CANDIDATE as F, DAHLIA_FIRST_PURCHASE_CANDIDATE as D,
   CHECKOUT_REPAIR_CANDIDATE as Q, checkoutRepairProtocol, BILLING_REPAIR_CANDIDATE as B, billingRepairProtocol,
+  BUYER_FORWARD_CANDIDATE as BF, buyerForwardProtocol,
   protocol, firstPurchaseProtocol, dahliaFirstPurchaseProtocol, selectOverlayPublication, verifyImageReceipt } from '../ops/platform-registration-publish-v1/contract.mjs';
-import { verifyLoaded } from '../ops/platform-registration-publish-v1/artifact.mjs';
+import { verifyLoaded, verifySeal } from '../ops/platform-registration-publish-v1/artifact.mjs';
 import { dahliaFirstPurchaseSourceContext, dahliaSealedSizeFix, firstPurchaseSourceContext, sourceContext } from '../ops/platform-registration-publish-v1/source.mjs';
 import { hash } from '../ops/platform-image-publication-v2/plan.mjs';
 import { C as oldPlatform, RETAINED } from '../ops/platform-recovery-image-v1/candidate.mjs';
@@ -232,6 +233,51 @@ test('billing publishes only the existing sealed artifact and preserves all reta
   assert.throws(()=>billingRepairProtocol.verifyRetained({imageDetails:retained.slice(0,-1)}),/REGISTRATION_ECR_BASE_COUNT/);
   const newDigest='sha256:'+'e'.repeat(64);
   assert.ok(billingRepairProtocol.verifyFinalInventory({imageDetails:[...retained,image(newDigest,B.targetTag)]},newDigest));
+});
+
+test('buyer publication admits only the sealed GitHub candidate and retains the billing image',()=>{
+  const proof=JSON.parse(read('../docs/evidence/sandbox-first-open-buyer-forward-candidate.verified.json'));
+  const recipe=JSON.parse(read('../ops/platform-registration-candidate-v1/buyer-forward-v1.source.json'));
+  const time=Date.parse(proof.verifiedAtUtc)+60_000;
+  const stamp=new Date(time).toISOString(),end=new Date(time+3600000).toISOString();
+  const scope={...review,candidate:BF,issuedAt:stamp,grantStartsAt:stamp,grantExpiresAt:end,expiresAt:end};
+  const raw=JSON.stringify(scope);
+  assert.equal(BF.artifactId,14714442097);
+  assert.equal(selectOverlayPublication(raw,hash(raw),time).protocol,buyerForwardProtocol);
+  assert.deepEqual(buyerForwardProtocol.templates(scope).revoke,billingRepairProtocol.templates({...scope,candidate:B}).revoke);
+  for(const field of ['artifactId','artifactDigest','sourceTreeOid','archiveBytes']) {
+    const changed=JSON.stringify({...scope,candidate:{...BF,[field]:B[field]}});
+    assert.throws(()=>selectOverlayPublication(changed,hash(changed),time),/REGISTRATION_REVIEW_FIELDS/);
+  }
+  const run={...r,id:BF.runId,head_sha:BF.sourceCommit,workflow_id:BF.workflowId};
+  const artifact={...a,id:BF.artifactId,name:BF.artifactName,size_in_bytes:BF.artifactBytes,digest:BF.artifactDigest,expires_at:BF.artifactExpiresAt,
+    workflow_run:{...a.workflow_run,id:BF.runId,head_sha:BF.sourceCommit}};
+  buyerForwardProtocol.verifyCandidate(run,artifact,time);
+  assert.throws(()=>buyerForwardProtocol.verifyCandidate({...run,run_attempt:2},artifact,time),/REGISTRATION_PRODUCER/);
+  assert.throws(()=>buyerForwardProtocol.verifyCandidate(run,artifact,Date.parse(BF.artifactExpiresAt)),/REGISTRATION_ARTIFACT_METADATA/);
+  const sealed={schema:'techlong/sandbox-first-open-buyer-forward-image/v1',
+    sourceRecipe:recipe,sourceRecipeSha256:BF.sourceRecipeSha256,sourceTreeOid:BF.sourceTreeOid,
+    orchestrationCommit:BF.sourceCommit,runId:String(BF.runId),runAttempt:1,imageConfigDigest:BF.imageConfigDigest,os:'linux',architecture:'amd64',
+    archiveFile:'image.tar.gz',archiveBytes:BF.archiveBytes,archiveSha256:BF.archiveSha256,scanSummarySha256:BF.scanSummarySha256,
+    smoke:{...receipt.smoke,firstPurchaseSyntheticCallback:{outcome:'SANDBOX_FIRST_PURCHASE_SYNTHETIC_CALLBACK_PASSED',
+      validOutOfScopeIgnored:true,liveModeIgnored:true,badSignatureRejected:true,exactRouteOnly:true,workerClosed:true}},
+    awsIdentity:false,registryManifestVerified:false};
+  assert.equal(hash(JSON.stringify(sealed,null,2)+'\n'),proof.imageReceiptSha256);
+  assert.equal(buyerForwardProtocol.verifyImageReceipt(sealed),sealed);
+  assert.throws(()=>verifySeal(Buffer.from(JSON.stringify(sealed)),Buffer.from('{}'),'',BF.archiveBytes,BF.archiveSha256,buyerForwardProtocol),/REGISTRATION_EXACT_IMAGE_RECEIPT/);
+  assert.throws(()=>buyerForwardProtocol.verifyImageReceipt({...sealed,schema:receipt.schema}),/REGISTRATION_RECEIPT/);
+  const checkout=JSON.parse(read('../docs/evidence/sandbox-first-purchase-checkout-repair-rollout.review.json'));
+  const billing=JSON.parse(read('../docs/evidence/sandbox-first-purchase-billing-rollout.review.json'));
+  const previous=JSON.parse(read('../docs/evidence/sandbox-first-purchase-billing-continuation.verified.json')).publication.manifestDigest;
+  const older=JSON.parse(read('../docs/evidence/sandbox-registration-ecr-publication.prepared.json')).target.oldPlatformDigestToPreserve;
+  const registered=JSON.parse(read('../docs/evidence/sandbox-first-purchase-activation.prepared.json')).scope.observedWebRegistryManifest;
+  const image=(imageDigest,tag)=>({imageDigest,imageTags:[tag],registryId:BF.account,repositoryName:BF.ecrRepository});
+  const retained=[...RETAINED.map(i=>image(i.digest,i.tag)),image(older,oldPlatform.targetTag),image(registered,C.targetTag),
+    image(checkout.scope.baselineEcrDigest,D.targetTag),image(billing.baseline.platformImageManifestDigest,Q.targetTag),image(previous,B.targetTag)];
+  assert.ok(buyerForwardProtocol.verifyRetained({imageDetails:retained}));
+  assert.throws(()=>buyerForwardProtocol.verifyRetained({imageDetails:retained.slice(0,-1)}),/REGISTRATION_ECR_BASE_COUNT/);
+  const next='sha256:'+'f'.repeat(64);
+  assert.ok(buyerForwardProtocol.verifyFinalInventory({imageDetails:[...retained,image(next,BF.targetTag)]},next));
 });
 
 test('extractor uses the exact sealed image size without changing ZIP and SHA verification',t=>{

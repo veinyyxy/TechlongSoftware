@@ -1,0 +1,68 @@
+{
+  "schema": "techlong/sandbox-first-open-buyer-forward-candidate-verified/v1",
+  "status": "CANDIDATE_ARTIFACT_VERIFIED",
+  "runId": 44922494926,
+  "jobId": 136901358074,
+  "workflowId": 422812180,
+  "attempt": 1,
+  "head": "be9939963e4246546546a5905d3b8e165be05491",
+  "artifactId": 14714442097,
+  "artifactName": "sandbox-first-open-buyer-forward-35ec0afb-44922494926",
+  "artifactZipDigest": "sha256:41faf03abec87055e7795ff2627cd0088f80311ba073704df5e219b132d80573",
+  "artifactZipBytes": 307799418,
+  "artifactExpiresAtUtc": "2026-11-24T16:05:20Z",
+  "requiredSteps": [
+    {
+      "name": "Construct and verify the exact reviewed source overlay",
+      "conclusion": "success"
+    },
+    {
+      "name": "Require unchanged 81-file control closure in the frozen buyer candidate",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build one image from the reviewed Dockerfile, no registry publish",
+      "conclusion": "success"
+    },
+    {
+      "name": "Disabled controls and anonymous registration form, network none",
+      "conclusion": "success"
+    },
+    {
+      "name": "First-purchase signed-callback smoke with synthetic bindings, network none",
+      "conclusion": "success"
+    },
+    {
+      "name": "Preserve the image archive and enforce the fresh HIGH/CRITICAL OS gate",
+      "conclusion": "success"
+    },
+    {
+      "name": "Upload only sealed candidate evidence to GitHub",
+      "conclusion": "success"
+    }
+  ],
+  "sourceRecipeSha256": "35ec0afbe7d4d7f6f222f45edc261aeaf5b229fe49874817c0fedc3bf0c2e597",
+  "sourceTreeOid": "9225d2060b5bb8b3cfa90cbde4a9ba06d00da3c4",
+  "baseTreeOid": "8ff7f4974fe1212b101aba308809cd226cf7a373",
+  "oldControlClosureVerified": true,
+  "controlClosureFileCount": 81,
+  "controlClosureSha256": "828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a",
+  "archiveBytes": 307794285,
+  "archiveSha256": "02a48419481249e61a76230c7d1ae18a034f5ea8d6b01f0de8f0dad5b81ea428",
+  "imageConfigDigest": "sha256:716dd3139f28b71b66a681165a0bd7ca1e0f8725827796cb855a46f1c0218707",
+  "imageReceiptSha256": "43383fc97c5cd2e485856177452312afec6f5070c0b77cd724506acf18a06d46",
+  "scanSummarySha256": "4191208726982513c99f5c7e07e06249867c6cf0bb0d3209de13706427a4ed86",
+  "findingSeverityCounts": {
+    "HIGH": 0,
+    "CRITICAL": 0
+  },
+  "artifactZipDownloaded": true,
+  "archiveBytesIndependentlyVerified": true,
+  "awsIdentity": false,
+  "registryManifestDigest": null,
+  "registryPublished": false,
+  "installed": false,
+  "claimed": false,
+  "publishAuthorizedByThisRecord": false,
+  "verifiedAtUtc": "2026-11-21T16:11:31.554Z"
+}

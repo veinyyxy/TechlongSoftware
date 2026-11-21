@@ -87,7 +87,22 @@ export const BILLING_REPAIR_CANDIDATE=Object.freeze({...C,sourceCommit:bw.head,r
   archiveBytes:be.archiveBytes,scanSummarySha256:be.scanSummarySha256,sourceRecipeSha256:be.sourceRecipeSha256,
   sourceTreeOid:be.sourceTreeOid,targetTag:billing.targets.proposedExactImmutableTag});
 
+// Independent verification of the original no-AWS artifact; not a publication review.
+const buyerText=readFileSync(new URL('../../docs/evidence/sandbox-first-open-buyer-forward-candidate.verified.json',import.meta.url),'utf8').replace(/\r\n/g,'\n');
+must(hash(buyerText)==='259c9134e352dff52aac76a0f71e62e2f3e03a59747497d8925c9757e418e2ba','BUYER_FORWARD_CANDIDATE_EVIDENCE_BYTES');
+const bf=JSON.parse(buyerText);
+must(bf.status==='CANDIDATE_ARTIFACT_VERIFIED' && bf.artifactId===14714442097 && bf.runId===44922494926 &&
+  bf.workflowId===bw.workflowId && bf.attempt===1 && bf.baseTreeOid===BILLING_REPAIR_CANDIDATE.sourceTreeOid &&
+  bf.archiveBytesIndependentlyVerified && bf.oldControlClosureVerified && bf.controlClosureFileCount===81 &&
+  bf.awsIdentity===false && bf.registryManifestDigest===null && bf.publishAuthorizedByThisRecord===false,'BUYER_FORWARD_CANDIDATE_PINS');
+export const BUYER_FORWARD_CANDIDATE=Object.freeze({...C,sourceCommit:bf.head,runId:bf.runId,workflowId:bf.workflowId,
+  artifactId:bf.artifactId,artifactName:bf.artifactName,artifactBytes:bf.artifactZipBytes,artifactDigest:bf.artifactZipDigest,
+  artifactExpiresAt:bf.artifactExpiresAtUtc,archiveSha256:bf.archiveSha256,imageConfigDigest:bf.imageConfigDigest,
+  archiveBytes:bf.archiveBytes,scanSummarySha256:bf.scanSummarySha256,sourceRecipeSha256:bf.sourceRecipeSha256,sourceTreeOid:bf.sourceTreeOid,
+  targetTag:'sandbox-first-open-buyer-forward-35ec0afb-r44922494926'});
+
 function overlayProtocol(S,producerPath,firstPurchase=false,additionalRetained=[]){
+const buyerForward=S===BUYER_FORWARD_CANDIDATE;
 function verifyCandidate(run, artifact, now=Date.now()) {
   must(run.id===S.runId && run.head_sha===S.sourceCommit && run.workflow_id===S.workflowId && run.repository?.id===S.repositoryId &&
     run.head_branch==='main' && run.event==='workflow_dispatch' && run.run_attempt===1 && run.path===producerPath &&
@@ -102,8 +117,8 @@ function verifyImageReceipt(r) {
   const canonical={base:recipe?.base,fix:recipe?.fix,overlay:recipe?.overlay?.map(f=>({path:f.path,sha256:f.sha256}))};
   // Preserve the producer's recursive sorted-key hashing convention.
   const ordered=(x)=>Array.isArray(x)?x.map(ordered):x&&typeof x==='object'?Object.fromEntries(Object.keys(x).sort().map(k=>[k,ordered(x[k])])):x;
-  const recipeHash=hash(JSON.stringify(firstPurchase?(recipe??null):ordered(canonical)));
-  const kind=firstPurchase?'sandbox-first-purchase-overlay-image':'sandbox-registration-overlay-image';
+  const recipeHash=buyerForward ? hash(JSON.stringify(recipe??null,null,2)+'\n') : hash(JSON.stringify(firstPurchase?(recipe??null):ordered(canonical)));
+  const kind=buyerForward?'sandbox-first-open-buyer-forward-image':firstPurchase?'sandbox-first-purchase-overlay-image':'sandbox-registration-overlay-image';
   const smoke={networkDisabled:true,closedControl:true,healthAndLogin:true,registrationPageGetOnly:true};
   if(firstPurchase)smoke.firstPurchaseSyntheticCallback={outcome:'SANDBOX_FIRST_PURCHASE_SYNTHETIC_CALLBACK_PASSED',
     validOutOfScopeIgnored:true,liveModeIgnored:true,badSignatureRejected:true,exactRouteOnly:true,workerClosed:true};
@@ -185,7 +200,7 @@ function verifyPublishedManifest(v) {
     Array.isArray(m.layers) && m.layers.length>0 && ['application/vnd.docker.distribution.manifest.v2+json','application/vnd.oci.image.manifest.v1+json'].includes(i.imageManifestMediaType), 'REGISTRATION_ECR_MANIFEST');
   return {manifestDigest:i.imageId.imageDigest,imageConfigDigest:S.imageConfigDigest,layerCount:m.layers.length};
 }
-return Object.freeze({P:S,verifyCandidate,verifyImageReceipt,validateReview,validateCloud,validateClaims,templates,verifyRetained,
+return Object.freeze({P:S,verifyCandidate,verifyImageReceipt,...(buyerForward?{imageReceiptSha256:bf.imageReceiptSha256}:{}),validateReview,validateCloud,validateClaims,templates,verifyRetained,
   verifyInventory:verifyRetained,verifyFinalInventory,verifyPublishedManifest});
 }
 
@@ -199,12 +214,17 @@ export const billingRepairProtocol=overlayProtocol(BILLING_REPAIR_CANDIDATE,bw.w
   {digest:checkout.scope.baselineEcrDigest,tag:DAHLIA_FIRST_PURCHASE_CANDIDATE.targetTag},
   {digest:billing.baseline.platformImageManifestDigest,tag:CHECKOUT_REPAIR_CANDIDATE.targetTag},
 ]);
+export const buyerForwardProtocol=overlayProtocol(BUYER_FORWARD_CANDIDATE,bw.workflowPath,true,[
+  {digest:checkout.scope.baselineEcrDigest,tag:DAHLIA_FIRST_PURCHASE_CANDIDATE.targetTag},
+  {digest:billing.baseline.platformImageManifestDigest,tag:CHECKOUT_REPAIR_CANDIDATE.targetTag},
+  {digest:'sha256:68b408d116e502daf8aad4a46bb32b5d82098a3a231bf4bebedbfe8b43156f89',tag:BILLING_REPAIR_CANDIDATE.targetTag},
+]);
 export const {verifyCandidate,verifyImageReceipt,validateReview,validateCloud,validateClaims,templates,verifyRetained,verifyFinalInventory,verifyPublishedManifest}=protocol;
 
 export function selectOverlayPublication(text,sha,now=Date.now()) {
   must(typeof text==='string' && text.length<20000 && hex64.test(sha??'') && hash(text)===sha,'REGISTRATION_REVIEW_SHA');
   const candidate=JSON.parse(text).candidate;
-  const selected=[protocol,firstPurchaseProtocol,dahliaFirstPurchaseProtocol,checkoutRepairProtocol,billingRepairProtocol].find(p=>same(p.P,candidate));
+  const selected=[protocol,firstPurchaseProtocol,dahliaFirstPurchaseProtocol,checkoutRepairProtocol,billingRepairProtocol,buyerForwardProtocol].find(p=>same(p.P,candidate));
   must(selected,'REGISTRATION_REVIEW_FIELDS');
   return {protocol:selected,review:selected.validateReview(text,sha,now)};
 }

@@ -19,6 +19,7 @@ export function verifyLoaded(rows,C=protocol.P) {
 }
 export function verifySeal(receiptBytes, scanBytes, sums, archiveBytes, archiveHash, selected=protocol) {
   const {P:C,verifyImageReceipt}=selected;
+  if(selected.imageReceiptSha256!==undefined) must(hash(receiptBytes)===selected.imageReceiptSha256,'REGISTRATION_EXACT_IMAGE_RECEIPT');
   const receipt=verifyImageReceipt(JSON.parse(receiptBytes));
   const summary=JSON.parse(scanBytes);
   must(archiveBytes===C.archiveBytes && archiveHash===C.archiveSha256 && hash(scanBytes)===C.scanSummarySha256 &&
