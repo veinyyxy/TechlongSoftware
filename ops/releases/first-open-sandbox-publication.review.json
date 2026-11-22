@@ -1,7 +1,95 @@
 {
   "schema": "techlong/first-open-sandbox-publication-review/v1",
-  "enabled": false,
+  "enabled": true,
   "jobId": "job_fc41597f9b5ba8e02b338ecf",
   "instanceId": "app_bbd626d7d3806af686073211",
-  "reason": "No fresh target tag, permanent slot, OIDC and environment readback or approved execution window. This document cannot authorize publication."
+  "candidateZipSha256": "1d09a9a4a6ab337c898366c3360ebb1bcb9e7f1708793d5effcd5e384fedc3b5",
+  "scanZipSha256": "097d75c7ef15b8ac1817cf39bc1dd23fa2a80123a3b1585ee53708786c9a635b",
+  "observedAt": 1795321232804,
+  "writeBefore": 1795332932804,
+  "preflightSha256": "980dd2bccd2e4a27424c6e187cb0e19d09fbb99ca59d669175135312534f2d73",
+  "environment": {
+    "accountId": "402010193138",
+    "region": "ca-central-1",
+    "repositoryId": "1323312747",
+    "controlEnvironmentId": "env_aws_sandbox_ca_central_1",
+    "environmentName": "techlong-sandbox-deploy",
+    "environmentId": 24613410405,
+    "reviewerId": 14145707,
+    "prepareRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleasePlannerRole",
+    "executionRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleaseExecutorRole",
+    "inspectionRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleaseVerifierRole",
+    "prepareSubject": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:ref:refs/heads/main",
+    "deploySubject": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:environment:techlong-sandbox-deploy",
+    "evidence": {
+      "bucket": "techlong-sandbox-cloud-worker-evidence-402010193138",
+      "owner": "402010193138",
+      "prefix": "instance-releases"
+    },
+    "maxMetadataCallsPerSnapshot": 40,
+    "promotion": {
+      "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleasePublisherRole",
+      "artifactToken": {
+        "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/backend-build-read-token-v1-zjIXrv",
+        "versionId": "a8a64f33-c9bc-7525-48ec-1f50b972f426"
+      },
+      "sourceRepository": "veinyyxy/SpeedFeast_Backend_main",
+      "sourceRepositoryId": 1064124445,
+      "imageRepository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast"
+    }
+  },
+  "codeArtifacts": [
+    {
+      "path": ".github/workflows/sandbox-first-open-image-publish-v1.yml",
+      "sha256": "e96c6b5d76631759536e561c831d1567e0f7ad18deffe0e5ecd2cee964620c57"
+    },
+    {
+      "path": "scripts/sandbox-first-open-image-publish.ts",
+      "sha256": "3d2a681ffa212cf5cecd8b3039a9237e4b5790a34d11deb38b13724036074761"
+    },
+    {
+      "path": "ops/releases/first-open-sandbox-publication.ts",
+      "sha256": "390d3cda92fc11a28a56c3c41d5e0f2027d1e8a625a219ed49ae7b561a501e1c"
+    },
+    {
+      "path": "ops/releases/first-open-sandbox-publication-runtime.ts",
+      "sha256": "5f5db39b9c91666bf61c4fec2cf9fadd7473c0869af3cf1ad78f5890279cd120"
+    },
+    {
+      "path": "ops/releases/promotion-runtime.ts",
+      "sha256": "dadefd15f95261d0f67cf884a9f29ab9f32416685a65d402e9c963ea0f8d306f"
+    },
+    {
+      "path": "ops/releases/build-artifact.ts",
+      "sha256": "e21b05c2f25f519955d50355802d1b6c4f35af93cbe9ac1b90a4c38789d0a8a3"
+    },
+    {
+      "path": "ops/releases/extract-build-artifact.py",
+      "sha256": "2cbe38b6b10c47dc86c586e6ee95d7ee6c9c6048b51d4e468709b107680d6f71"
+    },
+    {
+      "path": "ops/releases/import-source.ts",
+      "sha256": "b1b97f4869f5baecf82266b7fbfe0e9358274b6338c6f398b5e0aa503dec42f6"
+    },
+    {
+      "path": "ops/releases/aws-runtime.ts",
+      "sha256": "136c5d2fb9c676c78c5e5a57b5fd2a313e618ed93bb5274e9599e7532125a0d8"
+    },
+    {
+      "path": "lib/deployments/releases/production.ts",
+      "sha256": "9913def1603c3f46077b49757c5922d3f226132f3918a74b7642e6d23fe65e48"
+    },
+    {
+      "path": "lib/deployments/execution/hash.ts",
+      "sha256": "3205a7d79369d7d70653bbb91983762b93b97f11a32972ba2b9c54bcfed0cdce"
+    },
+    {
+      "path": "package.json",
+      "sha256": "e11868ce75847c90caf535e04f180205e84f19c59d24cd938c94799f3ea3185e"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "bdef7dc276067e1d8749640b7365c8da98e3c7cd176d9863734d68c5804720a9"
+    }
+  ]
 }
