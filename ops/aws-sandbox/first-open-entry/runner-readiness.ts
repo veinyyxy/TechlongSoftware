@@ -1,6 +1,6 @@
 import { canonicalJson, sha256Hex } from "../../../lib/deployments/execution/hash.ts";
 import { SANDBOX_FIRST_OPEN as s } from "../../../lib/deployments/execution/first-onboarding-run-once.ts";
-import { sandboxFirstOpenPlannedSecretGrant } from "../../../lib/deployments/execution/first-onboarding-run-permissions.ts";
+import { sandboxFirstOpenPlannedSecretGrant, sandboxFirstOpenPlannedSecretVersionGuard } from "../../../lib/deployments/execution/first-onboarding-run-permissions.ts";
 import { firstOpenExecutionWindow } from "../../../lib/deployments/execution/first-onboarding-window.ts";
 import { firstOpenVersion } from "../../../lib/deployments/execution/first-onboarding-version.ts";
 import type { FirstOnboardingExecutionApproval } from "../../../lib/deployments/execution/worker.ts";
@@ -8,6 +8,7 @@ import type { SupervisedCleanupReadinessPort } from "../../../lib/deployments/ex
 import type { SharedCellSecurityPreflightPort } from "../../../lib/deployments/execution/contracts.ts";
 import type { ReleaseMetadataApi } from "../../../lib/deployments/releases/sampling.ts";
 import type { FirstOpenInspectSeed } from "../first-open-inspect-input.ts";
+import { firstOpenCleanupPermissionEvidenceMatches, type FirstOpenCleanupPermissionObservation } from "../first-open-express-cleanup-review.ts";
 import { firstOpenExpressStorageProof } from "./express-encryption.mjs";
 
 const hex = /^[a-f0-9]{64}$/;
@@ -121,12 +122,33 @@ export async function sampleFirstOpenRestoredCell(input: { approval: FirstOnboar
 
 type Grant = ReturnType<typeof sandboxFirstOpenPlannedSecretGrant>;
 type Independent = { sourceArn: typeof source; checkedAt: number; independentEvidenceSha256: string };
+type GrantDecision = "allowed" | "denied" | "unknown";
+/** Sanitized independent authorization projection for the planned g1 scope.
+ * Before creation the actual ARN suffix is unknown. These results must cover
+ * the installed authorization, not just one simulated suffix or a policy draft.
+ * An omitted VersionId includes requests that select by stage (e.g. AWSCURRENT). */
+type EffectiveG1GrantObservation = {
+  roleArn: string;
+  action: string;
+  secretName: string;
+  resourceArnPattern: string;
+  versionId: string;
+  addedPolicyScope: "planned-g1-only";
+  versionGuardSha256: string;
+  decisions: {
+    exactRequest: GrantDecision;
+    otherVersion: GrantDecision;
+    omittedVersion: GrantDecision;
+  };
+};
 export interface FirstOpenIndependentReadiness {
   restoredCellSha256: string;
   restoredCellCoordinates: CellCoordinates;
   cleanupReview: { jobId: string; scopeSha256: string; workloadExpiresAt: number; responsibleCallerArn: typeof source; order: typeof order };
-  cleanupPermissions: Independent & { jobId: string; scopeSha256: string; exactPermissionsVerified: true };
-  grant: Independent & { jobId: string; approvalSha256: string; roleArn: string; grantSha256: string; independentlyVerifiedEffective: true };
+  cleanupPermissions: Independent & { jobId: string; scopeSha256: string; exactPermissionsVerified: true;
+    observation: FirstOpenCleanupPermissionObservation };
+  grant: Independent & { jobId: string; approvalSha256: string; roleArn: string; grantSha256: string;
+    observation: EffectiveG1GrantObservation; independentlyVerifiedEffective: boolean };
   grantReceiptSha256: string;
 }
 
@@ -140,7 +162,16 @@ export async function bindFirstOpenRunOnceReadiness(input: { approval: FirstOnbo
   const scope = { appInstanceId, deploymentId, environmentId, planHash, configurationHash, artifactRef };
   const scopeSha256 = await sha256Hex(scope);
   const independent = (r: Independent) => r.sourceArn === source && hex.test(r.independentEvidenceSha256) && recent(r.checkedAt, now(), 5 * 3600_000);
-  const grantSha256 = await sha256Hex(sandboxFirstOpenPlannedSecretGrant(versionId));
+  const plannedGrant = sandboxFirstOpenPlannedSecretGrant(versionId);
+  if (typeof plannedGrant.Resource !== "string") return fail("GRANT_SCOPE");
+  const grantSha256 = await sha256Hex(plannedGrant);
+  const expectedObservation: EffectiveG1GrantObservation = {
+    roleArn: s.executionRole, action: plannedGrant.Action, secretName: s.secretName,
+    resourceArnPattern: plannedGrant.Resource, versionId,
+    addedPolicyScope: "planned-g1-only", versionGuardSha256: await sha256Hex(sandboxFirstOpenPlannedSecretVersionGuard(versionId)),
+    decisions: { exactRequest: "allowed", otherVersion: "denied", omittedVersion: "denied" },
+  };
+  const effective = e.grant.independentlyVerifiedEffective;
   if (!window || seed.review.jobId !== s.jobId || approval.reviewSha256 !== seed.review.reviewSha256 ||
     appInstanceId !== s.instanceId || deploymentId !== s.deploymentId || environmentId !== s.environmentId ||
     artifactRef !== version.artifactRef ||
@@ -151,9 +182,11 @@ export async function bindFirstOpenRunOnceReadiness(input: { approval: FirstOnbo
     e.cleanupReview.scopeSha256 !== scopeSha256 || e.cleanupReview.workloadExpiresAt !== window.workloadExpiresAt ||
     e.cleanupReview.responsibleCallerArn !== source || e.cleanupReview.order !== order || await sha256Hex(e.cleanupReview) !== window.cleanupReviewSha256 ||
     e.cleanupPermissions.scopeSha256 !== scopeSha256 || e.cleanupPermissions.exactPermissionsVerified !== true ||
+    !firstOpenCleanupPermissionEvidenceMatches(e.cleanupPermissions.observation) ||
     await sha256Hex(e.cleanupPermissions) !== window.cleanupPermissionsEvidenceSha256 ||
     e.grant.approvalSha256 !== approvalSha256 || e.grant.roleArn !== s.executionRole || e.grant.grantSha256 !== grantSha256 ||
-    e.grant.independentlyVerifiedEffective !== true || await sha256Hex(e.grant) !== e.grantReceiptSha256) return fail("INDEPENDENT_EVIDENCE");
+    effective !== true || !same(e.grant.observation, expectedObservation) ||
+    await sha256Hex(e.grant) !== e.grantReceiptSha256) return fail("INDEPENDENT_EVIDENCE");
   let samples = 0, checkedAt = -1, stopped = false;
   const measure = async (signal: AbortSignal, force = false) => {
     after(signal);
@@ -199,7 +232,7 @@ export async function bindFirstOpenRunOnceReadiness(input: { approval: FirstOnbo
       if (x.approvalSha256 !== approvalSha256 || x.roleArn !== s.executionRole || !independent(e.grant) ||
         await sha256Hex(x.grant) !== grantSha256 || now() >= window.claimBefore) return fail("GRANT_SCOPE");
       return { approvalSha256, roleArn: s.executionRole, grantSha256, evidenceSha256: e.grantReceiptSha256,
-        independentlyVerifiedEffective: true as const, observedAt: e.grant.checkedAt };
+        independentlyVerifiedEffective: effective, observedAt: e.grant.checkedAt };
     },
   };
 }

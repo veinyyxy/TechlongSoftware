@@ -1,12 +1,15 @@
 import { GetObjectCommand, PutObjectCommand, type S3Client } from "@aws-sdk/client-s3";
 import { setTimeout as delay } from "node:timers/promises";
 import { compileExpressBootstrapCandidateV3 } from "../../lib/deployments/execution/aurora-express-bootstrap-v3.ts";
-import { firstOnboardingInitialSecretVersion, type FirstOnboardingExpressApproval, type FirstOnboardingExpressPorts } from "../../lib/deployments/execution/first-onboarding-express.ts";
+import { firstOnboardingInitialSecretVersion, type FirstOnboardingDatabaseIdentity, type FirstOnboardingExpressApproval,
+  type FirstOnboardingExpressPorts } from "../../lib/deployments/execution/first-onboarding-express.ts";
 import { FIRST_OPEN_BASELINE_BINDING } from "../../lib/deployments/execution/first-onboarding-baseline-versions.ts";
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
-import { SANDBOX_FIRST_OPEN as s } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
+import { SANDBOX_FIRST_OPEN as s, SANDBOX_FIRST_OPEN_STACK } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
 import type { FirstOpenFixedManagement } from "./first-open-express-runtime.ts";
 import { sameFirstOpenFence, stopFirstOpen, type FirstOpenFenceInput } from "./first-open-express-scope.ts";
+import { assertFinalizedSupervisedTenantStack } from "../../lib/deployments/execution/single-tenant-workload-strategy.ts";
+import { firstOpenControlledCfnTemplate } from "./first-open-controlled-cfn.ts";
 import prepared from "./first-open-fc41597f-remaining-install.prepared.json" with { type: "json" };
 
 const fail = (code: string): never => stopFirstOpen("MANAGEMENT_BRIDGE_" + code);
@@ -27,24 +30,30 @@ type Mailbox = {
   take(x: MailboxAddress): Promise<unknown>;
 };
 const same = (a: unknown, b: unknown) => canonicalJson(a) === canonicalJson(b);
+const workloadSlot = firstOpenManagementSteps.length + 1;
+const stackIdPattern = new RegExp(`^arn:aws:cloudformation:${s.region}:${s.account}:stack/${SANDBOX_FIRST_OPEN_STACK}/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$`);
 
-export function firstOpenManagementKeys(approvalSha256: string) {
+export function firstOpenManagementKeys(approvalSha256: string, controlledWorkload = false) {
   if (!hex.test(approvalSha256)) return fail("APPROVAL");
   const root = `first-open-management/${s.jobId}/${approvalSha256}`;
   const request = firstOpenManagementSteps.map((_, i) => `${root}/request-${i + 1}.json`);
   const reply = ["ready", ...firstOpenManagementSteps].map((_, i) => `${root}/reply-${i}.json`);
+  if (controlledWorkload) {
+    request.push(`${root}/request-${workloadSlot}.json`);
+    reply.push(`${root}/reply-${workloadSlot}.json`);
+  }
   return { request, reply };
 }
 
 /** Both IAM and this adapter split the write directions. No List, delete,
  * multipart upload, arbitrary object key, private package, or default client. */
-export function firstOpenManagementMailbox(aws: Pick<S3Client, "send">, side: Side, approvalSha256: string) {
-  const keys = firstOpenManagementKeys(approvalSha256);
+export function firstOpenManagementMailbox(aws: Pick<S3Client, "send">, side: Side, approvalSha256: string, controlledWorkload = false) {
+  const keys = firstOpenManagementKeys(approvalSha256, controlledWorkload);
   const access = ({ direction, slot, signal }: MailboxAddress, write: boolean) => {
     signal.throwIfAborted();
     const own = side === "runonce" ? "request" : "reply";
     if (!["request", "reply"].includes(direction) || (direction === own) !== write ||
-      !Number.isSafeInteger(slot) || (direction === "request" ? slot < 1 : slot < 0) || slot > firstOpenManagementSteps.length) return fail("KEY_SCOPE");
+      !Number.isSafeInteger(slot) || (direction === "request" ? slot < 1 : slot < 0) || slot > keys.request.length) return fail("KEY_SCOPE");
     return { Bucket: firstOpenManagementBucket, Key: keys[direction][direction === "request" ? slot - 1 : slot], ExpectedBucketOwner: s.account };
   };
   return {
@@ -135,7 +144,8 @@ function within(signal: AbortSignal, deadline: number, now: () => number) {
 
 /** RunOnce receives this port, never a lifecycle signer/session/driver.
  * All stage parameters that can affect SQL are frozen on the other side. */
-export async function firstOpenManagementClient(input: FirstOpenManagementScope, wire: Mailbox, now = Date.now): Promise<FirstOpenFixedManagement> {
+export async function firstOpenManagementClient(input: FirstOpenManagementScope, wire: Mailbox, now = Date.now,
+  controlledWorkload = false): Promise<FirstOpenFixedManagement> {
   const { scope, scopeHash, program } = await setup(input);
   let index = 0, last: string | undefined, secret: string | undefined, running = false, stopped = false, migration: string | undefined;
   const readReply = async (slot: number, requestSha256: string | null, signal: AbortSignal) => {
@@ -192,6 +202,24 @@ export async function firstOpenManagementClient(input: FirstOpenManagementScope,
       inspect: x => send("inspect", x), prepare: x => send("prepare", x), restore: x => send("restore", x),
       migrateSaas: x => send("migrateSaas", x), activateApplication: x => send("activateApplication", x), verify: x => send("verify", x),
     }),
+    ...(controlledWorkload && { async submitStack(stack: Parameters<NonNullable<FirstOpenFixedManagement["submitStack"]>>[0], upstream: AbortSignal) {
+      if (stopped || running || !last || index !== workloadSlot - 1) return fail("WORKLOAD_ORDER");
+      const signal = within(upstream, scope.writeBefore, now);
+      running = true;
+      try {
+        assertFinalizedSupervisedTenantStack(stack);
+        const { requestSha256 } = await firstOpenControlledCfnTemplate(scope.approvalSha256, stack);
+        const request = { scope: scopeHash, slot: workloadSlot, previousReplySha256: last, requestSha256 };
+        await wire.put({ direction: "request", slot: workloadSlot, signal }, request);
+        const raw = await wire.take({ direction: "reply", slot: workloadSlot, signal });
+        record(raw, ["requestSha256", "scope", "slot", "stackId"]);
+        const reply = raw as { requestSha256: string; scope: string; slot: number; stackId: string };
+        if (reply.scope !== scopeHash || reply.slot !== workloadSlot || reply.requestSha256 !== await sha256Hex(request) ||
+          typeof reply.stackId !== "string" || !stackIdPattern.test(reply.stackId)) return fail("WORKLOAD_REPLY");
+        signal.throwIfAborted();
+        return { operation: "create" as const, stackId: reply.stackId };
+      } finally { stopped = true; running = false; }
+    } }),
   });
 }
 
@@ -199,11 +227,12 @@ export async function firstOpenManagementClient(input: FirstOpenManagementScope,
  * content is an operation index, preceding receipt hash, and g1 ARN metadata.
  * The claim/fence gate is independently read, not a boolean from RunOnce. */
 export async function serveFirstOpenManagement(input: FirstOpenManagementScope, wire: Mailbox, management: FirstOpenFixedManagement,
-  verifyClaim: (signal: AbortSignal) => Promise<void>, upstream: AbortSignal, now = Date.now) {
+  verifyClaim: (signal: AbortSignal) => Promise<void>, upstream: AbortSignal, now = Date.now,
+  submit?: (request: { arn: string; identity: FirstOnboardingDatabaseIdentity; requestSha256: string; signal: AbortSignal }) => Promise<{ stackId: string }>) {
   const { scope, scopeHash, program } = await setup(input);
   const early = within(upstream, scope.applicationLoginBefore, now);
   await management.checkReady(scope.approvalSha256, scope.applicationLoginBefore, early);
-  let last: string, migration: string | undefined, secret: string | undefined;
+  let last: string, migration: string | undefined, secret: string | undefined, verifiedIdentity: FirstOnboardingDatabaseIdentity | undefined;
   async function replied(slot: number, requestSha256: string | null, result: Result | null, signal: AbortSignal) {
     const reply: Reply = { scope: scopeHash, slot, requestSha256, result };
     await wire.put({ direction: "reply", slot, signal }, reply);
@@ -235,9 +264,26 @@ export async function serveFirstOpenManagement(input: FirstOpenManagementScope, 
       case "activateApplication":
         if (!migration) return fail("MIGRATION");
         result = await db.activateApplication({ ...x, target, applicationRoleArn: s.applicationRole, migrationEvidenceSha256: migration }); break;
-      case "verify": result = await db.verify({ ...x, expectedBaselineDigest: baseline.archiveSha256, expectedMigrationContract: s.schemaVersion }); break;
+      case "verify":
+        result = await db.verify({ ...x, expectedBaselineDigest: baseline.archiveSha256, expectedMigrationContract: s.schemaVersion });
+        verifiedIdentity = structuredClone(result.identity); break;
     }
     // verify() returns the same evidence inside its existing receipt shape.
     await replied(slot, await sha256Hex(req), result, signal);
+  }
+  if (submit) {
+    if (!verifiedIdentity || !usableArn(secret)) return fail("WORKLOAD_IDENTITY");
+    const signal = within(upstream, scope.writeBefore, now);
+    const raw = await wire.take({ direction: "request", slot: workloadSlot, signal });
+    record(raw, ["previousReplySha256", "requestSha256", "scope", "slot"]);
+    const req = raw as { previousReplySha256: string; requestSha256: string; scope: string; slot: number };
+    if (req.scope !== scopeHash || req.slot !== workloadSlot || req.previousReplySha256 !== last! ||
+      typeof req.requestSha256 !== "string" || !hex.test(req.requestSha256)) return fail("WORKLOAD_REQUEST");
+    await verifyClaim(signal);
+    signal.throwIfAborted();
+    const ack = await submit({ arn: secret, identity: verifiedIdentity, requestSha256: req.requestSha256, signal });
+    if (!stackIdPattern.test(ack.stackId)) return fail("WORKLOAD_REPLY");
+    await wire.put({ direction: "reply", slot: workloadSlot, signal }, { scope: scopeHash, slot: workloadSlot,
+      requestSha256: await sha256Hex(req), stackId: ack.stackId });
   }
 }

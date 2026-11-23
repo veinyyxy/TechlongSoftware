@@ -1,12 +1,13 @@
 import tls from "node:tls";
+import { CloudFormationClient } from "@aws-sdk/client-cloudformation";
 import { createRequire } from "node:module";
 import { isAbsolute, join } from "node:path";
-import { S3Client } from "@aws-sdk/client-s3";
-import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DescribeSecretCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 import { STSClient } from "@aws-sdk/client-sts";
 import { compileExpressBootstrapCandidateV3, FIRST_OPEN_MANAGEMENT_SQL_USER, parseExpressManagementTargetV3 } from "../../lib/deployments/execution/aurora-express-bootstrap-v3.ts";
 import { bindReviewedSandboxFirstOpenRunOnce } from "../../lib/deployments/execution/first-onboarding-run-composition.ts";
-import type { FirstOnboardingExpressPorts } from "../../lib/deployments/execution/first-onboarding-express.ts";
+import { assertInitialSecretVersion, type FirstOnboardingExpressPorts } from "../../lib/deployments/execution/first-onboarding-express.ts";
 import { FIRST_OPEN_BASELINE_BINDING as baseline } from "../../lib/deployments/execution/first-onboarding-baseline-versions.ts";
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
 import { SANDBOX_FIRST_OPEN as s, checkSandboxFirstOpenApproval } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
@@ -23,6 +24,9 @@ import { bindFirstOpenSession, firstOpenGitHubIssuedSession, firstOpenManagerPro
 import { firstOpenManagementClient, firstOpenManagementMailbox, serveFirstOpenManagement, type FirstOpenManagementScope } from "./first-open-management-bridge.ts";
 import { bindFirstOpenReleaseEntry, type FirstOpenFrozenRelease } from "./first-open-release-entry.ts";
 import { firstOpenManagementClaimProof } from "../../lib/deployments/execution/first-onboarding-claim-entry.ts";
+import type { SupervisedTenantStack } from "../../lib/deployments/execution/single-tenant-workload-strategy.ts";
+import { createFirstOpenControlledCfnSubmitter, firstOpenControlledCfnTemplate } from "./first-open-controlled-cfn.ts";
+import type { prepareFirstOpenInspectSeed } from "./first-open-inspect-input.ts";
 import prepared from "./first-open-fc41597f-remaining-install.prepared.json" with { type: "json" };
 
 type Reviewed = Parameters<typeof bindReviewedSandboxFirstOpenRunOnce>[0];
@@ -36,6 +40,7 @@ interface FirstOpenManagementSources {
 }
 export interface FirstOpenFixedManagement {
   database: FirstOnboardingExpressPorts["database"];
+  submitStack?(stack: SupervisedTenantStack, signal: AbortSignal): Promise<{ operation: "create"; stackId: string }>;
   checkReady(approvalSha256: string, applicationLoginBefore: number, signal: AbortSignal): Promise<void>;
 }
 export interface FirstOpenExpressSources {
@@ -291,6 +296,30 @@ type ManagementHost = {
   scope: FirstOpenManagementScope;
 };
 
+/** Supplied only from protected, independently reviewed installation values;
+ * this checks receipt scope/freshness, not actual IAM policy evaluation. */
+export interface FirstOpenControlledCfnProof {
+  jobId: string;
+  approvalSha256: string;
+  writeBefore: number;
+  submitterRoleArn: string;
+  executionRoleArn: string;
+  checkedAt: number;
+  versionedTemplateWriteProtectionSha256: string;
+  provisionerCreateDeniedSha256: string;
+  delegatedRoleScopeSha256: string;
+}
+
+export function requireFirstOpenControlledCfnProof(proof: FirstOpenControlledCfnProof | undefined,
+  release: Pick<FirstOpenFrozenRelease, "approvalSha256" | "writeBefore">, now: number) {
+  if (!proof || proof.jobId !== s.jobId || proof.approvalSha256 !== release.approvalSha256 || proof.writeBefore !== release.writeBefore ||
+    proof.submitterRoleArn !== s.lifecycleRole || proof.executionRoleArn !== s.cfnRole || !Number.isSafeInteger(proof.checkedAt) ||
+    proof.checkedAt > now || now - proof.checkedAt >= 5 * 3_600_000 || release.writeBefore <= now ||
+    ![proof.versionedTemplateWriteProtectionSha256, proof.provisionerCreateDeniedSha256, proof.delegatedRoleScopeSha256]
+      .every(v => typeof v === "string" && /^[a-f0-9]{64}$/.test(v))) return stopFirstOpen("CONTROLLED_CFN_PROOF_REQUIRED");
+  return structuredClone(proof);
+}
+
 async function checkManagementHost(input: ManagementHost, role: "management" | "runonce", now: () => number) {
   const { release, scope, actual } = input;
   if (actual.role !== role || scope.approvalSha256 !== release.approvalSha256 || scope.releaseSha256 !== input.trustedReleaseSha256 ||
@@ -298,6 +327,7 @@ async function checkManagementHost(input: ManagementHost, role: "management" | "
     scope.writeBefore !== release.writeBefore || input.approval.writeBefore !== release.writeBefore ||
     input.approval.controlledWindow?.claimBefore !== release.claimBefore ||
     input.approval.controlledWindow?.startAt !== release.startAt ||
+    canonicalJson(input.approval.taskRelease ?? null) !== canonicalJson(release.taskRelease ?? null) ||
     canonicalJson(scope.express) !== canonicalJson(input.approval.express)) return stopFirstOpen("MANAGEMENT_HOST_CHANGED");
   await bindFirstOpenReleaseEntry(release, input.trustedReleaseSha256, actual);
   await checkSandboxFirstOpenApproval(input.approval, release.approvalSha256, now());
@@ -309,18 +339,45 @@ export async function runProtectedFirstOpenManagement(input: ManagementHost & {
   management: Omit<FixedManagementInput, "approval" | "approvedSha256" | "writeBefore" | "applicationLoginBefore" | "issueBefore" | "lifecycleCredentials" | "applicationCredentials">;
   getToken: Parameters<typeof firstOpenGitHubIssuedSession>[0]["getToken"];
   claimReader: Parameters<typeof firstOpenManagementClaimProof>[0];
+  controlledCfnProof: FirstOpenControlledCfnProof | undefined;
+  renderStack: Awaited<ReturnType<typeof prepareFirstOpenInspectSeed>>["renderStack"];
 }, signal: AbortSignal, now = Date.now) {
   await checkManagementHost(input, "management", now);
   const { scope } = input;
+  const cfnProof = requireFirstOpenControlledCfnProof(input.controlledCfnProof, input.release, now());
   const { port, lifecycleCredentials } = buildFirstOpenFixedManagement({ ...input.management,
     lifecycleCredentials: firstOpenGitHubIssuedSession(input, now), issueBefore: input.release.claimBefore,
     approval: scope.express, approvedSha256: scope.approvalSha256, writeBefore: scope.writeBefore,
     applicationLoginBefore: scope.applicationLoginBefore }, now);
-  const s3 = new S3Client(sdkConfig(lifecycleCredentials));
+  const config = sdkConfig(lifecycleCredentials), s3 = new S3Client(config), cloudFormation = new CloudFormationClient(config);
+  const secrets = new SecretsManagerClient(config);
+  const submit = createFirstOpenControlledCfnSubmitter({ approvalSha256: scope.approvalSha256, writeBefore: scope.writeBefore, s3, cloudFormation }, now);
   try {
-    await serveFirstOpenManagement(scope, firstOpenManagementMailbox(s3, "management", scope.approvalSha256), port,
-      firstOpenManagementClaimProof(input.claimReader, scope.approvalSha256), signal, now);
-  } finally { s3.destroy(); }
+    await serveFirstOpenManagement(scope, firstOpenManagementMailbox(s3, "management", scope.approvalSha256, true), port,
+      firstOpenManagementClaimProof(input.claimReader, scope.approvalSha256), signal, now, async request => {
+        requireFirstOpenControlledCfnProof(cfnProof, input.release, now());
+        const live = await secrets.send(new DescribeSecretCommand({ SecretId: request.arn }), { abortSignal: request.signal });
+        assertInitialSecretVersion(live, request.arn, scope.initialVersionId);
+        const tags = { ManagedBy: "techlong-sandbox", AppInstanceId: s.instanceId, DeploymentId: s.deploymentId, ResourceGeneration: "1",
+          SecretSchema: "techlong-runtime-four-key-v2", DatabaseProfile: "express_iam", StableIdentity: s.stableIdentity,
+          OwnershipMarker: scope.fence.fence.ownershipMarker };
+        if (live.Name !== s.secretName || live.ReplicationStatus?.length || (live.PrimaryRegion && live.PrimaryRegion !== s.region) ||
+          (live.KmsKeyId && live.KmsKeyId !== "alias/aws/secretsmanager") || live.Tags?.length !== Object.keys(tags).length ||
+          live.VersionIdsToStages?.[scope.initialVersionId]?.length !== 1 ||
+          Object.entries(tags).some(([Key, Value]) => live.Tags?.filter(t => t.Key === Key && t.Value === Value).length !== 1)) {
+          return stopFirstOpen("CONTROLLED_CFN_SECRET_CHANGED");
+        }
+        const { stack: expectedStack } = await input.renderStack(request, request.signal);
+        const template = await firstOpenControlledCfnTemplate(scope.approvalSha256, expectedStack);
+        if (template.requestSha256 !== request.requestSha256 || now() >= scope.writeBefore) return stopFirstOpen("CONTROLLED_CFN_REQUEST_CHANGED");
+        request.signal.throwIfAborted();
+        const ack = await s3.send(new PutObjectCommand({ Bucket: template.bucket, Key: template.key, ExpectedBucketOwner: s.account,
+          Body: template.bytes, ChecksumSHA256: Buffer.from(template.sha256, "hex").toString("base64"),
+          ContentType: "application/json", ServerSideEncryption: "AES256", IfNoneMatch: "*" }), { abortSignal: request.signal });
+        if (!ack.VersionId || ack.VersionId === "null") return stopFirstOpen("CONTROLLED_CFN_TEMPLATE_VERSION_REQUIRED");
+        return submit({ expectedStack, requestSha256: request.requestSha256, versionId: ack.VersionId, signal: request.signal });
+      });
+  } finally { s3.destroy(); cloudFormation.destroy(); secrets.destroy(); }
 }
 
 /** Build using the same exact Provisioner source used for the RunOnce ports.
@@ -330,7 +387,7 @@ export async function bindProtectedFirstOpenManagementClient(input: ManagementHo
   const { scope } = input;
   const verified = bindFirstOpenSession("provisioner", input.provisionerCredentials, scope.writeBefore, now);
   const s3 = new S3Client(sdkConfig(() => verified.credentials(AbortSignal.timeout(15_000))));
-  return firstOpenManagementClient(scope, firstOpenManagementMailbox(s3, "runonce", scope.approvalSha256), now);
+  return firstOpenManagementClient(scope, firstOpenManagementMailbox(s3, "runonce", scope.approvalSha256, true), now, true);
 }
 
 type PairedInspect = Parameters<typeof bindFirstOpenPairedInspect>[0];
@@ -391,6 +448,6 @@ export function bindReviewedSandboxFirstOpenWithExpress(input: Omit<Reviewed, "p
       await provisioner.identify(x.signal);
       return proof;
     } }),
-  }, express: { database: sources.management.database, secret, handoff: firstOpenRunOnceHandoff(sources.handoff),
+  }, express: { database: sources.management.database, secret, handoff: firstOpenRunOnceHandoff(sources.handoff, reviewed.approval.taskRelease),
     onVerifiedControlMaterial: sources.controlMaterial?.onVerifiedControlMaterial } } }, now);
 }

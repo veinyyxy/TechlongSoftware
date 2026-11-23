@@ -8,7 +8,7 @@ import { checkSandboxFirstOpenApproval, SANDBOX_FIRST_OPEN as S, SANDBOX_FIRST_O
 import { firstOpenExecutionWindow } from "../../lib/deployments/execution/first-onboarding-window.ts";
 import type { FirstOnboardingReview } from "../../lib/deployments/first-onboarding.ts";
 import type { SoftwareRelease } from "../../lib/deployments/releases/contract.ts";
-import { sameFirstOpenFence } from "./first-open-express-scope.ts";
+import { sameFirstOpenFence, validOid } from "./first-open-express-scope.ts";
 
 type Approval = Awaited<ReturnType<typeof checkSandboxFirstOpenApproval>>;
 export type FirstOpenInspectSeed = Pick<AwsSandboxTenantStackInput, "plan" | "environment" | "requestedAt" | "activeCellCount" | "activeTenantCount"> & {
@@ -48,40 +48,47 @@ export async function prepareFirstOpenInspectSeed(source: FirstOpenInspectSeed, 
   sameFirstOpenFence({ fence, externalFence: epoch, signal });
   const versionId = await firstOnboardingInitialSecretVersion({ approvalSha256: approvalSha,
     name: S.secretName, jobId: S.jobId, epoch, baselineDigest: approval.baselineDigest });
+  const renderStack = async (observation: { arn: string; identity: FirstOnboardingDatabaseIdentity }, signal: AbortSignal) => {
+    signal.throwIfAborted();
+    const { arn, identity } = observation;
+    if (!arn.startsWith(runtimeArn) || !/^[A-Za-z0-9]{6}$/.test(arn.slice(runtimeArn.length)) || identity.name !== S.tenantDatabase ||
+      !validOid(identity.databaseOid) || !validOid(identity.roleOid) ||
+      identity.roleName !== S.tenantRole || identity.ownershipMarker !== fence.ownershipMarker ||
+      identity.baselineDigest !== approval.baselineDigest || identity.schemaVersion !== approval.databaseSchemaVersion ||
+      identity.clusterResourceId !== S.clusterId || identity.otherConnectableDatabases !== 0) return fail("OBSERVATION");
+    const sampling = { ...a.sampling, secrets: [...a.sampling.secrets, { arn, versionId }] }, material = { identity, sampling };
+    const context = {
+      environment: seed.environment, binding, appInstance: { id: S.instanceId },
+      deployment: { id: S.deploymentId, artifactRef, configurationHash: scope.configurationHash },
+      tenantResources: { identity: fence.identity, generation: fence.generation, ownershipMarker: fence.ownershipMarker,
+        lifecycleStatus: "verified" as const, baselineDigest: identity.baselineDigest },
+      tenantExternalOperation: epoch,
+    };
+    const workload: AwsSandboxTenantStackInput = {
+      plan: seed.plan, environment: seed.environment, requestedAt: seed.requestedAt,
+      activeCellCount: seed.activeCellCount, activeTenantCount: seed.activeTenantCount,
+      deploymentId: S.deploymentId, resourceGeneration: 1, runtimeSecretRef: arn, runtimeSecretName: S.secretName,
+      externalOperation: { epoch: 1, intent: "provision", state: "active", ownerDeploymentId: S.deploymentId,
+        marker: epoch.marker, operationHash: epoch.operationHash },
+      imageUri: artifactRef, tenantHostname: S.hostname, listenerPriority: 100,
+    };
+    const stack = await renderFirstOnboardingExpectation(workload, context, artifactRef, { ...express,
+      render: x => renderFirstOpenExpressTemplate(x, a, material, scope.configurationHash) }, window);
+    signal.throwIfAborted();
+    return { context, stack, material };
+  };
   return {
     epoch,
     versionId,
     binding,
+    renderStack,
     async assemble(observation: { stackId: string; arn: string; identity: FirstOnboardingDatabaseIdentity }, signal: AbortSignal) {
-      signal.throwIfAborted();
-      const { stackId, arn, identity } = observation;
-      if (!stackId.startsWith(arnPrefix) || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(stackId.slice(arnPrefix.length)) ||
-        !arn.startsWith(runtimeArn) || !/^[A-Za-z0-9]{6}$/.test(arn.slice(runtimeArn.length)) || identity.name !== S.tenantDatabase ||
-        identity.roleName !== S.tenantRole || identity.ownershipMarker !== fence.ownershipMarker ||
-        identity.baselineDigest !== approval.baselineDigest || identity.schemaVersion !== approval.databaseSchemaVersion ||
-        identity.clusterResourceId !== S.clusterId || identity.otherConnectableDatabases !== 0) return fail("OBSERVATION");
-      const sampling = { ...a.sampling, secrets: [...a.sampling.secrets, { arn, versionId }] }, material = { identity, sampling };
-      const context = {
-        environment: seed.environment, binding, appInstance: { id: S.instanceId },
-        deployment: { id: S.deploymentId, artifactRef, configurationHash: scope.configurationHash },
-        tenantResources: { identity: fence.identity, generation: fence.generation, ownershipMarker: fence.ownershipMarker,
-          lifecycleStatus: "verified" as const, baselineDigest: identity.baselineDigest },
-        tenantExternalOperation: epoch,
-      };
-      const workload: AwsSandboxTenantStackInput = {
-        plan: seed.plan, environment: seed.environment, requestedAt: seed.requestedAt,
-        activeCellCount: seed.activeCellCount, activeTenantCount: seed.activeTenantCount,
-        deploymentId: S.deploymentId, resourceGeneration: 1, runtimeSecretRef: arn, runtimeSecretName: S.secretName,
-        externalOperation: { epoch: 1, intent: "provision", state: "active", ownerDeploymentId: S.deploymentId,
-          marker: epoch.marker, operationHash: epoch.operationHash },
-        imageUri: artifactRef, tenantHostname: S.hostname, listenerPriority: 100,
-      };
-      const stack = await renderFirstOnboardingExpectation(workload, context, artifactRef, { ...express,
-        render: x => renderFirstOpenExpressTemplate(x, a, material, scope.configurationHash) }, window);
-      signal.throwIfAborted();
+      const { stackId } = observation;
+      if (!stackId.startsWith(arnPrefix) || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(stackId.slice(arnPrefix.length))) return fail("OBSERVATION");
+      const { context, stack, material } = await renderStack(observation, signal);
       return { context, stackId, stack, material, signal, dnsTarget: approval.dnsTarget, baselineDigest: approval.baselineDigest,
         databaseSchemaVersion: approval.databaseSchemaVersion, platformDigest: review.platformDigest,
-        completion: { review, release, approved: { clientApiVersion: approval.completion!.clientApiVersion, samplingSha256: await sha256Hex(sampling) } } };
+        completion: { review, release, approved: { clientApiVersion: approval.completion!.clientApiVersion, samplingSha256: await sha256Hex(material.sampling) } } };
     },
   };
 }

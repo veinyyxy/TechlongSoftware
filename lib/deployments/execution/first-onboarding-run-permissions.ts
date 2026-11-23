@@ -19,6 +19,17 @@ export function sandboxFirstOpenPlannedSecretGrant(versionId: string) {
   return pinnedSecret(secret + "??????", versionId);
 }
 
+/** The shared ECS role can already match g1 through a legacy Allow. Scope
+ * these explicit denies to g1 only; leave existing tenants' reads unchanged. */
+export function sandboxFirstOpenPlannedSecretVersionGuard(versionId: string) {
+  const { Action, Resource } = sandboxFirstOpenPlannedSecretGrant(versionId);
+  const version = "secretsmanager:VersionId";
+  return [
+    { Effect: "Deny" as const, Action, Resource, Condition: { Null: { [version]: "true" } } },
+    { Effect: "Deny" as const, Action, Resource, Condition: { Null: { [version]: "false" }, StringNotEquals: { [version]: versionId } } },
+  ];
+}
+
 /** Draft fragments only, for exact principals/roles; not trust, installation,
  * or proof that existing identity/boundary policies are already this narrow. */
 export function sandboxFirstOpenPolicyDrafts(input: {
@@ -38,6 +49,16 @@ export function sandboxFirstOpenPolicyDrafts(input: {
   const planned = plannedRuntimeSecretVersionId === undefined ? [] : [sandboxFirstOpenPlannedSecretGrant(plannedRuntimeSecretVersionId)];
   const imageRepo = `arn:aws:ecr:${s.region}:${s.account}:repository/techlong-sandbox-speedfeast`;
   const logStream = `arn:aws:logs:${s.region}:${s.account}:log-group:/saas/cell-sandbox-1/tenant-${s.instanceId.slice(-16)}:log-stream:*`;
+  const execution = policy(
+    // Authentication itself has no per-repository resource; the pulls below do.
+    allow("ecr:GetAuthorizationToken", "*", { "aws:RequestedRegion": s.region }),
+    ...["ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"].map(action => allow(action, imageRepo)),
+    allow("logs:CreateLogStream", logStream), allow("logs:PutLogEvents", logStream),
+    pinnedSecret(s.controlArn, s.controlVersion),
+    ...(runtimeSecret ? [pinnedSecret(runtimeSecret.arn, runtimeSecret.versionId)] : []),
+    ...planned,
+  );
+  const versionGuard = plannedRuntimeSecretVersionId === undefined ? [] : sandboxFirstOpenPlannedSecretVersionGuard(plannedRuntimeSecretVersionId);
   return {
     submitter: policy(
       allow("cloudformation:DescribeStacks", stack),
@@ -54,15 +75,7 @@ export function sandboxFirstOpenPolicyDrafts(input: {
         allow("s3:GetObjectVersion", `arn:aws:s3:::${baselineBucket}/${key}`, { "s3:VersionId": versionId })),
     ),
     application: policy(allow("rds-db:connect", connect(s.tenantRole)), allow("s3:PutObject", `arn:aws:s3:::${s.bucket}/products/*`)),
-    execution: policy(
-      // Authentication itself has no per-repository resource; the pulls below do.
-      allow("ecr:GetAuthorizationToken", "*", { "aws:RequestedRegion": s.region }),
-      ...["ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"].map(action => allow(action, imageRepo)),
-      allow("logs:CreateLogStream", logStream), allow("logs:PutLogEvents", logStream),
-      pinnedSecret(s.controlArn, s.controlVersion),
-      ...(runtimeSecret ? [pinnedSecret(runtimeSecret.arn, runtimeSecret.versionId)] : []),
-      ...planned,
-    ),
+    execution: { ...execution, Statement: [...execution.Statement, ...versionGuard] },
     // A planned grant is not proof of an effective grant or a known ARN.
     // Actual listeners, trust, inspector scope and KMS/rollback still require review.
     runtimeSecretReadPending: !runtimeSecret,

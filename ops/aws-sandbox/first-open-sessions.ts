@@ -6,6 +6,7 @@ import oidc from "./first-open-fc41597f-oidc-handoffs.prepared.json" with { type
 import probe from "./first-open-fc41597f-session-deltas.prepared.json" with { type: "json" };
 import locked from "./first-open-fc41597f-lifecycle-iam-alignment.prepared.json" with { type: "json" };
 import { bindFirstOpenReleaseEntry, type FirstOpenFrozenRelease } from "./first-open-release-entry.ts";
+import { firstOpenInstallInspectorSession } from "./first-open-install-inspector-scope.ts";
 
 export type FirstOpenCredentialSource = Extract<FirstOpenCredentials, () => Promise<unknown>>;
 type Credentials = Awaited<ReturnType<FirstOpenCredentialSource>>;
@@ -13,9 +14,11 @@ const { runOnce, inspect } = oidc.federatedTrust;
 const roles = {
   provisioner: { ...runOnce.targets[0], name: "first-open-fc41597f-provisioner-g1", arn: s.workerRole },
   lifecycle: { ...runOnce.targets[1], name: locked.isolation.sessionName, arn: s.lifecycleRole },
+  cleanup: { ...runOnce.targets[1], name: "first-open-fc41597f-cleanup-g1", arn: s.lifecycleRole },
   application: { roleId: probe.applicationProbe.targetRoleId, roleArn: probe.applicationProbe.targetRoleArn,
     name: probe.applicationProbe.sessionName, arn: s.applicationRole },
   inspector: { ...inspect.targets[0], name: "first-open-fc41597f-inspector-g1", arn: s.inspectorRole },
+  installObserver: { ...inspect.targets[0], name: firstOpenInstallInspectorSession, arn: s.inspectorRole },
 } as const;
 export type FirstOpenSessionKind = keyof typeof roles;
 export type FirstOpenCaller = { accountId: string; arn: string; roleId: string; credentialExpiresAt: number };
@@ -49,7 +52,7 @@ export function bindFirstOpenSession(kind: FirstOpenSessionKind, source: FirstOp
       const supplied = await source().catch(() => stopFirstOpen("RUNTIME_CREDENTIALS_UNAVAILABLE"));
       const expiry = supplied?.expiration instanceof Date ? supplied.expiration.getTime() : NaN;
       if (!supplied?.accessKeyId || !supplied.secretAccessKey || !supplied.sessionToken || !Number.isSafeInteger(expiry) ||
-        (kind === "application" && expiry > now() + 900_000)) return stopFirstOpen("FIXED_SESSION_UNPROVED");
+        (["application", "cleanup"].includes(kind) && expiry > now() + 900_000)) return stopFirstOpen("FIXED_SESSION_UNPROVED");
       // Clone the expiration; a mutable provider result must not extend our session.
       const snapshot = { ...supplied, expiration: new Date(expiry) };
       const client = openSts(snapshot);

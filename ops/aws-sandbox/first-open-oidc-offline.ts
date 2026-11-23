@@ -49,19 +49,24 @@ export function assertFirstOpenProducer(pair: FirstOpenHandoffPair, run: Fields,
   }
 }
 export function firstOpenArtifactMetadata(pair: FirstOpenHandoffPair, listed: Fields, stageIndex: number, now: number) {
-  const stage = schedule[stageIndex], repoId = "1323312747";
-  if (!stage || listed.total_count !== 1 || !Array.isArray(listed.artifacts) || listed.artifacts.length !== 1) return fail("ARTIFACT_COUNT");
+  const stage = schedule[stageIndex];
+  if (!stage) return fail("ARTIFACT_COUNT");
+  return firstOpenNamedArtifactMetadata(pair, listed, stage.kind, stage.writer, now);
+}
+export function firstOpenNamedArtifactMetadata(pair: FirstOpenHandoffPair, listed: Fields, kind: string, writer: boolean, now: number) {
+  const repoId = "1323312747";
+  if (listed.total_count !== 1 || !Array.isArray(listed.artifacts) || listed.artifacts.length !== 1) return fail("ARTIFACT_COUNT");
   const a = object(listed.artifacts[0]), artifactId = id(a.id), ar = object(a.workflow_run), created = ms(a.created_at);
-  if (!artifactId || a.name !== offlineHandoffArtifactName(pair.pairSha256, stage.kind) ||
+  if (!artifactId || a.name !== offlineHandoffArtifactName(pair.pairSha256, kind) ||
     a.expired !== false || !(ms(a.expires_at) > now) || !(created >= pair.startAt && created <= now) ||
     typeof a.digest !== "string" || !/^sha256:[a-f0-9]{64}$/.test(a.digest) ||
     !Number.isSafeInteger(a.size_in_bytes) || Number(a.size_in_bytes) < 1 || Number(a.size_in_bytes) > contract.artifactContract.maxZipBytes ||
     a.archive_download_url !== `https://api.github.com/repos/veinyyxy/TechlongSoftware/actions/artifacts/${artifactId}/zip` ||
-    id(ar.id) !== (stage.writer ? pair.runOnceId : pair.inspectId) || id(ar.repository_id) !== repoId || id(ar.head_repository_id) !== repoId ||
+    id(ar.id) !== (writer ? pair.runOnceId : pair.inspectId) || id(ar.repository_id) !== repoId || id(ar.head_repository_id) !== repoId ||
     ar.head_sha !== pair.callerCommit || ar.head_branch !== "main") return fail("ARTIFACT_PROVENANCE");
   return { artifactId, archiveDigest: a.digest.slice(7), created };
 }
-function decode(zip: Uint8Array, archiveDigest: string) {
+export function decodeFirstOpenHandoffArchive(zip: Uint8Array, archiveDigest: string) {
   if (!zip.length || zip.length > contract.artifactContract.maxZipBytes || zipSha(zip) !== archiveDigest) return fail("ZIP_DIGEST");
   try {
     let count = 0;
@@ -104,7 +109,7 @@ export function offlineFirstOpenHandoffVerifier(source: FirstOpenHandoffPair) {
       assertFirstOpenProducer(pair, run, stage.writer);
       const { artifactId, archiveDigest, created } = firstOpenArtifactMetadata(pair, listed, index, now);
       if (artifactIds.has(artifactId)) return fail("ARTIFACT_PROVENANCE");
-      const { body, bodySha256 } = decode(input.zip, archiveDigest), payload = object(body.payload), time = ms(body.producedAtUtc);
+      const { body, bodySha256 } = decodeFirstOpenHandoffArchive(input.zip, archiveDigest), payload = object(body.payload), time = ms(body.producedAtUtc);
       if (!keysMatch(body, contract.artifactContract.envelopeKeys) || !keysMatch(payload, stage.keys) ||
         body.schema !== firstOpenHandoffSchema || body.kind !== stage.kind || body.jobId !== contract.jobId ||
         body.pairSha256 !== pair.pairSha256 || body.approvalSha256 !== pair.approvalSha256 ||

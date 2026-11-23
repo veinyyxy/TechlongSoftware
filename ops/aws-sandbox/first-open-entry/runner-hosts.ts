@@ -1,5 +1,6 @@
-import { CloudFormationClient, CreateStackCommand, DescribeStacksCommand } from "@aws-sdk/client-cloudformation";
-import { DynamoDBClient, GetItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { CloudFormationClient, DescribeStacksCommand } from "@aws-sdk/client-cloudformation";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 import { GetCallerIdentityCommand, STSClient } from "@aws-sdk/client-sts";
 import { sha256Hex } from "../../../lib/deployments/execution/hash.ts";
@@ -14,6 +15,9 @@ import { checkedRunnerPaths, firstOpenSameRunUpload, managementBackend } from ".
 import { bindFirstOpenSession } from "../first-open-sessions.ts";
 import { createFirstOpenRunOnceControl } from "./runner-control.ts";
 import { bindFirstOpenRunOnceReadiness, type FirstOpenIndependentReadiness } from "./runner-readiness.ts";
+import type { FirstOpenControlledCfnPreclaimProof } from "../first-open-express-runtime.ts";
+import type { FirstOpenVersionAuthorityReader } from "../first-open-controlled-cfn.ts";
+import { firstOpenInspectorVersionAuthorityProof, type FirstOpenVersionAuthoritySource } from "../first-open-version-authority-proof.ts";
 import prepared from "../first-open-fc41597f-remaining-install.prepared.json" with { type: "json" };
 
 const fail = (code: string): never => { throw Error("FIRST_OPEN_HOST_" + code); };
@@ -22,7 +26,8 @@ type RoleResult<K extends keyof FirstOpenRolePorts> = Awaited<ReturnType<FirstOp
 
 /** Only Management obtains its backend/tool paths and boolean claim reader
  * here. Lifecycle credentials are still issued by the protected binder. */
-export function managementHost(neonReviewUrl: string): FirstOpenRolePorts["management"] {
+export function managementHost(neonReviewUrl: string, controlledCfnPreclaimProof?: FirstOpenControlledCfnPreclaimProof,
+  versionAuthorityReader?: FirstOpenVersionAuthorityReader): FirstOpenRolePorts["management"] {
   return async ({ signal }) => {
     const paths = checkedRunnerPaths("management");
     const management = await managementBackend(paths, signal);
@@ -39,7 +44,7 @@ export function managementHost(neonReviewUrl: string): FirstOpenRolePorts["manag
         console.log("FIRST_OPEN_STAGE_OBSERVED", await sha256Hex(facts));
       },
     };
-    return { management: { ...management, journal }, claimReader, dispose: claimReader.dispose };
+    return { management: { ...management, journal }, claimReader, controlledCfnPreclaimProof, versionAuthorityReader, dispose: claimReader.dispose };
   };
 }
 
@@ -72,6 +77,13 @@ export const inspectHost: FirstOpenRolePorts["inspect"] = async ({ signal }) => 
   return { backendDirectory: paths.backend, readOnly, uploadOwn };
 };
 
+/** For the protected capsule only. No live source may be chosen from
+ * workflow inputs or from an artifact issued by the writer. */
+export function inspectHostWithVersionAuthority(source: FirstOpenVersionAuthoritySource, sourceSha256: string): FirstOpenRolePorts["inspect"] {
+  const versionAuthorityProof = firstOpenInspectorVersionAuthorityProof(source, sourceSha256);
+  return async input => ({ ...await inspectHost(input), versionAuthorityProof });
+}
+
 type FiveLogins = Record<"review" | "claim" | "complete" | "inspect" | "middle", string>;
 type TenantPayment = { stripeSecretKey: string; stripeWebhookSecret: string };
 export interface ReviewedRunOnceHostInputs {
@@ -80,6 +92,19 @@ export interface ReviewedRunOnceHostInputs {
   approvedSha256: string;
   control: Pick<Parameters<typeof createFirstOpenRunOnceControl>[0], "keys" | "evidence" | "template">;
   independentReadiness: FirstOpenIndependentReadiness;
+}
+
+/** The authority adapter sends/receives plain JS record fields, so only
+ * DocumentClient commands may be paired with the protected transport. */
+export function firstOpenWriterDynamoDependencies(transport: DynamoDBClient): AwsSdkDynamoDbEpochAuthorityDependencies {
+  const client = DynamoDBDocumentClient.from(transport, {
+    marshallOptions: { removeUndefinedValues: false, convertClassInstanceToMap: false },
+  });
+  return {
+    client: client as unknown as AwsSdkDynamoDbEpochAuthorityDependencies["client"],
+    commands: { get: GetCommand as unknown as AwsSdkDynamoDbEpochAuthorityDependencies["commands"]["get"],
+      put: PutCommand as unknown as AwsSdkDynamoDbEpochAuthorityDependencies["commands"]["put"] },
+  };
 }
 
 /** The approved installer supplies in-memory, reviewed data. No private
@@ -128,7 +153,7 @@ export function runOnceHost(input: ReviewedRunOnceHostInputs): FirstOpenRolePort
       stsClient: sts as unknown as AwsSdkAdapterDependencies["stsClient"],
       cloudFormationClient: cfn as unknown as AwsSdkAdapterDependencies["cloudFormationClient"],
       commands: { getCallerIdentity: GetCallerIdentityCommand as Cmd, describeStacks: DescribeStacksCommand as Cmd,
-        createStack: CreateStackCommand as unknown as Cmd, updateStack: never, deleteStack: never },
+        createStack: never, updateStack: never, deleteStack: never },
     });
     const review = firstOpenNeonPort("review", input.neon.review, signal);
     const claim = firstOpenNeonPort("claim", input.neon.claim, signal);
@@ -152,8 +177,7 @@ export function runOnceHost(input: ReviewedRunOnceHostInputs): FirstOpenRolePort
       }, control: control.control,
         controlPayloadCompiler: control.controlPayloadCompiler },
       controlMaterial: { onVerifiedControlMaterial: control.onVerifiedControlMaterial, rememberOwnerSeed: control.rememberOwnerSeed },
-      middle: { sql, dynamo: { client: dynamo as unknown as AwsSdkDynamoDbEpochAuthorityDependencies["client"],
-        commands: { get: GetItemCommand as unknown as Cmd, put: PutItemCommand as unknown as Cmd } },
+      middle: { sql, dynamo: firstOpenWriterDynamoDependencies(dynamo),
       planHash: prepared.scope.planSha256, configurationHash: prepared.scope.configurationSha256 },
       async loadTenantPaymentMaterial(request) {
         signal.throwIfAborted();

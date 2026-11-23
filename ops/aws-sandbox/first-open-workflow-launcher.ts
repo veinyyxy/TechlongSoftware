@@ -7,6 +7,7 @@ import { bindFirstOpenExpressInspector, bindProtectedFirstOpenManagementClient, 
   runProtectedFirstOpenManagement } from "./first-open-express-runtime.ts";
 import { prepareFirstOpenInspectSeed, type FirstOpenInspectSeed } from "./first-open-inspect-input.ts";
 import { firstOpenGitHubIssuedSession, firstOpenSessionArn } from "./first-open-sessions.ts";
+import { firstOpenGitHubAuthorityArtifacts } from "./first-open-github-handoff.ts";
 
 const repo = "veinyyxy/TechlongSoftware", dispatcher = ".github/workflows/sandbox-first-open-v1.yml";
 const hex = /^[a-f0-9]{64}$/, id = /^[1-9][0-9]{0,19}$/;
@@ -26,19 +27,24 @@ export interface FirstOpenLaunchRecord {
   approval: RuntimeApproval;
   inspectorSeed: FirstOpenInspectSeed;
   hostSha256: Record<Mode, string>;
+  /** Exact reviewed Inspector authority-read source; never a workflow input. */
+  versionAuthoritySourceSha256?: string;
 }
 
 /** Host-side adapters from the privately sealed installation, never dispatcher
  * arguments. Providers do not choose the role, tenant, lease, peer or SHA. */
 export interface FirstOpenRolePorts {
-  management(input: { signal: AbortSignal }): Promise<Managed<Pick<Management, "management" | "claimReader">>>;
+  management(input: { signal: AbortSignal }): Promise<Managed<Pick<Management, "management" | "claimReader"> &
+    Partial<Pick<Management, "controlledCfnPreclaimProof" | "versionAuthorityReader">>>>;
   runonce(input: { credentials: Writer["sources"]["provisionerCredentials"]; approvalSha256: string; signal: AbortSignal;
     approval: RuntimeApproval; seed: FirstOpenInspectSeed; initialVersionId: string }):
     Promise<Managed<Pick<Writer, "sql" | "aws" | "middle" | "ports" | "runtimeGrantEvidenceSha256" | "verifyRuntimeGrant"> & {
       uploadOwn: HandoffUpload; loadTenantPaymentMaterial: Writer["sources"]["loadTenantPaymentMaterial"];
       controlMaterial: NonNullable<Writer["sources"]["controlMaterial"]>;
     }>>;
-  inspect(input: { signal: AbortSignal }): Promise<Pick<Inspector, "backendDirectory" | "readOnly"> & { uploadOwn: HandoffUpload }>;
+  inspect(input: { signal: AbortSignal }): Promise<Pick<Inspector, "backendDirectory" | "readOnly"> & { uploadOwn: HandoffUpload;
+    versionAuthorityProof?: { sourceSha256: string; verifyWithInspector: NonNullable<Inspector["versionAuthority"]>["verifyWithInspector"] };
+  }>;
 }
 
 type LaunchEnvironment = Readonly<Record<string, string | undefined>>;
@@ -196,7 +202,15 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
     reusableRef: `${repo}/.github/workflows/sandbox-first-open-${paths[role]}-job-v1.yml@${reuse[role]}`,
     pairSha256: env.FIRST_OPEN_PAIR!, inspectorSessionArnSha256: await sha256Hex(firstOpenSessionArn("inspector")),
   };
-  await bindFirstOpenReleaseEntry(release, trustedReleaseSha256, actual);
+  const { pair } = await bindFirstOpenReleaseEntry(release, trustedReleaseSha256, actual);
+  const token = env.GH_TOKEN;
+  const sourceSha256 = record.versionAuthoritySourceSha256;
+  if (!token) return fail("HANDOFF_TOKEN");
+  if (release.taskRelease ? !sourceSha256 || !hex.test(sourceSha256) : sourceSha256 !== undefined) return fail("AUTHORITY_SOURCE_UNBOUND");
+  const authorityArtifacts = (uploadOwn?: HandoffUpload) => sourceSha256 ? firstOpenGitHubAuthorityArtifacts({
+    pair, role, ownRunId, token, now, sourceSha256, submitBefore: release.phaseCutoffs[3],
+    inspectReusableCommit: release.inspectReusableCommit, runOnceReusableCommit: release.runOnceReusableCommit, uploadOwn,
+  }) : undefined;
   const remaining = release.writeBefore - now();
   if (remaining <= 0 || now() >= release.claimBefore) return fail("WINDOW");
   const signal = AbortSignal.any([upstream, AbortSignal.timeout(remaining)]);
@@ -213,19 +227,26 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
   if (role === "management") {
     const ports = await host.management({ signal });
     try {
-      await runProtectedFirstOpenManagement({ ...hostInput, getToken, management: ports.management, claimReader: ports.claimReader }, signal, now);
+      const artifacts = authorityArtifacts();
+      if (artifacts && ports.controlledCfnPreclaimProof?.authoritySourceSha256 !== artifacts.sourceSha256) return fail("AUTHORITY_SOURCE_UNBOUND");
+      await runProtectedFirstOpenManagement({ ...hostInput, getToken, management: ports.management, claimReader: ports.claimReader,
+        renderStack: prepared.renderStack, controlledCfnPreclaimProof: ports.controlledCfnPreclaimProof,
+        versionAuthorityReader: artifacts ?? ports.versionAuthorityReader }, signal, now);
     } finally { await ports.dispose?.(); }
     return;
   }
   const credentialSource = firstOpenGitHubIssuedSession({ release, trustedReleaseSha256, actual, getToken }, now);
-  const token = env.GH_TOKEN;
-  if (!token) return fail("HANDOFF_TOKEN");
   if (role === "inspect") {
-    const { uploadOwn, backendDirectory, readOnly } = await host.inspect({ signal });
+    const { uploadOwn, backendDirectory, readOnly, versionAuthorityProof } = await host.inspect({ signal });
+    const artifacts = authorityArtifacts(uploadOwn);
+    if (artifacts && (!versionAuthorityProof || versionAuthorityProof.sourceSha256 !== artifacts.sourceSha256 ||
+      typeof versionAuthorityProof.verifyWithInspector !== "function")) return fail("AUTHORITY_SOURCE_UNBOUND");
     const { wire } = await firstOpenReleaseTransport(release, trustedReleaseSha256, { ...actual, role }, { token, uploadOwn, now });
     await bindFirstOpenExpressInspector({ approval, approvalSha256: release.approvalSha256, wire,
       expectedSeed: record.inspectorSeed, expectedSeedSha256: release.inspectorSeedSha256,
-      inspectorCredentials: credentialSource, backendDirectory, readOnly }, now)(signal);
+      inspectorCredentials: credentialSource, backendDirectory, readOnly,
+      ...(artifacts && versionAuthorityProof && { versionAuthority: { artifacts, runId: actual.runOnceId, submitBefore: release.phaseCutoffs[3],
+        verifyWithInspector: versionAuthorityProof.verifyWithInspector } }) }, now)(signal);
     return;
   }
   const { uploadOwn, loadTenantPaymentMaterial, controlMaterial, dispose, ...ports } = await host.runonce({ credentials: credentialSource,
@@ -233,8 +254,14 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
   try {
     if (!controlMaterial) return fail("RUNONCE_CONTROL_UNBOUND");
     const { wire } = await firstOpenReleaseTransport(release, trustedReleaseSha256, { ...actual, role }, { token, uploadOwn, now });
-    const management = await bindProtectedFirstOpenManagementClient({ ...hostInput, provisionerCredentials: credentialSource }, now);
-    await bindReviewedSandboxFirstOpenWithExpress({ ...ports, approval, approvedSha256: release.approvalSha256, reviewedTaskBinding: prepared.binding,
+    const management = await bindProtectedFirstOpenManagementClient({ ...hostInput, provisionerCredentials: credentialSource,
+      authorityArtifacts: authorityArtifacts(uploadOwn) }, now);
+    const { submitStack } = management;
+    if (!submitStack) return fail("CONTROLLED_CFN_UNBOUND");
+    const aws = { region: ports.aws.region, getCallerIdentity: ports.aws.getCallerIdentity.bind(ports.aws),
+      describeTenantStack: ports.aws.describeTenantStack.bind(ports.aws),
+      applySupervisedTenantStack: (stack: Parameters<typeof submitStack>[0], x: { signal: AbortSignal }) => submitStack(stack, x.signal) };
+    await bindReviewedSandboxFirstOpenWithExpress({ ...ports, aws, approval, approvedSha256: release.approvalSha256, reviewedTaskBinding: prepared.binding,
       applicationLoginBefore: release.applicationLoginBefore,
       sources: { provisionerCredentials: credentialSource, management, loadTenantPaymentMaterial, handoff: wire, controlMaterial } }, now)();
   } finally { await dispose?.(); }

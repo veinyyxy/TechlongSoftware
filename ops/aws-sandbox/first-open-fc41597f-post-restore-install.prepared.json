@@ -1,0 +1,806 @@
+{
+  "schema": "techlong/sandbox-first-open-post-restore-install-draft/v1",
+  "status": "INSTALL_READBACK_VERIFIED_REMAINING_RUNTIME_BOUND_WRITES_NOT_EXECUTABLE",
+  "jobId": "job_fc41597f9b5ba8e02b338ecf",
+  "executableApprovalSha256": null,
+  "usesExistingReview": [
+    "ops/aws-sandbox/first-open-fc41597f-publication-install.offline.json",
+    "ops/aws-sandbox/first-open-fc41597f-protected-inputs-supply.review.json",
+    "ops/aws-sandbox/first-open-fc41597f-remaining-install.prepared.json"
+  ],
+  "dependencyReceipts": {
+    "restoreApprovalSha256": "828151b5747c61e997f26d16703089c4868dc4f1fa5680b331b5bb60c331170d",
+    "cell": {
+      "path": ".local-secrets/first-open-fc41597f/restore-20261119-b-readback-IaXCBh/independent/cell-verified.json",
+      "rawSha256": "f747205d1a85d870fc2642c7e3d3c45c806c58bb1edf51fcca01d9448f89a555",
+      "observedAtUtc": "2026-11-20T00:11:44.586Z"
+    },
+    "express": {
+      "path": ".local-secrets/first-open-fc41597f/restore-b-express-terminal-20261119/observed.json",
+      "rawSha256": "cdcf9074153616eb78af63fbe488a2a4a172c1467c6861a5458426c13aed3168",
+      "observedAtUtc": "2026-11-20T00:27:05.717Z",
+      "cluster": "available",
+      "writer": "available",
+      "storageEncryptionType": "sse-rds",
+      "databaseLoginOrVacancyProved": false
+    }
+  },
+  "boundProjection": {
+    "cellStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+    "cellAppliedTemplateSha256": "e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892",
+    "dnsTarget": "techlong-sandbox-cell-sandbox-1-414364819.ca-central-1.elb.amazonaws.com",
+    "albCanonicalZone": "ZQSVJUPU6J1EY",
+    "tenantRoute53Zone": "Z01473621BTTHKXBGOOEJ",
+    "albArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/4dac3e4b85cbd9a8",
+    "liveCellParameterSubset": {
+      "ClusterName": "cell-sandbox-1",
+      "VpcId": "vpc-0136b6ba92a72cbf9",
+      "SubnetIds": "subnet-05b781276cc988b93,subnet-05729abe921410a75",
+      "TaskSecurityGroupId": "sg-0df75af0d0661492a",
+      "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/4dac3e4b85cbd9a8/d99cec30a7720ee4",
+      "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/4dac3e4b85cbd9a8/95eb2dffa796f3c4"
+    },
+    "businessDenyRuleArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/4dac3e4b85cbd9a8/d99cec30a7720ee4/f1a7eac493da2a5c",
+    "controlTrustStoreArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:truststore/techlong-sandbox-control-v1/aa1771fd0469cc44",
+    "controlPublicKey": {
+      "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/control-public-key-first-acceptance-PfBjiq",
+      "versionId": "75d8da0af103e1e10e6d3341cbd50226fea7ce5e5aac8d150ab9e447b6340680",
+      "sha256": "72f953b9f3dab5269a7a1c08fa7acf684d2d9c379ae446b50e3d8294404f02a2",
+      "trustCaSha256": "e60ee2d18d79c7e28c1e1dae192798ba7e18c5a106dcb5e280c1dd5643d27d5d"
+    },
+    "bindings": "Subset only. Tenant Route53 zone differs from the ALB canonical zone. Do not hash this subset as full tenantStackParameters or substitute it for the independent runner sampler. Historical Cell tag expiry is not a new launch window."
+  },
+  "publicationCandidate": {
+    "localObjectsOnly": ".local-secrets/first-open-fc41597f/post-restore-publication-git/objects",
+    "gitIndex": ".local-secrets/first-open-fc41597f/post-restore-publication-git/index.task-scoped-binding",
+    "commit": "b8c0edabf5a82f8603815e91bc7f812982b1b6c2",
+    "tree": "8e832bfd51a57cc3d875aaef8abf4f2b7377017c",
+    "treeListingRawSha256": "67e27bd1e0ee09a4cb4a71d4cff135972a6b0d91cc2ea509c366c8a734de7034",
+    "treeEntryCount": 2695,
+    "treeListingCommand": "git ls-tree -r -z --full-tree <candidate>",
+    "supersedes": "8cb90c13d73d80c90dfe6b9091b29a633850d1e8",
+    "cachedMain": "a21b76325056e38a0bc59c5a55fad92cbcc9bd14",
+    "cachedMainIsAncestor": true,
+    "runtimeCommitCandidate": "b8c0edabf5a82f8603815e91bc7f812982b1b6c2",
+    "allThreeReusableCommit": "20cf76ad43291257dff205851a88b61f94eeebea",
+    "addedOverlayPaths": [
+      "lib/deployments/execution/first-onboarding-run-composition.ts",
+      "lib/deployments/execution/first-onboarding-run-once.ts",
+      "lib/deployments/execution/single-tenant-workload-strategy.ts",
+      "ops/aws-sandbox/first-onboarding-middle-ddl.ts",
+      "ops/aws-sandbox/first-open-entry/runner-readiness.ts",
+      "ops/aws-sandbox/first-open-inspect-input.ts",
+      "ops/aws-sandbox/first-open-workflow-launcher.ts",
+      "tests/deployment-s3-worker.test.ts",
+      "tests/first-open-management.test.ts",
+      "tests/first-open-runonce-control.test.ts"
+    ],
+    "overlayRawDiffSha256": "5ae9a740983f701dd15a3769681547127d85dcbc6067c2cdcc6b15b34affced8",
+    "cachedMainOutgoingPathCount": 77,
+    "cachedMainOutgoingDiffBytes": 727251,
+    "cachedMainOutgoingDiffSha256": "79de0a174fd8a6975bd1c74ee309036dd0d1ac494f35132115f7642f2aa6e3b1",
+    "cachedMainOutgoingNulPathListSha256": "cf3ff2c188ef99947219c1f9cd9c40ccb22bc95161ef0eb872a761fc5a36e461",
+    "sameOutgoingPathsAsPreviousCandidate": true,
+    "candidateWorkflowFilesRawSha256": {
+      ".github/workflows/sandbox-first-open-v1.yml": "5b737bd286ae1bea781717418442583fc088f93474053003e2a8477813a93642",
+      ".github/workflows/sandbox-first-open-management-job-v1.yml": "7728141da4db29e7d10f50f69487f22f4ffece3619c791d830341d150d7a1035",
+      ".github/workflows/sandbox-first-open-run-once-job-v1.yml": "036e488610aa32cf92d21c64394b6a42869e1bb27987f0692bea4428094204e3",
+      ".github/workflows/sandbox-first-open-inspect-job-v1.yml": "54fcb69ac97213eb293b46e2b07e47b89e0c1af6df668deec22224a26ea4a5df"
+    },
+    "confirmedRemoteHead": null,
+    "registeredDispatcherId": null,
+    "mainOrIndexChanged": false,
+    "published": false
+  },
+  "supersededPublicationCandidate": {
+    "localObjectsOnly": ".local-secrets/first-open-fc41597f/post-restore-publication-git/objects",
+    "commit": "8cb90c13d73d80c90dfe6b9091b29a633850d1e8",
+    "tree": "8549afba1b6576e9c5294cb4fc8849f524f0a238",
+    "treeListingRawSha256": "852e3b0ed2f79bd83dae7c7e5fdfc41936c7e14dc8951e024dab7c7575ee5648",
+    "treeListingCommand": "git ls-tree -r -z --full-tree <candidate>",
+    "supersedes": "b34e20fef8699cb00b9e4a636bcfeea19c79fecd",
+    "cachedMain": "a21b76325056e38a0bc59c5a55fad92cbcc9bd14",
+    "cachedMainIsAncestor": true,
+    "runtimeCommitCandidate": "8cb90c13d73d80c90dfe6b9091b29a633850d1e8",
+    "allThreeReusableCommit": "20cf76ad43291257dff205851a88b61f94eeebea",
+    "addedOverlayPaths": [
+      "ops/aws-sandbox/first-open-entry/express-encryption.mjs",
+      "ops/aws-sandbox/first-open-entry/runner-readiness.ts",
+      "tests/first-open-runonce-control.test.ts"
+    ],
+    "overlayRawDiffSha256": "f830559e9f49464b3409d228beced0df358cab76342f4ce89965dc326cd773c4",
+    "cachedMainOutgoingPathCount": 77,
+    "cachedMainOutgoingDiffBytes": 712443,
+    "cachedMainOutgoingDiffSha256": "61db89c59847aa3dead1c5078e8a4e48b6f6dd8cb1c30d88f62f50abbab0c97e",
+    "cachedMainOutgoingNulPathListSha256": "cf3ff2c188ef99947219c1f9cd9c40ccb22bc95161ef0eb872a761fc5a36e461",
+    "candidateWorkflowFilesRawSha256": {
+      ".github/workflows/sandbox-first-open-v1.yml": "5b737bd286ae1bea781717418442583fc088f93474053003e2a8477813a93642",
+      ".github/workflows/sandbox-first-open-management-job-v1.yml": "7728141da4db29e7d10f50f69487f22f4ffece3619c791d830341d150d7a1035",
+      ".github/workflows/sandbox-first-open-run-once-job-v1.yml": "036e488610aa32cf92d21c64394b6a42869e1bb27987f0692bea4428094204e3",
+      ".github/workflows/sandbox-first-open-inspect-job-v1.yml": "54fcb69ac97213eb293b46e2b07e47b89e0c1af6df668deec22224a26ea4a5df"
+    },
+    "confirmedRemoteHead": null,
+    "registeredDispatcherId": null,
+    "mainOrIndexChanged": false,
+    "published": false
+  },
+  "protectedInputs": {
+    "environment": "techlong-sandbox-deploy",
+    "inspect": {
+      "hostSecret": "TECHLONG_FIRST_OPEN_INSPECT_HOST_B64",
+      "localHostEsmPath": ".local-secrets/first-open-fc41597f/inspect-host.public.mjs",
+      "decodedBytes": 278,
+      "decodedRawSha256": "56037881409f42c0fa7940189b903a27895f6a3cd72528c9ea7e52c9f6bbc83b",
+      "hostHasSecretMaterial": false,
+      "validatedExport": "firstOpenHost.inspect",
+      "independentSeedSha256": null
+    },
+    "management": {
+      "hostSecret": "TECHLONG_FIRST_OPEN_MANAGEMENT_HOST_B64",
+      "decodedRawSha256": null,
+      "requires": "Dedicated Neon review/management_ready URL from the five exact installed runtime logins, pinned A source and restore tools, isolated Lifecycle OIDC. No owner DSN or static AWS credentials."
+    },
+    "runOnce": {
+      "hostSecret": "TECHLONG_FIRST_OPEN_RUNONCE_HOST_B64",
+      "decodedRawSha256": null,
+      "requires": "Five exact Neon logins, the one tenant's protected payment/control inputs, exact immutable template, and independent readiness/effective-grant evidence. Only provisioner OIDC, no Lifecycle or Inspector credentials."
+    },
+    "launchRecord": {
+      "hostSecret": "TECHLONG_FIRST_OPEN_PROTECTED_RECORD",
+      "runtimeCommitVariable": "TECHLONG_FIRST_OPEN_RUNTIME_COMMIT",
+      "releaseShaVariable": "TECHLONG_FIRST_OPEN_APPROVED_RELEASE_SHA256",
+      "launchShaVariable": "TECHLONG_FIRST_OPEN_APPROVED_LAUNCH_SHA256",
+      "canonicalSha256": null,
+      "approvalSha256": null,
+      "runtimeReleaseSha256": null,
+      "windowAllocated": false
+    }
+  },
+  "remainingEvidenceAndFirstGate": {
+    "state": "HISTORICAL_FIRST_GATE_EXECUTED_AND_STOPPED_ON_MISSING_BINDING_NOT_FOR_REPLAY",
+    "verifiedReusableRelease": {
+      "path": "docs/aws-instance-release-initial-publication-observed-20261117.json",
+      "object": "publication.a",
+      "canonicalSha256": "b7aa3406a88a30cc9d38d88809dde6bfd8ee231784c5188ad11c43da62662702",
+      "matchesOriginalIndependentCatalogReceipt": true,
+      "noEcrBuildOrArtifactDownloadRequired": true
+    },
+    "firstGate": {
+      "disposition": "Executed under separately approved independent read. No shared binding row exists. Do not replay this gate; its downstream held/A/template reads were not consumed or performed.",
+      "why": "The actual worker reads deployment_environment_bindings via the existing Neon repository; the independent seed and execution approval hash the full tenantStackParameters. Cell recovery changed the two listener physical IDs without changing Neon. A saved coordinate subset cannot satisfy the full binding; an old or missing ARN stops before push rather than changing a shared binding.",
+      "allowedOnlyWithNewExplicitApproval": true,
+      "source": "Exact existing installation Neon target and already identified login from .env.local, one file read in process memory only; no alternate DSN, AWS, GitHub, Stripe, PEM, Secret bodies or Aurora access.",
+      "connectionMax": 1,
+      "sqlSubmissionsMax": 8,
+      "verifiedTls": true,
+      "statementsInOrder": [
+        "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY",
+        "SET LOCAL search_path TO pg_catalog",
+        "Identity and read-only transaction check for the original Neon project/login only",
+        "Exact active env_aws_sandbox_ca_central_1 environment and its single deployment_environment_bindings row. Verify policy/role pins and the six restored parameters, especially both listener IDs. Stop on drift before reading tenant configuration.",
+        "Existing SELECT_FIRST_ONBOARDING restricted in SQL to job_fc41597f9b5ba8e02b338ecf, exact instance/deployment/workspace pins, pending 0/1 and NULL lease owner/token/expiry and completion before projection; no live lease values or sibling row bodies. Check no generation/epoch or D2 binding and rederive original plan/configuration digests.",
+        "One exact release_00b9c5cfa6bceedc5fd05aa451dca811 catalog row; verify ecr_verified and compare canonical bytes against reusable release pin; no catalog list.",
+        "One exact published templateVersionId derived from the held row; no other template, store, or payment data.",
+        "COMMIT the read-only transaction only on success; otherwise end the connection without additional queries or retry."
+      ],
+      "output": "In memory only for the single bounded binding projection, plan, approved control template and configuration. Stop on an unexpected secret-bearing or unrecognized field. Persist only identifiers, drifted field names, digests and a sanitized result; no credential, configuration or business body in Git/logs/artifacts. This check does not establish Aurora capability or authorize installation.",
+      "stopBeforeAnythingElseOn": ["shared binding missing or differs from live Cell coordinates", "source cannot read the exact projection", "held row, release, or immutable template not identical", "time window insufficient"],
+      "sameProposalLatestExistingInstallCutoffUtc": "2026-11-20T01:04:42.000Z"
+    },
+    "afterFirstGateStillRequired": {
+      "actualRunnerCellDigest": "Reused recovery projection pins identities, but omits parts of the exact sampler (listeners/actions/rule/trust responses and RDS fields). Do not rewrite historical projection or use its SHA as restoredCellSha256. If no matching saved preimage, later approve at most one exact six-operation sample (DescribeStacks, DescribeListeners, DescribeRules, DescribeTrustStores, DescribeLoadBalancers, DescribeDBClusters); not a new inventory, not part of firstGate.",
+      "auroraVacancyAndCapability": "Exact tenant database and login vacancy on the restored cluster and separate proof that the pinned baseline can initialize this Express path. Metadata availability, an old tenant restore and a read-only catalog query alone do not prove capability. No previously authorized independent non-admin read/capability source proven for this scope; do not borrow the Source administrator or sign Lifecycle before its own installation. Do not create a probe database or approve generic SQL.",
+      "cleanup": "Bind explicit supervised cleanup review and independently prove effective exact predecessor cleanup permissions for this scope before deriving the runtime approval. Recovery scope does not prove either; no lifecycle action is authorized here.",
+      "g1EffectiveGrant": "Depends on the final approval SHA and held fence; derive the exact g1 VersionId first. Read back and independently establish the matching effective task-execution grant after installing its approved change and before any final RunOnce capsule/claim; policy source or EXISTS alone is not proof. No GetSecretValue or g1 creation to verify the install.",
+      "managementAndWriter": "Materialize five task-specific login values only under actual installation approval; Management gets only review/management_ready and must not receive writer or Aurora admin DSNs. Read the two designated protected input files once each only under final approval; local SHA and mTLS checks, no Stripe API."
+    }
+  },
+  "bindingResolutionPlan": {
+    "authority": "Historical design and its local implementation only; no DB write, publication, permission install, dispatcher, or first-open approval.",
+    "evidence": {
+      "path": ".local-secrets/first-open-fc41597f/neon-binding-independent-20261120-a/observed.json",
+      "rawSha256": "698fca8ac02cf4d54c691af1ba0ddbe1ab993b9f582304e316158a598f1dd5fb",
+      "observedAtUtc": "2026-11-20T01:33:48.490Z",
+      "result": "Exact environment active and apply_enabled=0; shared binding row absent; stopped after four SQL submissions. Task/A/template not re-read."
+    },
+    "options": {
+      "createSharedRow": "Uses normal repository but introduces persistent configuration for all tasks in the environment, including consumers outside first-open. apply_enabled=0 and disabled ordinary worker still prohibit apply now; that does not turn the shared row into a job-scoped grant. It would also need a genuinely complete shared configuration, not a first-open payment/path or a fake legacy SG. Not selected for this one task.",
+      "selected": "Use only the independently prepared protected launch record's existing inspectorSeed.binding as the in-memory binding for the fixed hosted RunOnce task. No new table, shared row, generic fallback, SQL write or environment/worker flag change. Keep real environment and job context from Neon and all role/lease/epoch/approval checks."
+    },
+    "sourcePinnedScopes": {
+      "environmentId": "env_aws_sandbox_ca_central_1",
+      "instanceId": "app_bbd626d7d3806af686073211",
+      "deploymentId": "dep_746535593025bf97a9efeccd",
+      "workerRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole",
+      "cloudFormationRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+      "applicationRoleFromExistingExpressApproval": "arn:aws:iam::402010193138:role/TechlongSandboxFirstOpen-e9fdccd5d8c7685c"
+    },
+    "exactRequiredParameterKeysForThisMode": [
+      "ClusterName", "VpcId", "SubnetIds", "TaskSecurityGroupId", "HttpsListenerArn", "ControlListenerArn", "TaskExecutionRoleArn",
+      "ControlPublicKeyValueFrom", "ControlIssuer", "CorsAllowedOrigins", "StripePublishableKey", "StripeSuccessUrl", "StripeCancelUrl"
+    ],
+    "valueSources": "Six Cell values from the verified recovery receipt; exact existing task-execution role and fixed public-key reference from the current approved contract; five public configuration parameters from the reviewed issuer and target-tenant CORS/payment config, not from the old tenant or guessed endpoints. Preserve the fixed Express application role in the reviewed renderer, not in tenantStackParameters.",
+    "oneUserSupplyIfNotAlreadyProved": "Only the same tenant's Stripe Sandbox publishable key (pk_test_...), not another secret. The reviewed tenant-payment.test.json currently specifies two private fields only; later approve extending that same one-read contract to include stripePublishableKey, or bind an already-reviewed exact public source. No Stripe test/API call or private file read here.",
+    "historicalFieldsNotToFabricate": {
+      "OneShotTaskSecurityGroupId": "Express Cell deliberately has no one-shot security group/output. Existing supervisor validates then discards this field; do not create a group or copy TaskSecurityGroupId to satisfy it.",
+      "TaskRoleArn": "Existing legacy generic bootstrap binding requires TechlongSandboxTaskRole then throws the field away on Express render. The task definition must instead use the recorded exact Express applicationRoleArn already independent of this map.",
+      "ordinarySchedulerParameters": "No JanitorFunctionArn, SchedulerInvokeRoleArn or SchedulerGroupName: reviewed seven-resource workload removes the inline schedule. Separate supervised cleanup proof is still required."
+    },
+    "smallImplementationScopeLater": [
+      "At existing protected seed validation, confirm entire 13-key map and exact active binding metadata before host/OIDC/claim. Match the full canonical parameter SHA already in Express approval and actual independent Cell sampling. No inputs taken from dispatcher arguments, mutable host returns or a prefix-only check.",
+      "Pass that same independently sealed binding through the fixed launcher into its scoped RunOnce composition. Only after the existing job/lease/context identity match, supply it to in-memory loadContext results that lack the shared row; keep all other real context fields. Reject a shared row seen before claim via a read-only existence predicate in the existing middle readiness RPC (its definer already reads binding.environment_id). Recheck on each context reload before external actions and fail closed on drift; no cross-service CAS claim.",
+      "In the fixed first-open Express rendering path only, validate 13 real keys and omit the two unused legacy fields. Maintain the generic parameter allowlist and old renderer behavior. Ensure the retained role and fixed control-public-key reference match the authorized template. No changes to Cell, ordinary worker, D2 or Full.",
+      "Regressions: valid empty shared binding runs only under the fixed protected composition; old scope remains denied; forged/changed digest, wrong task/role/parameters, old listeners, newly discovered shared row, closed window, or caller-provided overrides stop. Inspect and RunOnce render identical exact arguments and keep old generic/Full tests passing. Do not actually claim or install during testing."
+    ],
+    "releaseBlocker": "The new local publication candidate includes the verified fix. The superseded candidate is not a push target. Missing protected inputs, independent readiness and exact installation evidence below still block any execution."
+  },
+  "consolidatedApprovalDraft": {
+    "executable": false,
+    "stopBeforeAnyPushUntilMissingFactsAndInputsAreBound": true,
+    "protectedLocalReadsToAuthorize": [
+      { "path": ".local-secrets/first-open-fc41597f/tenant-payment.test.json", "maxReads": 1, "fields": ["stripeSecretKey", "stripeWebhookSecret", "stripePublishableKey"], "validation": "Existing two private fields remain protected; add only the same Sandbox publishable pk_test_ field. The publishable field only enters the 13-parameter map; neither private field enters the map. No credential contents in Git, logs, or artifacts.", "noExternalPaymentCall": true },
+      { "path": ".local-secrets/first-open-fc41597f/runonce-control.json", "maxReads": 1, "validation": "Compare the public key and CA digests to boundProjection and validate the actual certificates and private key correspondences in memory. No PEM or payment values in Git, output or artifacts." }
+    ],
+    "publishing": {
+      "maximumPushes": 1,
+      "target": "veinyyxy/TechlongSoftware:refs/heads/main",
+      "conditions": "Only publicationCandidate.commit and its exact outgoing diff, normal non-force fast-forward against a freshly verified target. Cached main is not an observed current remote head. Rejection or unknown result stops. Existing push-triggered CI may run; no manual dispatch.",
+      "postPushGets": ["/repos/veinyyxy/TechlongSoftware/git/ref/heads/main", "/repos/veinyyxy/TechlongSoftware/actions/workflows/sandbox-first-open-v1.yml"],
+      "publishResultRequired": "Exact remote candidate head and active dispatcher path with real positive numeric ID; use the actual caller head and ID. Neither cached main nor local commit proves publication."
+    },
+    "exactInstallationOwners": {
+      "sharedIamStack": "techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917",
+      "identityStack": "techlong-sandbox-first-open-fc41597f-identities/483fa2e0-e42c-11f1-b49f-02ffcd94927f",
+      "mailboxOwnerStack": "techlong-sandbox-cloud-worker-foundation-v5/308174f0-ca9e-11f1-a04d-02569e9287b5",
+      "existingMailboxBucket": "techlong-sandbox-cloud-worker-evidence-402010193138",
+      "neonScope": "Reuse six NOLOGIN roles. Add only two middle roles, five distinct runtime logins, three schemas and the seven reviewed functions; fixed claim/middle/completion compiler, no direct runtime table permissions. No task operation during installation."
+    },
+    "proposedInstallationCeilingsNotAuthorization": {
+      "publication": { "explicitNormalPushesMax": 1, "postPushMainAndWorkflowGetsMax": 2, "dispatches": 0 },
+      "protectedEnvironment": {
+        "exactSecretNames": ["TECHLONG_FIRST_OPEN_PROTECTED_RECORD", "TECHLONG_FIRST_OPEN_MANAGEMENT_HOST_B64", "TECHLONG_FIRST_OPEN_RUNONCE_HOST_B64", "TECHLONG_FIRST_OPEN_INSPECT_HOST_B64"],
+        "exactVariableNames": ["TECHLONG_FIRST_OPEN_RUNTIME_COMMIT", "TECHLONG_FIRST_OPEN_APPROVED_RELEASE_SHA256", "TECHLONG_FIRST_OPEN_APPROVED_LAUNCH_SHA256"],
+        "countsExcludingBackend": "GET 15 for protected environment (one public key + four secret and three variable exact-name checks both before and after), plus 2 publication GET = 17; four encrypted exact-name PUT + three create-only POST = 7 config writes. No lists, gate changes, DELETE, PATCH, or secret values returned by readback.",
+        "backend": "The pinned Management/Inspect reusable references TECHLONG_FIRST_OPEN_BACKEND_READ_TOKEN. Do not reuse the Actions-only artifact PAT or assume current checkout permission. If an already valid narrowly scoped secret/source is not proved or a separately supplied Contents:read key is not approved, stop. Optional exact backend source verification GET 1, exact token name GET before/after 2 and conditional encrypted PUT 1 require explicit approval; whole GitHub ceiling would then be GET 20 and config writes 8. No automatic token creation.",
+        "race": "Verify target names before writes, stop if occupied; GitHub secret PUT can update and is not atomic with the preceding absence check. Require create response and stop on unknown/update result; concurrent overwrite risk must be expressly accepted. Variable POST only, no updates. Environment remains human-protected."
+      },
+      "awsOwnedStacks": {
+        "cloudFormationDirectWritesMax": { "createChangeSet": 3, "executeMatchingChangeSet": 3, "allOthers": 0 },
+        "cloudFormationMetadataMax": 63,
+        "perStackMetadata": "21 per exact original owner: 4 original checks (DescribeStacks, GetTemplate Original, ListStackResources, ListChangeSets), 5 DescribeChangeSet polls >=15s apart, 3 before execute (exact ChangeSet Original, DescribeStacks, ListChangeSets), 6 DescribeStacks completion polls >=60s apart, 3 independent terminal checks (DescribeStacks, GetTemplate Original, ListStackResources). No pagination, retries or execution of incomplete/replacement/unexpected Change Sets. One new attempt per owner only if owner and exact change whitelist bind.",
+        "note": "These are CloudFormation-call ceilings only, not a completed AWS approval or a count of provider side effects. Exact IAM/bucket/effective permission readback targets and their counts must be included before any execution. No direct IAM/bucket policy writes. The Cell recovery stack is not one of the three installation owners."
+      },
+      "neonInstall": {
+        "installerConfigurationReadsMax": 1,
+        "verifiedTlsConnectionsMax": 2,
+        "writeTransactionBatchesMax": 4,
+        "writeTransactionBatches": "One role/login supply batch for two middle roles and the existing four role LOGIN updates plus three exact compiler batches: claim/review/release/management_ready, middle/run, completion/inspect. No role or SQL bodies authorized until compiled and reviewed. Any extra privilege or temporary SET requirement must be explicitly enumerated inside the exact batches or stop. No UPDATE of environment bindings or task/business rows; do not invoke any claim/run/complete routine.",
+        "independentReadonlySqlMax": 8,
+        "independentReadonlySql": "BEGIN READ ONLY, safe search_path, installation verifier identity, eight exact role flags and membership, seven named functions and their ACLs/digests, exact direct ACL absence, single original held state and unchanged binding, COMMIT. No broad catalog listing, no login probe for every runtime password under this count, no automatic retry/rollback."
+      },
+      "firstGateSeparateFromTheseCeilings": true
+    },
+    "writeExecutionMaterialAndTotalEffectiveProofBudget": null,
+    "risks": "Possible CI on push, non-atomic partial installation, role propagation, old C4e declaration loss on rollback if not preserved, scoped credential and logs exposure, potential ongoing hosting fees. Any endpoint, input, policy or evidence mismatch stops. No force push, retry, cleanup, dispatch, task claim, expansion of privilege, or opening of a launch window on this draft."
+  },
+  "sequenceAndMinimumEvidence": {
+    "beforeAnyLiveWrite": {
+      "fixedScopeAndPublicInput": "Reuse local A catalog receipt, baseline versions, independent restored coordinates and the chosen binding design; do not re-read ECR or the historical shared binding diagnostic. Obtain only the exact held task/plan/configuration pins and one published template needed for inspectorSeed (one separately approved verified TLS Neon READ ONLY connection, at most six submissions: BEGIN, search_path, identity, held-task projection, exact template, COMMIT). For the remaining public values use the reviewed same-scope issuer/CORS/return URLs and same Stripe Sandbox publishable key; missing or mismatched sources stop. No substitute legacy tenant or fabricated value.",
+      "restoreFactsAndInstallationOwners": "If an exact complete stored runner sample is unavailable, group at most the same six named provider reads plus any separately reviewed identity check within the one proposed evidence scope. Refresh only expired facts decisive for the exact original three installation owners, their reviewed IAM/bucket/SQL surfaces and GitHub target, not a new resource inventory. Set no new deadline until exact scope and dependencies are approved.",
+      "freezeExactInstallation": "In the same consolidated material bind protected file checks, actual write bodies/owners/change whitelist, total read and write ceilings, failure stops and the approved time bound. For any readiness that depends on the installation, bind the exact conditional readback and leave launch disabled until it passes. Never use a Source admin login, old tenant or a probe database to fill the gap."
+    },
+    "installationAndDeferredFinalSealing": [
+      "Only after separate approval and successful current preconditions, publish the sealed commit once with no force. Verify exact main and registered dispatcher ID; no dispatch.",
+      "Install only approved owner-stack changes and Neon grants; preserve the six original role identities and change flags only where approved. No direct runtime table grants, shared binding change, task mutation or generic worker activation. Independently verify ACLs, effective role separation and original held state. Stop on any unknown result or mismatch; recover neither Cell nor Express in this step.",
+      "Before first-open readiness, prove exact Aurora database/login vacancy and baseline initialization capability with a narrow role/source, and verify exact supervised cleanup readiness. A fresh approved first-open window and true approval digest are required to derive the exact g1 version. Install and independently confirm its matching effective grant under explicit approved scope before sealing the RunOnce package. Never treat CloudFormation or IAM source alone as effective permission. Complete the protected launch record using the confirmed dispatcher and independent seed only when these dependencies are proved, then seek separately approved first-open execution. This draft authorizes none of these operations."
+    ]
+  },
+  "consolidatedReadbackReview": {
+    "permission": "Read-only preparation was authorized once and stopped at the local payment gate. The scope below is retained for audit; no replay, publication, installation or launch is authorized.",
+    "candidateCommit": "b8c0edabf5a82f8603815e91bc7f812982b1b6c2",
+    "reuseWithoutNewOnlineReads": ["Verified release A original", "Two pinned S3 baseline versions", "Existing independent recovery coordinates", "Prior proof that the shared Neon binding row was absent"],
+    "phaseOrder": ["local protected material", "exact Neon held scope and installation pre-state", "bounded AWS and GitHub pre-state"],
+    "protectedInputs": {
+      "paymentFileReadsMax": 1,
+      "controlFileReadsMax": 1,
+      "files": [".local-secrets/first-open-fc41597f/tenant-payment.test.json", ".local-secrets/first-open-fc41597f/runonce-control.json"],
+      "checks": "In memory, validate exact payment field set and test prefixes, retain only a context-bound result; validate the control bundle's certificate/key correspondence and compare the public-key and CA fingerprints to the recorded pins. Do not print, copy, publish or update either file. No Stripe API, no new health/payment call. Local shape checks do not prove Stripe permissions or online account association."
+    },
+    "neon": {
+      "configFile": ".env.local",
+      "configReadsMax": 1,
+      "verifiedTlsReadOnlyConnectionsMax": 1,
+      "sqlSubmissionsMax": 7,
+      "statements": ["BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY", "SET LOCAL search_path TO pg_catalog", "Verify exact Neon database, login, TLS and read-only identity", "Project only the held job_fc41597f9b5ba8e02b338ecf, its exact instance/deployment/workspace scope, plan/configuration pins and published templateVersionId; require pending, 0/1 and no lease or existing generation/epoch/initial release binding", "Read only that exact published template version and its needed immutable fields", "One finite catalog-only projection for the eight reviewed roles, three schemas and seven function names/ACL and installer prerequisites; no schema or table listing", "COMMIT only if all prior checks pass"],
+      "noSharedRowReadOrMutation": true
+    },
+    "aws": {
+      "profile": "techlong-sandbox-user",
+      "region": "ca-central-1",
+      "officialStsIdentityChecksMax": 1,
+      "metadataCallsMax": 26,
+      "ownerStacks": "4 each on the three exact stack IDs in consolidatedApprovalDraft.exactInstallationOwners (DescribeStacks, GetTemplate Original, ListStackResources, ListChangeSets); compare original templates and ownership to the recorded baseline.",
+      "identityAndMailboxCallsMax": 8,
+      "identityAndMailboxCalls": ["GetRole once each for TechlongSandboxTenantLifecycleTaskRole, TechlongSandboxProvisionerRole, TechlongSandboxFirstOpen-e9fdccd5d8c7685c and TechlongSandboxFirstOpenInspector", "GetRolePolicy once for TechlongSandboxTenantLifecycleTaskRole / ImmutableReceiptsAndGenerationSecretRead; preserve both recorded C4e statements", "GetOpenIDConnectProvider once for the existing GitHub provider with the recorded ARN", "GetBucketPolicy and GetBucketVersioning once each for the existing exact mailbox bucket"],
+      "conditionalSampleCallsMax": 6,
+      "conditionalSample": "Only if the previously stored evidence does not contain the exact sampler projection: on the same restored Cell/ALB and exact Express cluster pins only, DescribeStacks, DescribeListeners (the two archived physical ARNs), DescribeRules (one exact shared deny rule), DescribeTrustStores, DescribeLoadBalancers, DescribeDBClusters each at most once. Drift stops, not inventory discovery. No secret body or data object lookup."
+    },
+    "github": {
+      "existingAuthOnly": true,
+      "getsMax": 11,
+      "scope": "Only veinyyxy/TechlongSoftware: exact main, exact techlong-sandbox-deploy environment, repository OIDC subject configuration, and exact name metadata for the four fixed open secrets, three fixed variables and optional TECHLONG_FIRST_OPEN_BACKEND_READ_TOKEN. No secret value, new credential, open-ended list, remote fetch or workflow dispatch."
+    },
+    "stopsAndRisks": "No retries, pagination, write calls or widening. Stop at an unexpected credential, changed owner/identity/digest, active claim, inadequate permissions, unknown response, or old-fact substitution. Sensitive local input and exact template/role metadata may enter only process memory; keep only necessary projections and hashes. Accept scoped credential/memory, network/provider logging and low nonzero cost risk. No Aurora, S3 content, AWS Secret body, pushed source, install, recovery, launch window, dispatch, claim or full worker. Historical deadlines are unchanged."
+  },
+  "consolidatedReadbackObserved": {
+    "status": "STOPPED",
+    "failedStage": "local_payment",
+    "safeCode": "PAYMENT_FIELD_SET_OR_TEST_PREFIX",
+    "paymentJsonParsed": true,
+    "attribution": "Only an aggregate field-set/test-prefix check is recorded. The offending field or individual reason was not recorded. This is not a Stripe API or account failure.",
+    "counts": { "paymentFileReads": 1, "controlFileReads": 0, "neonConfigReads": 0, "databaseConnections": 0, "sqlSubmissions": 0, "sts": 0, "awsMetadata": 0, "githubGets": 0, "stripeCalls": 0, "privateInputWrites": 0, "dispatches": 0, "claims": 0, "executionSlotsConsumed": 0 },
+    "next": "Correct the exact local field set or test prefixes without sending values. A new explicit approval is required before one replacement read of the corrected payment file and continuation of the unused read-only scope. Keep this stopped outcome; no automatic reread or deadline extension."
+  },
+  "currentInstallationOutcome": {
+    "jobId": "job_fc41597f9b5ba8e02b338ecf",
+    "candidateLocallyVerified": "b8c0edabf5a82f8603815e91bc7f812982b1b6c2",
+    "actualThisTurn": { "paymentFileReads": 1, "controlFileReads": 0, "stripeCalls": 0, "awsCalls": 0, "githubCalls": 0, "neonConnections": 0, "pushes": 0, "installs": 0, "dispatches": 0, "claims": 0 },
+    "paymentFormatOnly": { "stripePublishableKey": "OK", "stripeSecretKey": "OK", "stripeWebhookSecret": "FORMAT_MISMATCH", "unexpectedFieldCount": 0, "scope": "No provider call, checkout/payment lookup, statement about account access, or value retained in the record." },
+    "approvedReadbackLocalStop": {
+      "status": "STOPPED_BEFORE_ONLINE",
+      "reason": "PAYMENT_FORMAT_NOT_READY",
+      "fields": { "stripePublishableKey": "OK", "stripeSecretKey": "OK", "stripeWebhookSecret": "WRONG_PREFIX" },
+      "actual": { "paymentFileReads": 1, "controlFileReads": 0, "neonConnections": 0, "awsCalls": 0, "githubCalls": 0, "stripeCalls": 0, "pushes": 0, "installs": 0, "dispatches": 0, "claims": 0 },
+      "resumeCondition": "Wait for the user to explicitly say the tenant webhook signing key has been corrected and the same local reread and unused read-only scope may continue. Do not automatically reread or broaden. No executable approval yet."
+    },
+    "installOnlyReadbackWithoutStripe": {
+      "state": "NEON_STOPPED_AT_LOCAL_TEMPLATE_DRIVER_ASSUMPTION",
+      "observedAtUtc": "2026-11-20T13:09:43.594Z",
+      "receiptPath": ".local-secrets/first-open-fc41597f/install-only-readback-20261120-a/journal.json",
+      "receiptRawSha256": "4597c20d11f2527d383812479deebd0bb8d8f7f63008240d61c47004dd64ea6e",
+      "heldTask": { "pending": true, "attempts": 0, "leasePresent": false, "reviewSha256": "2b3f4adeb2d7ec50028b7da8c6b04e870ae99cd689974ab6e7309592f4c14691" },
+      "stopCode": "TEMPLATE_DRIVER_CHANGED",
+      "reason": "The one exact published template row was returned, but the local reader incorrectly reused the deployment row's aws_ecs_cell/v1 predicate for the immutable app template. The existing production template contract asserts the exact ID, published status and configurationSchema schemaVersion=2/contract=speedfeast-saas-control-v1 instead. Actual template driver values and schema result were not retained; this is not proof of live drift or compatibility.",
+      "actual": { "neonConfigReads": 1, "neonTlsReadOnlyConnections": 1, "sql": 5, "stripeFileReads": 0, "controlFileReads": 0, "awsCalls": 0, "githubCalls": 0, "writes": 0, "claims": 0 },
+      "singleContinuationWouldRequireApproval": "Keep the original result; without Stripe/control material, correct only the local predicate to match the existing exact immutable contract. In a new verified TLS read-only connection, one .env.local read, at most 6 SQL: BEGIN, fixed search_path, exact connection identity, reselect only the immutable template through the exact still-matching original job/plan pins, check the same eight role slots/three schemas/seven functions, COMMIT. Do not reread full held job, A, baselines, payment, or shared Neon bindings. Only after success use the unused AWS STS1/metadata36 and GitHub GET11 scopes in oneConsolidatedReadNeedsSeparateApproval. No repeat without new approval or later change to execution scope."
+    },
+    "installOnlyContinuationVerified": {
+      "neon": { "path": ".local-secrets/first-open-fc41597f/install-only-readback-20261120-b/journal.json", "rawSha256": "f9d95f9d16aead555f1978af0a5ba84c9f04097e5bb4059187dc139073afd21a", "finishedAtUtc": "2026-11-20T13:13:12.426Z", "templateId": "tplver_9c175436f0a14d9aa7f5fdfc2b5c139e", "templateCanonicalSha256": "1de0a20d85582f77c1b0f11f48ac73634ab716d0e4beb663cb76b6f711b3368b", "originalSixRolesStillLocked": true, "twoNewRoleSlotsEmpty": true, "threeSchemasAndSevenFunctionNamesUnoccupied": true },
+      "awsAndGitHub": { "path": ".local-secrets/first-open-fc41597f/install-only-aws-github-readback-20261120-a/journal.json", "rawSha256": "66425500986ed753050926b514e7f8548b4415b03b3742968018c21eefc5097a", "finishedAtUtc": "2026-11-20T13:16:06.448Z", "threeOwnerOriginalsPoliciesMailboxAndNewCellMatched": true, "githubMain": "a21b76325056e38a0bc59c5a55fad92cbcc9bd14", "candidateCanFastForward": true, "requiredHumanEnvironmentReviewerAndOidcMatched": true, "protectedConfigurationNamesReturned404": 7, "backendContentsReadSecretNameReturned404": true, "metadata404DoesNotProveCredentialAuthority": true },
+      "currentActual": { "neonConfigReads": 1, "neonTlsReadonlyConnections": 1, "sql": 6, "sts": 1, "awsMetadata": 36, "githubGets": 11, "gitCredentialReads": 1, "stripeFileReads": 0, "controlFileReads": 0, "writes": 0, "pushes": 0, "installs": 0, "dispatches": 0, "claims": 0 },
+      "notExecutableReason": "At this readback the approved scope did not yet include binding the real window. The later scope-and-window authorization is recorded at windowBindingPreparation; neither it nor this readback permits a live activation, payment-file access, or substituting a candidate commit for a combined approval.",
+      "runtimeOnlyMissingInputs": "The exact backend Contents:read supply is not proven by environment metadata; confirm an already authorized source or user-supplied same-repository read-only material before packaging Management/Inspect. Real run seed, empty Express and supervised cleanup evidence, effective version-specific g1 grant, protected runner packages, real approval SHA and window remain later task-scoped prerequisites. The backend supply is not needed just to publish the platform candidate.",
+      "heldFactsNotAfterUtc": "2026-11-20T18:09:43.594Z",
+      "noReplayOrWriteAuthority": true
+    },
+    "windowBindingPreparation": {
+      "state": "RESTRICTED_FIRST_OPEN_AND_BUYER_FORWARD_WIRED_LOCAL_NOT_INSTALLED_OR_EXECUTED",
+      "buyerPublicationInstallationReview": "docs/aws-sandbox-first-open-buyer-publication-install-review.md",
+      "permission": "The user allows the exact first-open scope and dated cutoffs to be bound into one publication-plus-remaining-install approval. This is preparation only; no new source reads, payment-file access, publication, installation, protected-input activation, dispatch, claim, restore, or actual first-open.",
+      "scopeSeparation": "The user cancelled the task's temporary Aurora evidence path on 2026-11-21. The evidence-only plan and its saved cycles are historical, never a prerequisite, execution approval, or passing result. Only the separately approved real first-open remains in scope.",
+      "jobId": "job_fc41597f9b5ba8e02b338ecf",
+      "instanceId": "app_bbd626d7d3806af686073211",
+      "deploymentId": "dep_746535593025bf97a9efeccd",
+      "releaseId": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+      "timeZone": "America/Winnipeg",
+      "proposedNotActivated": {
+        "installNotBeforeUtc": "2026-11-20T14:00:00.000Z",
+        "installLatestStartUtc": "2026-11-20T15:00:00.000Z",
+        "installMustStopByUtc": "2026-11-20T15:45:00.000Z",
+        "firstOpenStartUtc": "2026-11-20T16:00:00.000Z",
+        "claimBeforeUtc": "2026-11-20T16:15:00.000Z",
+        "applicationLoginBeforeUtc": "2026-11-20T16:25:00.000Z",
+        "writeBeforeUtc": "2026-11-20T16:50:00.000Z",
+        "workloadExpiresUtc": "2026-11-20T18:00:00.000Z",
+        "earliestKnownReusedFactsCutoffUtc": "2026-11-20T18:09:43.594Z"
+      },
+      "requiredForFinalCombinedSha": [
+        "Include the exact one-time Aurora installer ops/aws-sandbox/first-open-fc41597f-aurora-install.sql and scoped management IAM diff. The sealed V3 program and its real protected Management readiness bind the claim; actual initialization is checked only after building the previously absent tenant database. The retired evidence-only account or receipt cannot satisfy these checks.",
+        "A signed-off supervised cleanup recipe for this term and target, and independent evidence of the exact responsible actor's effective permissions; the recovery receipt does not prove them. Bind hashes; this does not approve or execute clean-up.",
+        "The complete 13-field tenant parameter preimage from the same-scope config and latest independently read-back Cell. The user-supplied test publishable value is held at its digest; the four public values are fixed in lib/deployments/execution/first-open-buyer-binding.ts. Bind one signer-only fixed ARN and VersionId to the hosted relay and first-open approval; no values in manifests. Confirm shared Web/alias and runtime installation separately before real use. Do not read tenant-payment.test.json or change the webhook secret."
+      ],
+      "offlineSupplement": {
+        "state": "EXACT_STATIC_SCOPE_AND_PUBLISHABLE_KEY_BOUND_INDEPENDENT_PROOF_AND_PUBLIC_VALUES_MISSING",
+        "heldScopeCanonicalSha256": "1e8a1c14b142b70cab9098bce7d5519847c16a0ad4eb695543852b8020db8ac9",
+        "heldScopeSource": "The original scoped record and the latest local held-task readback agree on the exact job, review, plan and configuration; release A remains the pinned artifact of this scope.",
+        "baselineReference": {
+          "receipt": "docs/evidence/sandbox-first-open-baseline-copy-fc41597f-continuation.verified.json",
+          "archiveVersionId": "F0IEF0BdsnrwTj6lhYHNeBSbzsz7Sx7K",
+          "manifestVersionId": "FYqR4mLX2pK3tcQjbyW1UtoJ1.LX3dFc",
+          "claim": "Both exact key/version/size/FULL_OBJECT checksum tuples match the pinned code. This is byte-identity evidence, not a restore or namespace-vacancy result."
+        },
+        "expressTarget": {
+          "clusterResourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+          "database": "tenant_e9fdccd5d8c7685c_db",
+          "login": "tenant_e9fdccd5d8c7685c_role",
+          "schemaContract": "speedfeast-saas-control-v1",
+          "managementDatabase": "postgres",
+          "managementLogin": "sf_fc41597f_lifecycle",
+          "maintenanceInstallSql": "ops/aws-sandbox/first-open-fc41597f-aurora-install.sql",
+          "sourceStatus": "Restricted Management, existing one-claim fence and independent post-deploy readback are the only real first-open path. Installation, protected inputs, dispatch and activation remain unexecuted and not authorized."
+        },
+        "cleanupRecipeUnapproved": {
+          "jobId": "job_fc41597f9b5ba8e02b338ecf",
+          "scopeSha256": "1e8a1c14b142b70cab9098bce7d5519847c16a0ad4eb695543852b8020db8ac9",
+          "workloadExpiresAt": 1795197600000,
+          "responsibleCallerArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+          "order": "workload_database_role_generation_secret_then_cell"
+        },
+        "cleanupGuard": "Only the UUID observed in a genuine create receipt, the owned g1 database and role and that runtime Secret follow the tenant cleanup order. No name-only deletes, no shared Cell deletion under this task, no automatic cleanup. Human agreement and independent proof of effective cleanup rights are still missing; static policy and the previous cost-stop tool are not that proof.",
+        "tenantParameterProjection": {
+          "verifiedCellValues": "currentInstallationOutcome.latestRecoveryForInstall.publicCellParameters",
+          "TaskExecutionRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+          "ControlPublicKeyValueFrom": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/control-public-key-first-acceptance-PfBjiq:::75d8da0af103e1e10e6d3341cbd50226fea7ce5e5aac8d150ab9e447b6340680",
+          "sameScopePublicValuesSource": "lib/deployments/execution/first-open-buyer-binding.ts",
+          "sameScopePublicValuesStatus": "WIRED_OFFLINE_ONLY_SIGNED_TRANSPORT_NOT_INSTALLED",
+          "publishableKeyOnlySupplyPath": ".local-secrets/first-open-fc41597f/stripe-publishable-key.txt",
+          "stripePublishableKeyLocalReceipt": {
+            "state": "USER_SUPPLIED_TEST_PUBLISHABLE_KEY_SHAPE_VERIFIED_LOCAL",
+            "localResultRecordedAtUtc": "2026-11-20T13:36:43Z",
+            "valueSha256": "7960b134c04b9c315186c792181a994ef983ff3a2a276a0b2064dad203988891",
+            "digestInput": "Exact trimmed UTF-8 public value matching the existing pk_test_ validator.",
+            "binding": "One value-only file read under the user's instruction. The value was not written to this record. User provenance and local shape only: did not assert Stripe account identity or check payment.",
+            "actual": { "publicValueFileReads": 1, "originalStripeFileReads": 0, "stripeCalls": 0, "databaseConnections": 0, "awsCalls": 0, "githubCalls": 0, "writesToExternalSystems": 0 }
+          },
+          "sourceBoundary": "The existing single-tenant-private-sources route values and previous buyer acceptance evidence reference the old tenant. Backend docs define HTTPS issuer, buyer origin and tenant buyer return URL contracts, not approved values for this new task. Do not substitute either old tenant or the SaaS subscription checkout URLs as this tenant API's values.",
+          "fullParametersSha256": null
+        }
+      },
+      "independentEvidencePlanOffline": {
+        "state": "CANCELLED_BY_USER_HISTORICAL_ONLY",
+        "requiredForFirstOpen": false,
+        "verificationStatus": "NOT_RUN_NOT_REQUIRED",
+        "noReplayOrReplacement": true,
+        "jobId": "job_fc41597f9b5ba8e02b338ecf",
+        "scopeSha256": "1e8a1c14b142b70cab9098bce7d5519847c16a0ad4eb695543852b8020db8ac9",
+        "approvalSha256": null,
+        "localImplementation": {
+          "readOnlyCollector": "ops/aws-sandbox/first-open-entry/evidence-only.ts",
+          "archivedEntrySource": "ops/aws-sandbox/reviews/archived-fc41597f-evidence/run-evidence.ts.txt",
+          "maintenanceTlsAndProtectedFacts": "ops/aws-sandbox/first-open-entry/evidence-host.ts",
+          "independentReceiptVerifier": "ops/aws-sandbox/first-open-entry/evidence-receipt.ts",
+          "inspectorCandidate": ".github/workflows/sandbox-first-open-inspect-job-v1.yml",
+          "offlineDispatcherTemplate": "ops/aws-sandbox/first-open-entry/sandbox-first-open-v1.yml.in",
+          "postCreateOwnershipReview": "ops/aws-sandbox/first-open-express-cleanup-review.ts",
+          "preexistingCandidateIncludesTheseFiles": false,
+          "liveProtectedEntryWired": false,
+          "cleanupExecutorInstalled": false,
+          "defaultDispatcherAndPairedWritePinsUnchanged": true,
+          "protectedNames": ["TECHLONG_FIRST_OPEN_EVIDENCE_APPROVED_SHA256", "TECHLONG_FIRST_OPEN_EVIDENCE_RUNTIME_COMMIT", "TECHLONG_FIRST_OPEN_EVIDENCE_RECORD", "TECHLONG_FIRST_OPEN_BACKEND_READ_TOKEN"],
+          "nextApproval": null,
+          "oldProposedInstallStartCutoffUsable": false,
+          "productionDatabaseEngineTarget": "PostgreSQL 16.14; the two local paths are only for Sandbox Express 17.9."
+        },
+        "remainingInputReadiness": {
+          "oidc": {
+            "state": "OFFLINE_ROLE_TRUST_FIXED_NO_REPOSITORY_SETTINGS_CHANGE",
+            "authoritativeReference": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html",
+            "existingReadback": "currentInstallationOutcome.installOnlyContinuationVerified.awsAndGitHub: use_default=true with empty include_claim_keys; not proof of this role's future trust or a new token.",
+            "scope": "Keep the existing exact default subject form for this repository/environment, and require the exact immutable Inspector reusable path/commit as a separate IAM job_workflow_ref StringEquals condition, in the existing role only. Also pin audience, repository/owner IDs, main, environment, actor ID, session name and a short dated window. Keep the original sts:AssumeRole denial. One exact observed subject value, no wildcard, no repository OIDC customization.",
+            "integrity": "The collector compares the independent normalized post-install trust-policy SHA with the exact full candidate, rejecting a policy that fences only repository/environment; a role-compatible JWT alone is not proof of installed trust. Post-install readback is not required before the approval to install.",
+            "directClaimsAreTrustOnly": true
+          },
+          "maintenanceSql": {
+            "state": "USER_CONFIRMED_NO_EXISTING_MAINTENANCE_LOGIN",
+            "replayOrInventoryNeeded": false,
+            "scopeDecision": "For job_fc41597f9b5ba8e02b338ecf only, the user approved replacing separate human witnessing and per-action chat approvals with DBA self-check and one future evidence-segment authorization. This decision grants no current live setup, runtime access, retirement or deployment authority. Keep personal GitHub environment approval and independent final technical acceptance.",
+            "temporaryLoginOfflinePlan": {
+              "proposedLogin": "sf_fc41597f_evidence_ro",
+              "clusterResourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+              "maintenanceDatabase": "postgres",
+              "operator": "The user is DBA and performs all approved SQL and self-checks on the already confirmed Sandbox Express postgres writer connection; do not recheck or reconnect it, pass admin credentials to the runner/Codex, or use the future tenant login. An unavailable connection stops the segment; a new one is outside this scope. No separate human witness for this single temporary role.",
+              "plan": [
+                "Before DDL, DBA uses the already confirmed writer connection without revalidating it. One fixed current catalog projection within setup: existing postgres maintenance database ownership, proposed role absent, effective PUBLIC CONNECT on every other connectable database from default/effective ACL, and whether default/known postgres privileges allow any business or persistent write access. Stop on conflict or uncertainty; no shared ACL changes and no separate read session.",
+                "One atomic locked setup: CREATE ROLE with NOLOGIN, NOINHERIT, NOSUPERUSER, NOCREATEDB, NOCREATEROLE, NOREPLICATION, NOBYPASSRLS, CONNECTION LIMIT 1, PASSWORD NULL. The only membership from the login to another role is direct rds_iam with ADMIN, INHERIT and SET each false as in the prior Express IAM precedent. One explicit CONNECT grant only to this role on postgres; set default_transaction_read_only=on as a guard, not an ACL. No schema, business, ownership or other privileges. Record the new role OID; check any automatically created DBA-sided ADMIN membership separately, never inject a grantor or hand authority to the runner.",
+                "DBA self-check while still NOLOGIN: verify exact OID, role attributes/membership, no other memberships/owners, no unexpected inbound member or privilege, effective CONNECT to postgres and zero across other connectable databases including PUBLIC and inheritance, and the bounded usable object scope. Enable LOGIN once only after proof and deadlines; DBA verifies the same OID and sole expected change. These are labeled DBA self-checks, not independent acceptance. Keep Inspector authority closed until SQL and exact OIDC/trust gates match; only same-cluster exact dbuser, time-fenced. Other roles stay locked.",
+                "At most one evidence-only run in the same future authorized bundle, after the user's own GitHub environment approval; otherwise close. After completion, skip, failure, or hard cutoff, close IAM issuance/access and commit ALTER ROLE NOLOGIN for the exact OID. Existing sessions do not end by these controls: verify zero sessions and no unexpected ownership/dependencies before revoking exact CONNECT and rds_iam and dropping the exact OID role. DBA self-checks original OID absence and unchanged shared ACLs. No terminate, DROP OWNED, REASSIGN OWNED, CASCADE, retries or name-only recovery. Unknown state stops and surfaces residue, without repeating guessed writes."
+              ],
+              "publicPrivilegeCaveat": "Historical postgres PUBLIC TEMP was retained. Individual grants or default_transaction_read_only cannot negate PUBLIC or make every possible session read-only. Enforce the single protected read-only collector and do not authorize TEMP or persistent writes in its SQL. If real PUBLIC/inherited privileges breach the approved read-only boundary, including if the user requires even TEMP impossible at role level, stop without touching PUBLIC/shared ACLs.",
+              "conditionalSqlCeilings": {
+                "dbaExistingConnectionsReused": 1,
+                "dbaNewConnections": 0,
+                "dbaSetupSql": 10,
+                "dbaEnableSql": 5,
+                "dbaNologinSql": 5,
+                "dbaRevokeDropSql": 7,
+                "dbaSqlLifecycleSubtotal": 27,
+                "dbaSelfCheckReadOnlyTransactions": 3,
+                "dbaSelfCheckSqlSubtotal": 12,
+                "dbaSqlTotal": 39,
+                "independentHumanWitnessConnections": 0,
+                "collectorInFutureBundleVerifiedTlsConnections": 1,
+                "collectorInFutureBundleSql": 5,
+                "newBusinessDatabaseOrAwsIamRoles": 0,
+                "newSqlRoles": 1,
+                "retryReconnectOrForcedSessionTermination": 0
+              },
+              "notExecutable": true,
+              "windowAndOidUnset": true
+            },
+            "cloudMetadataOrWritesMax": 0
+          },
+          "backendA": {
+            "state": "EXACT_COMMIT_READ_VERIFIED_TOKEN_NOT_INSTALLED",
+            "repo": "veinyyxy/SpeedFeast_Backend_main",
+            "commit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+            "privateOwnerSupply": ".local-secrets/first-open-fc41597f/backend-contents-read-token.txt",
+            "localMetadataCheck": {
+              "recordedAtUtc": "2026-11-20T18:31:29Z",
+              "exactFileExistsAndIsIgnored": true,
+              "fileAndContainingPrivateDirectoriesNotReparsePoints": true,
+              "sizeWithinSingleTokenEnvelope": true,
+              "fileAclAllowLimitedToCurrentUserSystemAdministrators": true,
+              "credentialFileReads": 0,
+              "authenticatedGitHubCalls": 0,
+              "doesNotRefreshExpiredInstallationFacts": true
+            },
+            "fixedCommitReadback": {
+              "recordedAtUtc": "2026-11-20T18:35:30Z",
+              "httpStatus": 200,
+              "commitSha": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+              "credentialFileReads": 1,
+              "authenticatedGitHubGets": 1,
+              "scope": "Read access to this exact commit only; does not independently establish the token's full permission set or expiry. No source archive or Secret installation.",
+              "doesNotRefreshExpiredInstallationFacts": true
+            },
+            "scope": "Repository owner supplies one short-lived fine-grained token for the exact repository with Contents read (metadata only as required by GitHub). No D2 Actions-only PAT, classic token, fallback or ECR rebuild.",
+            "completedVerificationNoReplay": "The approved file read 1 and exact commit GET 1 were consumed in fixedCommitReadback. Do not repeat file checks or the GET. This receipt does not itself authorize any install or prove the full scope or expiry.",
+            "conditionalCombinedInstall": "In the one future bundle, only if the exact Secret installation is explicitly included, use the saved A token once for that purpose without repeating its separate validation. Reuse one approved environment encryption-key GET; exact-name metadata at most two before/after and encrypted create-only-intent PUT at most one. Stop on observed occupation or ambiguity; non-atomic absence check and unconfirmed responses do not authorize retries. Bind the approved A dependency/tool network staging in the same bundle, budgeted separately from evidence collection I/O."
+          },
+          "actual": { "accountApiCalls": 1, "databaseConnections": 0, "credentialFileReads": 1, "installs": 0, "dispatches": 0 }
+        },
+        "collector": {
+          "reuseRole": "arn:aws:iam::402010193138:role/TechlongSandboxFirstOpenInspector",
+          "roleId": "AROAV3GNMXTZONT55QARZ",
+          "sessionNameCandidate": "first-open-fc41597f-evidence",
+          "maxSessionSeconds": 900,
+          "solePermissionOwner": "techlong-sandbox-first-open-fc41597f-identities/483fa2e0-e42c-11f1-b49f-02ffcd94927f / LockedInspectorRole",
+          "entry": "Reuse the protected techlong-sandbox-deploy Inspector execution position, but the existing hosted Inspect launch requires the final release and launch hashes and is not this preflight. A sealed evidence-only entry must run without those final hashes, must never enter the provisioning launcher, and is not installed or published by this design. Require independently enforced exact repo/ref/workflow/commit, reviewed caller, first attempt, the user's own environment approval and dated issue/use cutoffs. No broad environment-only trust, Source credential or reused writer session. Keep the original sts:AssumeRole Deny and use only the existing OIDC provider for this named session.",
+          "allowOnly": [
+            "s3:GetObjectVersion on the two keys already bound in first-onboarding-baseline-versions.ts (API GetObject with exact VersionId and ExpectedBucketOwner), with each matching s3:VersionId; no GetObject latest, List, PUT or Delete",
+            "rds-db:connect for one already confirmed non-admin IAM SQL login on cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM, exact dbuser resource only; no admin login, role chain, or other cluster/user"
+          ],
+          "maintenanceSqlLogin": null,
+          "sqlIsolationGate": "No qualifying existing login; the proposed temporary login is described in remainingInputReadiness.maintenanceSql.temporaryLoginOfflinePlan. Gate any use on the exact newly observed OID, verified TLS to the original writer and effective CONNECT only on the maintenance database postgres, not the administrative SQL user postgres. IAM dbuser cannot fence dbname; validate effective PUBLIC/inherited grants, no writable membership or business access. No shared ACL change, wider network or fallback. The proposed role is not an installed login.",
+          "unchangedRoles": ["TechlongSandboxTenantLifecycleTaskRole", "TechlongSandboxProvisionerRole", "TechlongSandboxFirstOpen-e9fdccd5d8c7685c"]
+        },
+        "conditionalCollectionMax": {
+          "protectedWorkflowAttempts": 1,
+          "workflowDispatches": 1,
+          "oidcTokenRequests": 1,
+          "stsAssumeRoleWithWebIdentity": 1,
+          "stsGetCallerIdentity": 1,
+          "otherAwsMetadata": 0,
+          "s3FixedVersionGets": 2,
+          "s3TotalBytes": 229877,
+          "localRdsIamTokenSignatures": 1,
+          "auroraVerifiedTlsReadonlyConnections": 1,
+          "auroraSqlStatements": 5,
+          "pgRestoreReadOnlyToolInvocations": 3,
+          "existingBaselineVerifierInvocations": 1,
+          "sanitizedArtifacts": 1,
+          "artifactJsonMaxBytes": 16384,
+          "artifactZipMaxBytes": 65536,
+          "githubApiGetsForEvidence": 3,
+          "signedArtifactDownloadGets": 1,
+          "cleanupSimulationOrDeleteCalls": 0,
+          "retryOrPagination": 0
+        },
+        "collectionChecks": "After exact caller check and bound still-valid writer endpoint/physical ID, reuse the original snapshot without RDS inventory. One transaction: BEGIN REPEATABLE READ READ ONLY, SET LOCAL search_path TO pg_catalog, exact session identity/TLS/version/role isolation boolean, one exact-name catalog SELECT for absent target database, app login and nonce-derived V3 guard, COMMIT. No broad output. Only then GET two exact versions once. Compare byte sizes and SHA-256; use A-pinned pg_restore 16.14 version/list/schema-only rendering (no database restore) and existing profile verifier to require the 73-table structure with zero rows. The exact source and tool closure must be staged and approved before the session; no tool fetch or broader token use under this budget. Vacancy and offline compiler compatibility are separate; neither proves that the installed Lifecycle authorization can perform V3 on Aurora. The readiness flag stays unset if the exact PG17.9 V3 capability basis is missing.",
+        "custodyGate": "Retain one sanitized primary receipt with actual Inspector role/run/attempt, exact checkedAt and digest; authenticate exact run, artifact list one page, exact download endpoint and at most one signed blob GET. No raw SQL, password, token, archive, customer fields or signing material in the artifact. Current runner-readiness.ts pins sourceArn to techlong-sandbox-dev, not Inspector. Do not relabel output. Need an independently reviewed, provenance-preserving seal that the unchanged contract accepts or a separately reviewed minimal contract change before treating either result as a runtime input; neither is approved here.",
+        "cleanupSeparateFromCollector": {
+          "requiredEvidence": "Keep destruction out of Inspector. Independently match the exact supervised executor (and actual CloudFormation service role) to a supported operation path for this Express 17.9 task: read-back owner and effective fences for the tenant create UUID, the same-generation database and login OIDs and ownership, and the exact g1 Secret ARN/version from receipts once they exist. Review permission sources, bounds, expiration and order in the original cleanup domain. Shared Cell, other tenants and image storage are excluded. A policy simulation or candidate ARN without its actual receipt proves neither SQL ownership nor effective execution.",
+          "currentBlock": "The first-open Express composition explicitly disables database and runtime Secret destruction, and its CloudFormation runner disables DeleteStack. The normal backend cleanup provider inspected locally asserts PG16.14 and is not evidence of a PG17.9 handler. No exact separate compatible supervisor/authority proof was located in the reusable materials. Do not add destructive permissions to collect evidence, treat vacancy as cleanability, or set exactPermissionsVerified.",
+          "plannedActualCleanupCalls": 0
+        },
+        "futureActivationReviewBoundaries": "This one task's later exact evidence bundle needs one chat authorization, no per-action approvals. It must enumerate each permitted read/write, exact publication/SQL/config/trust scope, one evidence-only run, and mandatory bounded revocation; this rule change approves none. User personally approves GitHub environment. Temporary IAM only via original identity stack at most one activation Change Set create/execute and one to restore the locked original, with precise pre-/post-reads. Revoking trust alone does not expire a live session: hard access cutoff and close SQL connection. Actual first-open separately reviewed; final independent technical acceptance, no-old-window/no-retry rules, and no workload cleanup here are unchanged.",
+        "minimumInstallFactsReviewPrepared": {
+          "state": "PRECHECKS_TO_BE_INCLUDED_IN_ONE_FUTURE_BUNDLE_DBA_SELFCHECK_NO_LIVE_APPROVAL",
+          "singleEvidenceBundleApprovalSha256": null,
+          "installApprovalSha256": null,
+          "historicalSnapshotsNotExtended": true,
+          "segmentRules": {
+            "scope": "job_fc41597f9b5ba8e02b338ecf Sandbox only; temporary evidence login lifecycle only",
+            "nextExactChatApprovalCount": 1,
+            "perActionChatApprovalRequired": false,
+            "ruleChangeIsExecutionApproval": false,
+            "noRepeatedConfirmedConnectionOrSavedFileChecks": true,
+            "userGitHubEnvironmentApprovalRequired": true,
+            "actualFirstOpenSeparateApprovalRequired": true,
+            "finalIndependentTechnicalAcceptanceUnchanged": true
+          },
+          "actors": {
+            "authorizedExistingDba": {
+              "operator": "user",
+              "databaseLogin": "postgres",
+              "target": "Sandbox Express writer",
+              "evidence": "User-reported DBA identity and existing connection only; not independently verified and not evidence of prior write authority for this review or of a witness."
+            },
+            "independentAlreadyAuthorizedReadonlyWitness": null,
+            "independentWitnessState": "NO_EXISTING_WITNESS_RECORDED_NOT_REQUIRED_FOR_THIS_TEMPORARY_LOGIN",
+            "selfCheckAttribution": "User's existing postgres connection and catalog readbacks are DBA self-checks, not independent technical acceptance. Do not share credentials or use the future Inspector as an admin.",
+            "stopIfConfirmedDbaConnectionUnavailable": true
+          },
+          "proposedReadOnlyCeilingsForFutureSingleBundle": {
+            "aws": {
+              "account": "402010193138",
+              "region": "ca-central-1",
+              "officialStsIdentityMax": 1,
+              "metadataMax": 11,
+              "exactOwnerStack4": "techlong-sandbox-first-open-fc41597f-identities/483fa2e0-e42c-11f1-b49f-02ffcd94927f: DescribeStacks, GetTemplate(Original), DescribeStackResource for LockedInspectorRole, ListChangeSets one page.",
+              "exactIam4": "TechlongSandboxFirstOpenInspector: GetRole, ListRolePolicies, ListAttachedRolePolicies once each; GetOpenIDConnectProvider once on existing token.actions.githubusercontent.com provider. Prove exact RoleId and still-locked baseline. Unexpected attachment, pending change or trust drift stops, not permission discovery.",
+              "exactEvidenceBucket2": "techlong-sandbox-cloud-worker-evidence-402010193138: GetBucketPolicy and GetBucketVersioning only. Do not list objects, fetch or re-HEAD the two pinned baseline objects.",
+              "exactWriter1": "DescribeDBClusters once by techlong-sandbox-express-d001. Match physical cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM, exact current writer endpoint, PG17.9 and IAM authentication; unavailable or drift stops without modify/start."
+            },
+            "github": {
+              "exactExistingAuthenticationSourceReadsMax": 1,
+              "baseGetsMax": 8,
+              "conditionalExactEnvironmentBranchPolicyGetsMax": 1,
+              "totalGetsMax": 9,
+              "exactBaseTargets": "veinyyxy/TechlongSoftware: main ref, techlong-sandbox-deploy environment/review, repository OIDC subject settings, dispatcher metadata for .github/workflows/sandbox-first-open-v1.yml, two variables TECHLONG_FIRST_OPEN_EVIDENCE_APPROVED_SHA256 and TECHLONG_FIRST_OPEN_EVIDENCE_RUNTIME_COMMIT, two Secret names TECHLONG_FIRST_OPEN_EVIDENCE_RECORD and TECHLONG_FIRST_OPEN_BACKEND_READ_TOKEN. Only if the exact environment uses custom branch policies and the response does not establish main, one exact environment branch policy page. No remote source checkout, bearer read for A, title-wide run list, repo settings update or token issue.",
+              "proofLimits": "Bind one attributable current subject prefix/form (do not assume use_default alone is enough; use unambiguous immutable prefix/form or approved prior same-scope proof), confirm the protected main gate and locked candidate baseline. A 404 without known permission to read the exact name is not evidence of absence and will not permit a later PUT."
+            },
+            "aurora": {
+              "separatePreflightConnectionsMax": 0,
+              "separatePreflightSqlMax": 0,
+              "operator": "User acting as DBA reuses the already confirmed connection; no repeated connection check.",
+              "exactCatalogScope": "One bounded catalog projection within existing DBA setup budget, before its DDL. Only verify current name/ACL/write prerequisites and retention of maintenance database ownership. The new role OID/effective CONNECT is checked by DBA after locked creation. No extra approval, SQL session, broad inventory or database data; protected Inspector's separate read-only technical check stays within its original run budget."
+            }
+          },
+          "reuseAndCandidateBoundary": "Do not re-read or revalidate A's exact commit, local saved inputs, the confirmed DBA connection, Stripe, original baselines, Neon, business or provisioned workload. The isolated source candidate below is distinct from old b8c0edab and the mixed working tree. Verify ordinary fast-forward only against the exact approved base during the future bounded preflight. Pin token expiry/scope from owner attestation, not another validation GET.",
+          "frozenEvidenceOnlySource": {
+            "artifactDirectory": ".local-secrets/first-open-fc41597f/evidence-publish-candidate-r1",
+            "localExpectedRemoteBase": "a21b76325056e38a0bc59c5a55fad92cbcc9bd14",
+            "runtimeAndReusableCommit": "a7ba07127e35f4810d4a39618ce6462a2064556a",
+            "dispatcherCommit": "fa065684bc4b044012ceee96da4d78266c4ab422",
+            "files": {
+              ".github/workflows/sandbox-first-open-v1.yml": "200901a90afe8913dac11eeaf46b65873d05c9a4",
+              ".github/workflows/sandbox-first-open-inspect-job-v1.yml": "49275ba7176495fe71491ba13bd32068748f92ee",
+              "ops/aws-sandbox/first-open-entry/evidence-only.ts": "898210ca8fff5575bf7dc000ccc88e5a440c5822",
+              "ops/aws-sandbox/first-open-entry/evidence-host.ts": "0cfb1b4ef1d2b45fe0fdda4afebbefb52e816f1b",
+              "ops/aws-sandbox/first-open-entry/evidence-receipt.ts": "f92c60affc76c04a5f6a8c67c0d4c673dde328ec",
+              "ops/aws-sandbox/first-open-entry/run-evidence.ts": "a30600d62463f2585b502306abea7f3060f48602",
+              "ops/aws-sandbox/first-open-entry/pg-restore.sh": "9527ade69685123854051c1c0d02301abe7d979c"
+            },
+            "localEvidence": "Both workflows parsed with exactly one evidence job and one approved scope input; checked all relative source imports exist in candidate; git diff --check from expected base passed. No normal Inspect/RunOnce/Management lanes or workflow side changes. The protected evidence record carries the exact DBA-observed SQL OID and the collector compares it in the first existing SELECT, not an extra query.",
+            "headIndexAndRemoteUnchanged": true,
+            "notAuthorization": true
+          },
+          "bundleImplementationStillNeedsSeal": {
+            "onlyStack": "techlong-sandbox-first-open-fc41597f-identities/483fa2e0-e42c-11f1-b49f-02ffcd94927f / LockedInspectorRole, Modify without replacement only. ApplicationRole and its policy must remain byte-for-byte identical.",
+            "expectedLockedOriginalTemplate": {
+              "path": "ops/aws-sandbox/cloudformation/first-open-fc41597f-identities.template.json",
+              "canonicalSha256": "6a839ad4197b009028fa00ba29c9387d68bd23c3017aeabefe242a1e46b41096",
+              "localExpectedOnly": true
+            },
+            "roleDelta": "Need to freeze the absolute-time activation template and exact planned Change Sets, then match the fresh original to the locally pinned expected locked digest before proceeding. Keep original deny, expected exact immutable subject/workflow, RoleId/session match. Data grants are only the exact sf_fc41597f_evidence_ro dbuser and two exact pinned GetObjectVersion pairs; enforce hard access time independently of trust issuance. Match effective policy and revert exact locked original with no additional resources or changes.",
+            "database": "39 statements in the user DBA's existing connection; freeze each guarded transaction and sanitized role/ACL/OID receipts, not just step descriptions. Fail closed if PUBLIC grants or actual role do not match. Retirement must first prove exact NOLOGIN commit; confirm zero sessions and no unexpected dependencies before dropping the exact same OID.",
+            "protectedConfiguration": "Two exact evidence variables plus evidence record and backend token Secret only; seal creation, blocking on ambiguous occupancy, created-only retirement and independent terminal metadata. Any one use of the previously verified token is only for the explicitly authorized Secret installation, not another verification. One exact source fast-forward, immutable frozen runtime closure, maximum one evidence-only dispatch and user's environment gate. Pin exact single authenticated run lookup, signed artifact retrieval and minimal closure proof; no launch of another mode.",
+            "duration": "Need to set exact outer action, evidence access, and later-but-finite revoke-only cutoffs; define deterministic construction of protected scope and SHA from confirmed facts/DBA OID and observed policy. No new clock or approval inherited from expired snapshots.",
+            "status": "SOURCE_FROZEN_FULL_CHAIN_NOT_YET_EXECUTABLE"
+          },
+          "evidenceOnlyConsolidatedApproval": {
+            "manifest": "ops/aws-sandbox/reviews/fc41597f-evidence-approval.json",
+            "rawSha256": "9afdbcfbf3d50070289b2722b29410a1a9364e1e0b508ea6287d1af0ae4527aa",
+            "status": "START_WINDOW_MISSED_NOT_STARTED",
+            "scope": "The attached temporary before-claim evidence-only segment supersedes the draft steps and budgets immediately above, but is not the full first-open installation or execution approval. Exact user approval and all fail-closed gates are required.",
+            "startBeforeUtc": "2026-11-20T20:20:00.000Z",
+            "revokeAndReadBackBeforeUtc": "2026-11-20T21:50:00.000Z"
+          },
+          "evidenceOnlyCycle2": {
+            "manifest": "ops/aws-sandbox/reviews/fc41597f-evidence-r2-approval.json",
+            "rawSha256": "88312312f195488d8585ac90be6b352439214a1823b90400ae576043340c20fd",
+            "status": "STOPPED_PREWRITE_SOURCE_IDENTITY_UNPROVEN",
+            "actualStartedAtUtc": "2026-11-20T21:15:26.754Z",
+            "actualStoppedAtUtc": "2026-11-20T21:15:30.187Z",
+            "stopCode": "AWS_GET_CALLER_IDENTITY_CREDENTIAL_OR_LOGIN",
+            "actual": {"stsAttempts": 1, "awsMetadata": 0, "githubReads": 0, "credentialFileReads": 0, "dbaSql": 0, "remoteWrites": 0, "dispatches": 0, "claims": 0},
+            "localExecutionIntentCreated": false,
+            "replayOrRetry": false,
+            "startBeforeUtc": "2026-11-20T21:35:00.000Z",
+            "accessBeforeUtc": "2026-11-20T22:25:00.000Z",
+            "newReceiptOnlyBeforeUtc": "2026-11-20T22:45:00.000Z",
+            "revokeAndReadBackBeforeUtc": "2026-11-20T23:05:00.000Z",
+            "firstOpenExecutionAuthorized": false
+          },
+          "evidenceOnlyCycle3": {
+            "manifest": "ops/aws-sandbox/reviews/fc41597f-evidence-r3-approval.json",
+            "rawSha256": "aa2307ddd4d595832169e6adfa0021815edd8ef1a9984e4b755f43708e5888ad",
+            "status": "STOPPED_PREWRITE_ON_INSPECTOR_GET_ROLE",
+            "actualStartedAtUtc": "2026-11-21T04:24:18.790Z",
+            "actualStoppedAtUtc": "2026-11-21T04:24:30.808Z",
+            "safeStopCode": "AWS_GET_ROLE_CREDENTIAL_OR_LOGIN",
+            "actual": {"stsAttempts": 1, "sourceIdentityMatched": true, "awsMetadataAttempts": 5, "cloudFormationReadChecksPassed": 4, "githubReadChecksPassed": 10, "operatorCredentialRead": 1, "backendTokenFileReads": 0, "databaseConnections": 0, "dbaSql": 0, "remoteWrites": 0, "dispatches": 0, "claims": 0},
+            "localExecutionIntentCreated": false,
+            "offlineCliSigningReproduction": {"credentials": "synthetic", "awsNetworkBlocked": true, "explicitIamEndpointWithCanadaRegionSigns": "ca-central-1", "defaultIamResolutionAndExplicitCorrectedRegionSign": "us-east-1", "confirmedLiveErrorDetails": false},
+            "offlineIamSigningFix": {"operatorPath": ".local-secrets/first-open-fc41597f/evidence-operator-iam-signing-fixed.offline.mjs", "rawSha256": "04e2a74e919b8e4638a2d0f742eaef8bd6155fbcaed8257a46612cb29c983161", "oldOperatorPreserved": true, "sameIamEndpoint": true, "iamSigningRegion": "us-east-1", "otherSigningRegionsUnchanged": true, "exactArgFixturesPassed": 8, "syntheticCliSigningCheckPassed": true, "liveDisabled": true, "onlineCalls": 0},
+            "freshSameIdentityStsMax": 1,
+            "startBeforeUtc": "2026-11-21T04:33:00.000Z",
+            "accessBeforeUtc": "2026-11-21T05:07:00.000Z",
+            "revokeAndReadBackBeforeUtc": "2026-11-21T05:17:00.000Z",
+            "firstOpenExecutionAuthorized": false
+          },
+          "evidenceOnlyCycle4": {
+            "manifest": "ops/aws-sandbox/reviews/fc41597f-evidence-r4-approval.json",
+            "rawSha256": "80490b33a5ab82f6f6917c8d553f6c9f654dc64adef16af29e2ea9a2400e73f9",
+            "status": "STOPPED_PREWRITE_DBA_HANDOFF_DEADLINE",
+            "actualStartedAtUtc": "2026-11-21T04:39:40.100Z",
+            "preflightPassedAtUtc": "2026-11-21T04:40:01.429Z",
+            "actualStoppedAtUtc": "2026-11-21T04:52:00.003Z",
+            "stopCode": "OPERATOR_HANDOFF_DEADLINE",
+            "actual": {"stsAttempts": 1, "awsMetadataChecksPassed": 11, "getRoleWithCorrectedSigningPassed": true, "githubReadChecksPassed": 10, "operatorCredentialRead": 1, "backendTokenFileReads": 0, "dbaAStarted": false, "dbaACommitted": false, "dbaBExecuted": false, "remoteWrites": 0, "dispatches": 0, "claims": 0},
+            "dbaNoSqlConfirmedByUser": true,
+            "localExecutionIntentCreated": true,
+            "cleanupRequired": false,
+            "initialMetadataCall": "Original Inspector GetRole after exact Source STS; IAM global endpoint uses us-east-1 signature",
+            "startBeforeUtc": "2026-11-21T04:44:00.000Z",
+            "accessBeforeUtc": "2026-11-21T05:09:00.000Z",
+            "revokeAndReadBackBeforeUtc": "2026-11-21T05:17:00.000Z",
+            "firstOpenExecutionAuthorized": false
+          },
+          "evidenceOnlyCycle5": {
+            "manifest": "ops/aws-sandbox/reviews/fc41597f-evidence-r5-approval.json",
+            "rawSha256": "7392874b3ed93250d4eab47cc484a3390752543c23a0608e3913dcd534ff5497",
+            "status": "SEALED_FOR_ONE_EXACT_APPROVAL_NOT_EXECUTED",
+            "sameDbAndGithubWindowsReadyConfirmedByUser": true,
+            "ownerAvailabilityApproximateMinutes": 90,
+            "startBeforeUtc": "2026-11-21T05:18:00.000Z",
+            "dbaSetupAndLockedProofMinutes": 25,
+            "accessBeforeUtc": "2026-11-21T06:06:00.000Z",
+            "revokeAndReadBackBeforeUtc": "2026-11-21T06:36:00.000Z",
+            "firstOpenExecutionAuthorized": false
+          },
+          "onFailure": "No pagination or retry. Stop on unknown response, auth/digest mismatch, unavailable confirmed DBA connection, unwanted PUBLIC or other access, name occupied or spent window; never alter shared ACL/network or force a proof. Run only authorized revocation steps when exact state is known; preserve any uncertain residue. First-open approval and final independent technical acceptance remain mandatory.",
+          "actual": { "awsSts": 0, "awsMetadata": 0, "githubGets": 0, "auroraTls": 0, "sql": 0, "credentialFileReads": 0, "writes": 0, "dispatches": 0, "claims": 0 }
+        },
+        "actual": { "awsCalls": 0, "githubCalls": 0, "databaseConnections": 0, "privateInputReads": 0, "remoteWrites": 0, "approvalsOrEvidenceIssued": 0 }
+      },
+      "afterInstallBeforeSeparateFirstOpenApproval": "For the real first-open only: bind the exact main and dispatcher ID, compliant restricted identities (no postgres administrator), separately approved original-owner and Neon grants, version-specific g1 effective grant, independent Cell sample/seed and protected runner packages. The temporary evidence-only bundle is cancelled and has no execution or approval role.",
+      "expiryBehavior": "Do not execute from these dates. If the proposed install start cutoff or any approved facts expire, retain the existing receipts unchanged; no automatic refresh, new window or replay.",
+      "executableApprovalSha256": null
+    },
+    "latestRecoveryForInstall": {
+      "supersedesEarlierCellPhysicalCoordinates": true,
+      "path": ".local-secrets/aws-env-stop-diagnostic-HIxqVd/restore-attempt-20261120-a/journal.json",
+      "rawSha256": "d5cabe241f5ce2d19cb810ca87300316c67bcd2529713eea6012881eb45e1c93",
+      "verifiedAtUtc": "2026-11-20T12:50:54.417Z",
+      "cellStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+      "dnsTarget": "techlong-sandbox-cell-sandbox-1-2067416221.ca-central-1.elb.amazonaws.com",
+      "albArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/02eb60b261055a80",
+      "albCanonicalZone": "ZQSVJUPU6J1EY",
+      "publicCellParameters": {
+        "ClusterName": "cell-sandbox-1", "VpcId": "vpc-0136b6ba92a72cbf9", "SubnetIds": "subnet-05b781276cc988b93,subnet-05729abe921410a75", "TaskSecurityGroupId": "sg-0df75af0d0661492a",
+        "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/02eb60b261055a80/24a7e9ef46728064",
+        "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/02eb60b261055a80/9a61f941ca7e6363"
+      },
+      "businessDenyRuleArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/02eb60b261055a80/24a7e9ef46728064/844c5566e1a598b9",
+      "controlTrustStoreArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:truststore/techlong-sandbox-control-v1/aa1771fd0469cc44",
+      "scope": "Independently read back Cell network/edge, mTLS trust store configuration, available Express/writer and healthy platform. Not a first-open readiness digest, a payment proof, a database initialization proof, or a current authoritative DNS target for any other hostname. Earlier physical coordinates above are historical only."
+    },
+    "oneConsolidatedReadNeedsSeparateApproval": {
+      "conditions": "One reread of the corrected exact payment file and one read of the already supplied runonce-control.json; after local success, run the following one bounded group. No automatic fallback, pagination, repeated ECR/S3 baseline read, Stripe call, AWS/GitHub write, restore, launch window or task claim.",
+      "neon": "Read .env.local once; 1 verified TLS READ ONLY connection, at most 7 statements using consolidatedReadbackReview.neon. Only exact held task, its immutable template and narrowed installation roles/schema/ACL state; no payment, environment binding or past task re-read.",
+      "aws": {
+        "sts": 1, "metadataMax": 36,
+        "cloudFormation13": "DescribeStacks/GetTemplate Original/ListStackResources/ListChangeSets on exact shared IAM, identities and evidence owners (12), plus one DescribeStacks of the restored Cell for new output and role pins (1). Purpose: bind only original owners and actual new physical boundaries. No ELB/RDS or full launch sampler for installation preparation.",
+        "iam21": "On the four existing roles in the historical installation-refresh receipt only: GetRole/ListAttachedRolePolicies/ListRolePolicies once each (12); GetPolicy and GetPolicyVersion on the fixed existing default versions of TechlongSandboxServiceRoleBoundary, TechlongSandboxProvisionerBoundary and TechlongSandboxFirstOpen-e9fdccd5d8c7685c-Boundary (6); one GetRolePolicy of the original exact Lifecycle inline, one GetPolicy for the planned narrow Lifecycle boundary name, one GetOpenIDConnectProvider on the existing GitHub provider (3). Purpose: preserve actual C4e statements, lock scopes and confirm no drift or name conflict before compiling exact writes. Stop if a fixed version is not the current default.",
+        "s3Metadata2": "One GetBucketPolicy plus one GetBucketVersioning on the exact existing cloud worker evidence bucket; no body or list. Purpose: compile the narrow existing mailbox delta without replacing other permissions."
+      },
+      "github": "At most 11 authenticated GET with the established source only: exact main, exact protected environment, repository OIDC subject configuration, exact names of four protected Secrets, three variables and optional backend Contents:read Secret (metadata only). Purpose: establish fast-forward, protection and whether an already-approved backend supply is present. No candidate push or dispatch; returned Secrets are name metadata only. Stop if existing credential cannot read a required object.",
+      "ownershipAndNext": "User supplies only the corrected webhook signing secret locally, and an exact backend Contents:read supply only if the gate shows none available. Codex compares provider and protected-role facts, generates the exact non-force publication and three original-owner/narrow Neon changes, freezes independent readback and gives one installation SHA if all bind. Unproved actual launch record, Aurora vacancy/initialization, cleanup and effective g1 grant may not be filled with cached values or executed under installation-only approval."
+    }
+  },
+  "missingBeforeExecutableApproval": [
+    "Bind the existing real initialization and supervised cleanup readiness, complete protected tenant parameters, authentic Inspect seed and effective g1 permission. Preserve in-run no-overwrite checks; do not recreate the cancelled temporary-evidence requirement or synthesize its PASS.",
+    "Name the exact bounded supply for management/runonce installed credentials, private control/payment validation, complete reviewed SCM and SQL/IAM materials; authorize any indispensable new reads only as one consolidated proposed scope. Bind the fixed release/window with derived approvals and exact finite counts before any live change.",
+    "For executable installation freeze exact reviewed writes and hard time bounds, including which conclusions must be observed after publication and install before sealing GitHub protected values. The actual numeric dispatcher ID is a post-publish input, never a substitute for missing preflight facts."
+  ],
+  "timeBounds": {
+    "priorProposedInstallOuterCutoffUtc": "2026-11-20T01:04:42.000Z",
+    "existingInstallFactEarliestCutoffUtc": "2026-11-20T01:14:48.852Z",
+    "restoreAttemptClosedAndNotReusable": true,
+    "factsOrCutoffsExtended": false,
+    "expiryBehavior": "Do not execute this draft or use expired facts. If timing does not fit, preserve receipts and do not automatically read them again or fabricate a new window."
+  },
+  "actual": { "privateCredentialContentReads": 0, "awsCalls": 0, "githubCalls": 0, "databaseConnections": 0, "pushes": 0, "installs": 0, "dispatches": 0, "claims": 0, "launchRecordSealed": false }
+}

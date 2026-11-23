@@ -4,7 +4,8 @@ import { assertInitialSecretVersion } from "../../lib/deployments/execution/firs
 import { verifyFirstOnboardingRuntime, type FirstOnboardingIndependentHandoff } from "../../lib/deployments/execution/first-onboarding-inspection.ts";
 import { firstOnboardingReadOnlyBoundary, type FirstOnboardingReadOnlyPort } from "../../lib/deployments/execution/first-onboarding-reader.ts";
 import { checkSandboxFirstOpenApproval, SANDBOX_FIRST_OPEN as scope, SANDBOX_FIRST_OPEN_STACK } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
-import { type FirstOpenGitHubHandoff } from "./first-open-github-handoff.ts";
+import { type FirstOpenGitHubHandoff, type FirstOpenAuthorityIntent, type firstOpenGitHubAuthorityArtifacts } from "./first-open-github-handoff.ts";
+import { firstOpenVersionAuthorityScope, type VersionAuthorityScope } from "./first-open-controlled-cfn.ts";
 import { offlineRuntimeObservationSha, rebuildOfflineFirstOpenBinding } from "./first-open-oidc-offline.ts";
 import { sameFirstOpenFence } from "./first-open-express-scope.ts";
 import { firstOpenIndependentDatabase, type FirstOpenReadSession } from "./first-open-express-database.ts";
@@ -20,6 +21,12 @@ const equal = (l: unknown, r: unknown) => canonicalJson(l) === canonicalJson(r);
 const fieldsMatch = (actual: Record<string, unknown>, expected: Record<string, unknown>) =>
   Object.entries(expected).every(([key, value]) => actual[key] === value);
 const secretPrefix = `arn:aws:secretsmanager:${scope.region}:${scope.account}:secret:${scope.secretName}-`;
+
+export type FirstOpenInspectorAuthority = {
+  artifacts: Pick<ReturnType<typeof firstOpenGitHubAuthorityArtifacts>, "sourceSha256" | "readIntent" | "publishVerified">;
+  runId: string; submitBefore: number;
+  verifyInstalledPolicy(scope: VersionAuthorityScope, signal: AbortSignal): Promise<Record<string, unknown>>;
+};
 
 async function secretProjection(ack: SecretAck, signal: AbortSignal) {
   sameFirstOpenFence({ externalFence: ack.externalFence, fence: ack.externalFence.resourceFence, signal });
@@ -114,6 +121,7 @@ export function bindFirstOpenPairedInspect(input: {
   database: { roleDirectorySql: string; session: FirstOpenReadSession };
   expectedSeed: FirstOpenInspectSeed;
   expectedSeedSha256: string;
+  versionAuthority?: FirstOpenInspectorAuthority;
 }, now: () => number = Date.now) {
   const approval = structuredClone(input.approval), seed = structuredClone(input.expectedSeed);
   pairFirstOpenApproval(input.wire, approval, input.approvalSha256);
@@ -151,6 +159,25 @@ export function bindFirstOpenPairedInspect(input: {
     if (!fieldsMatch(request.payload, expected)) return fail("G1_REQUEST");
     await input.wire.emit("02-g1-metadata-observed", { ...expected, requestBodySha256: request.bodySha256,
       observedAtUtc: iso(now()), onlyCurrentVersionVerified: true, notDeletingOrRotatingVerified: true }, signal);
+    if (input.versionAuthority) {
+      const { runId, submitBefore, artifacts, verifyInstalledPolicy } = input.versionAuthority;
+      if (now() >= submitBefore) return fail("AUTHORITY_WINDOW");
+      const authoritySignal = AbortSignal.any([signal, AbortSignal.timeout(Math.max(1, submitBefore - now()))]);
+      const artifact = await artifacts.readIntent(authoritySignal);
+      // The transport has already authenticated the paired RunOnce and
+      // checked the exact no-extra-fields intent shape.
+      const p = artifact.payload as FirstOpenAuthorityIntent;
+      if (p.operationSha256 !== planned.epoch.operationHash ||
+        p.putAcknowledgedAt < approval.controlledWindow!.startAt || p.putAcknowledgedAt > artifact.producedAt ||
+        now() >= submitBefore) return fail("AUTHORITY_INTENT");
+      const reviewed = firstOpenVersionAuthorityScope({ ...p, runId, submitBefore, approvalSha256: input.approvalSha256,
+        sourceSha256: artifacts.sourceSha256 });
+      if (p.scopeSha256 !== await sha256Hex(reviewed)) return fail("AUTHORITY_INTENT");
+      const authorized = await verifyInstalledPolicy(reviewed, authoritySignal);
+      authoritySignal.throwIfAborted();
+      if (authorized?.scopeSha256 !== p.scopeSha256 || now() >= submitBefore) return fail("AUTHORITY_OBSERVATION");
+      await artifacts.publishVerified(authorized, authoritySignal);
+    }
     const intent = await input.wire.take("03-runtime-check-request", signal);
     const stackId = await independent.createdStackId(SANDBOX_FIRST_OPEN_STACK, signal);
     const db = await observeDatabase({ databaseName: scope.tenantDatabase, roleName: scope.tenantRole, signal });
