@@ -1,3 +1,4 @@
+import { setTimeout as delay } from "node:timers/promises";
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
 import { SANDBOX_FIRST_OPEN as s } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
 import { FIRST_OPEN_BASELINE_BINDING } from "../../lib/deployments/execution/first-onboarding-baseline-versions.ts";
@@ -5,6 +6,7 @@ import type { VersionAuthorityScope } from "./first-open-controlled-cfn.ts";
 import { FIRST_OPEN_AUTHORITY_RESOURCES, renderFirstOpenVersionGrantRelockTargets } from "./first-open-install-policy-delta.ts";
 import { bindFirstOpenInspectorAuthorityReadback } from "./first-open-inspector-authority-readback.ts";
 import { firstOpenInspectorAuthorityReadScope } from "./first-open-inspector-iam.ts";
+import { firstOpenLifecycleAuthoritySchedule } from "./first-open-release-entry.ts";
 import oidcContract from "./first-open-fc41597f-oidc-handoffs.prepared.json" with { type: "json" };
 
 type Reader = Awaited<ReturnType<typeof bindFirstOpenInspectorAuthorityReadback>>;
@@ -60,6 +62,7 @@ function authorCannotChangePolicy(template: Target, authorId: string) {
  * a protected capsule and at runtime. */
 export async function checkFirstOpenVersionAuthoritySource(source: FirstOpenVersionAuthoritySource, protectedSourceSha256: string) {
   const v = structuredClone(source);
+  const schedule = firstOpenLifecycleAuthoritySchedule(v.release);
   const scope = firstOpenInspectorAuthorityReadScope(v.release, v.releaseSha256);
   if (!hex.test(protectedSourceSha256) || await sha256Hex(v) !== protectedSourceSha256 ||
     await sha256Hex(v.release) !== v.releaseSha256 || await sha256Hex(v.preGrant) !== v.preGrantSha256 ||
@@ -84,7 +87,7 @@ export async function checkFirstOpenVersionAuthoritySource(source: FirstOpenVers
   if (v.policies.find(p => p.policyArn === boundaryArn)?.documentSha256 !== await sha256Hex(doc(v.preGrant)) ||
     !same(v.roles[1].inline, await inline(v.preGrant)) ||
     v.roles[1].trustSha256 !== await sha256Hex(v.preGrant.Resources.TenantLifecycleTaskRole.Properties.AssumeRolePolicyDocument)) return fail();
-  return { v, scope, inline, doc };
+  return { v, scope, inline, doc, schedule };
 }
 
 /** Reject the known locked preimage and any put policy that isn't tied to
@@ -145,8 +148,9 @@ export async function requireFirstOpenTemplateAuthor(source: FirstOpenVersionAut
  * simulated permissions nor a claim that AWS has accepted CreateStack. */
 export async function bindFirstOpenVersionAuthorityComparison(
   source: FirstOpenVersionAuthoritySource, protectedSourceSha256: string, read: Reader, now = Date.now,
+  pause: (ms: number, signal: AbortSignal) => Promise<void> = (ms, signal) => delay(ms, undefined, { signal }),
 ) {
-  const { v, scope, inline, doc } = await checkFirstOpenVersionAuthoritySource(source, protectedSourceSha256);
+  const { v, scope, inline, doc, schedule } = await checkFirstOpenVersionAuthoritySource(source, protectedSourceSha256);
   return async (phase: Phase, request: VersionAuthorityScope, signal: AbortSignal) => {
     signal.throwIfAborted();
     const cutoff = phase === "grant" ? request.submitBefore : v.release.phaseCutoffs[4];
@@ -161,15 +165,27 @@ export async function bindFirstOpenVersionAuthorityComparison(
       roles[1].inline = await inline(targets.grant);
       boundary.documentSha256 = await sha256Hex(doc(targets.grant));
     }
-    const observed = await read(phase, roles.map(r => r.inline.map(p => p.name)), signal);
-    signal.throwIfAborted();
+    const due = phase === "grant" ? schedule?.grantNotBefore : schedule?.relockNotBefore;
+    const left = cutoff - now();
+    if (left <= 0) return fail();
+    const bounded = due === undefined ? signal : AbortSignal.any([signal, AbortSignal.timeout(left)]);
+    if (due !== undefined) {
+      const wait = due - now();
+      if (wait > 0) await pause(wait, bounded);
+      bounded.throwIfAborted();
+      if (now() < due || now() >= cutoff) return fail();
+    }
+    // The timer only opens a single sample. Only the actual executed Change
+    // Set, owner Original and exact policy documents constitute proof.
+    const observed = await read(phase, roles.map(r => r.inline.map(p => p.name)), bounded);
+    bounded.throwIfAborted();
     if (observed.phase !== phase || observed.exactOwnerStackArn !== scope.ownerStackArn ||
       !observed.exactChangeSetId.startsWith(`arn:aws:cloudformation:${s.region}:${s.account}:changeSet/${scope.changeSetNames[phase === "grant" ? 0 : 1]}/`) ||
       observed.scopeSha256 !== await sha256Hex(scope) ||
       !same([...observed.changes].sort((a, b) => (a.logicalId ?? "").localeCompare(b.logicalId ?? "")), changed) ||
       observed.ownerStackOriginalSha256 !== (phase === "grant" ? targets.grantSha256 : targets.relockSha256) ||
       observed.evidenceBucketPolicySha256 !== v.evidenceBucketPolicySha256 || !same(observed.roles, roles) || !same(observed.policies, policies) ||
-      !Number.isSafeInteger(observed.checkedAt) || observed.checkedAt < request.putAcknowledgedAt ||
+      !Number.isSafeInteger(observed.checkedAt) || observed.checkedAt < Math.max(request.putAcknowledgedAt, due ?? 0) ||
       observed.checkedAt > now() || now() >= cutoff) return fail();
     return { checkedAt: observed.checkedAt, scopeSha256: await sha256Hex(request), policySha256: await sha256Hex(observed) };
   };

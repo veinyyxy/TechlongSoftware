@@ -33,6 +33,26 @@ export interface FirstOpenFrozenRelease {
   writeBefore: number;
   completionReserveMs: number;
   phaseCutoffs: [number, number, number, number, number];
+  /** Absolute UTC milliseconds. Real task releases only; never dispatch input. */
+  lifecycleAuthoritySchedule?: { grantNotBefore: number; relockNotBefore: number };
+}
+
+export function firstOpenLifecycleAuthoritySchedule(release: FirstOpenFrozenRelease) {
+  const schedule = release.lifecycleAuthoritySchedule;
+  if (!release.taskRelease) {
+    if (schedule !== undefined) return fail("LIFECYCLE_AUTHORITY_WINDOW");
+    return undefined;
+  }
+  const t = release.phaseCutoffs;
+  if (!schedule || Object.keys(schedule).sort().join(",") !== "grantNotBefore,relockNotBefore" ||
+    !Array.isArray(t) || t.length !== 5 ||
+    ![schedule.grantNotBefore, schedule.relockNotBefore, release.startAt, t[2], t[3], t[4], release.writeBefore,
+      release.completionReserveMs].every(Number.isSafeInteger) || release.completionReserveMs <= 0 ||
+    !(release.startAt < t[2] && t[2] < schedule.grantNotBefore && schedule.grantNotBefore < t[3] &&
+      t[3] < schedule.relockNotBefore && schedule.relockNotBefore < t[4] && t[4] <= release.writeBefore - release.completionReserveMs)) {
+    return fail("LIFECYCLE_AUTHORITY_WINDOW");
+  }
+  return Object.freeze({ grantNotBefore: schedule.grantNotBefore, relockNotBefore: schedule.relockNotBefore });
 }
 
 /** The expected outer digest must come from the separately reviewed protected
@@ -57,6 +77,7 @@ export async function bindFirstOpenReleaseEntry(source: FirstOpenFrozenRelease, 
     return fail("TASK_RELEASE");
   }
   if (p.taskRelease) await verifyFirstOpenTaskRelease(p.taskRelease);
+  firstOpenLifecycleAuthoritySchedule(p);
   const runOnceRef = `${repo}/${runOncePath}@${p.runOnceReusableCommit}`, inspectRef = `${repo}/${inspectPath}@${p.inspectReusableCommit}`;
   const managementRef = `${repo}/${firstOpenManagementReusablePath}@${p.managementReusableCommit}`;
   const pairSha256 = await sha256Hex({ domain: contract.pairing.pairDomain, jobId: p.jobId, approvalSha256: p.approvalSha256,
@@ -82,9 +103,11 @@ export async function bindFirstOpenReleaseEntry(source: FirstOpenFrozenRelease, 
  * loading the approved outer record. Transport consumes its frozen cutoffs. */
 export async function firstOpenReleaseTransport(source: FirstOpenFrozenRelease, trustedSha: string,
   actual: Parameters<typeof bindFirstOpenReleaseEntry>[2] & { role: "runonce" | "inspect" },
-  transport: Omit<Parameters<typeof firstOpenGitHubHandoff>[0], "pair" | "role" | "ownRunId">) {
-  const frozen = await bindFirstOpenReleaseEntry(source, trustedSha, actual);
-  return { ...frozen, wire: firstOpenGitHubHandoff({ ...transport, pair: frozen.pair, role: actual.role, ownRunId: actual.ownRunId }) };
+  transport: Omit<Parameters<typeof firstOpenGitHubHandoff>[0], "pair" | "role" | "ownRunId" | "runtimeObservedNotBefore">) {
+  const release = structuredClone(source);
+  const frozen = await bindFirstOpenReleaseEntry(release, trustedSha, actual);
+  return { ...frozen, wire: firstOpenGitHubHandoff({ ...transport, pair: frozen.pair, role: actual.role, ownRunId: actual.ownRunId,
+    runtimeObservedNotBefore: firstOpenLifecycleAuthoritySchedule(release)?.relockNotBefore }) };
 }
 
 /** Render only. Reusable bytes can be prepared before the caller pins the

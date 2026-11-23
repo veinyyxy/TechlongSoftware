@@ -82,12 +82,16 @@ function firstOpenArtifactIo(options: ArtifactIoOptions) {
  * No token discovery, credential forwarding, upload fallback, or dispatch. */
 export function firstOpenGitHubHandoff(options: ArtifactIoOptions & {
   pair: FirstOpenHandoffPair; role: "runonce" | "inspect"; ownRunId: string; uploadOwn: OwnUpload;
+  runtimeObservedNotBefore?: number;
 }) {
   const pair = structuredClone(options.pair), { now, pause, json, readListed, archive } = firstOpenArtifactIo(options);
   const accept = offlineFirstOpenHandoffVerifier(pair);
   const releaseId = firstOpenVersion(pair.taskRelease).releaseId;
   const writer = options.role === "runonce";
   if ((!writer && options.role !== "inspect") || options.ownRunId !== (writer ? pair.runOnceId : pair.inspectId)) return fail("SELF");
+  const runtimeObservedNotBefore = options.runtimeObservedNotBefore;
+  if (runtimeObservedNotBefore !== undefined && (!pair.taskRelease || !Number.isSafeInteger(runtimeObservedNotBefore) ||
+    !(pair.phaseCutoffs[3] < runtimeObservedNotBefore && runtimeObservedNotBefore < pair.phaseCutoffs[4]))) return fail("PHASE_SCOPE");
   let index = 0, previousBodySha256: string | null = null, busy = false, stopped = false;
   async function step(kind: string, upstream: AbortSignal, payload?: Fields) {
     if (busy || stopped || stages[index] !== kind || !stages[index]) return fail("SEQUENCE");
@@ -97,6 +101,12 @@ export function firstOpenGitHubHandoff(options: ArtifactIoOptions & {
       if (at < pair.startAt || at >= until || (fromWriter === writer) !== (payload !== undefined)) return fail("PHASE_SCOPE");
       const signal = AbortSignal.any([upstream, AbortSignal.timeout(until - at)]);
       signal.throwIfAborted();
+      if (writer && kind === "03-runtime-observed" && runtimeObservedNotBefore !== undefined) {
+        const after = runtimeObservedNotBefore - now();
+        if (after > 0) await pause(after, signal);
+        signal.throwIfAborted();
+        if (now() < runtimeObservedNotBefore || now() >= until) return fail("PHASE_CLOSED");
+      }
       const source = fromWriter ? pair.runOnceId : pair.inspectId, name = offlineHandoffArtifactName(pair.pairSha256, kind);
       let ownId: string | undefined;
       if (payload) {
@@ -126,6 +136,8 @@ export function firstOpenGitHubHandoff(options: ArtifactIoOptions & {
       const zip = await archive(artifactId, signal), run = await json(runUrl, signal);
       signal.throwIfAborted();
       const observed = accept({ run, listed, zip, now: now() });
+      if (writer && kind === "03-runtime-observed" && runtimeObservedNotBefore !== undefined &&
+        Date.parse(observed.body.producedAtUtc as string) < runtimeObservedNotBefore) return fail("PHASE_SCOPE");
       previousBodySha256 = observed.bodySha256;
       index++;
       return observed;

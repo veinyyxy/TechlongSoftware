@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
 import { checkSandboxFirstOpenApproval } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
-import { bindFirstOpenReleaseEntry, firstOpenReleaseTransport, type FirstOpenFrozenRelease } from "./first-open-release-entry.ts";
+import { bindFirstOpenReleaseEntry, firstOpenLifecycleAuthoritySchedule, firstOpenReleaseTransport,
+  type FirstOpenFrozenRelease } from "./first-open-release-entry.ts";
 import { bindFirstOpenExpressInspector, bindProtectedFirstOpenManagementClient, bindReviewedSandboxFirstOpenWithExpress,
   runProtectedFirstOpenManagement } from "./first-open-express-runtime.ts";
 import { prepareFirstOpenInspectSeed, type FirstOpenInspectSeed } from "./first-open-inspect-input.ts";
@@ -88,6 +89,7 @@ export async function authorizeFirstOpenLaunch(input: LocalLaunch, now = Date.no
   if (approval.writeBefore !== release.writeBefore || approval.controlledWindow?.startAt !== release.startAt ||
     approval.controlledWindow?.claimBefore !== release.claimBefore) return fail("APPROVAL_WINDOW");
   if (!same(release.taskRelease ?? null, approval.taskRelease ?? null)) return fail("TASK_RELEASE");
+  firstOpenLifecycleAuthoritySchedule(release);
   return { record, approval, trustedReleaseSha256 };
 }
 
@@ -230,11 +232,27 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
     const ports = await host.management({ signal });
     try {
       const artifacts = authorityArtifacts();
+      const schedule = firstOpenLifecycleAuthoritySchedule(release);
       if (artifacts && ports.controlledCfnPreclaimProof?.authoritySourceSha256 !== artifacts.sourceSha256) return fail("AUTHORITY_SOURCE_UNBOUND");
+      const waitForReceipt = async (stage: "grant" | "relock", upstream: AbortSignal) => {
+        if (!schedule) return fail("AUTHORITY_SOURCE_UNBOUND");
+        const notBefore = stage === "grant" ? schedule.grantNotBefore : schedule.relockNotBefore;
+        const cutoff = stage === "grant" ? release.phaseCutoffs[3] : release.phaseCutoffs[4];
+        const left = cutoff - now();
+        upstream.throwIfAborted();
+        if (left <= 0) return fail("AUTHORITY_RECEIPT_WINDOW");
+        const bounded = AbortSignal.any([upstream, AbortSignal.timeout(left)]);
+        const wait = notBefore - now();
+        if (wait > 0) await delay(wait, undefined, { signal: bounded });
+        bounded.throwIfAborted();
+        if (now() < notBefore || now() >= cutoff) return fail("AUTHORITY_RECEIPT_WINDOW");
+        return bounded;
+      };
       let installed: VersionAuthorityScope | undefined;
       const versionAuthorityReader = artifacts && { sourceSha256: artifacts.sourceSha256,
         async readVerified(scope: VersionAuthorityScope, bounded: AbortSignal) {
-          const result = await artifacts.readVerified(scope, bounded);
+          const result = await artifacts.readVerified(scope, await waitForReceipt("grant", bounded));
+          if (!schedule || typeof result.checkedAt !== "number" || result.checkedAt < schedule.grantNotBefore) return fail("AUTHORITY_RECEIPT_WINDOW");
           installed = structuredClone(scope);
           return result;
         } };
@@ -245,7 +263,10 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
       // earlier would prevent RunOnce from sending Inspector its runtime check.
       if (artifacts) {
         if (!installed) return fail("AUTHORITY_RELOCK_UNBOUND");
-        await artifacts.readRelocked(installed, signal);
+        const result = await artifacts.readRelocked(installed, await waitForReceipt("relock", signal));
+        if (!schedule || typeof result.payload.checkedAt !== "number" || result.payload.checkedAt < schedule.relockNotBefore) {
+          return fail("AUTHORITY_RECEIPT_WINDOW");
+        }
       }
     } finally { await ports.dispose?.(); }
     return;
