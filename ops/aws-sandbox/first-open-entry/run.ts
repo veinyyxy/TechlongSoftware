@@ -15,7 +15,10 @@ async function main() {
     if (env.RUNNER_OS !== "Linux" || !env.RUNNER_TEMP || !isAbsolute(env.RUNNER_TEMP) ||
       git("status", "--porcelain", "--untracked-files=no") !== "") throw Error("FIRST_OPEN_INSTALL_READBACK_RUNNER");
     const { runFirstOpenInstallReadback } = await import("../first-open-install-readback.ts");
-    const report = await runFirstOpenInstallReadback({ env, actualCheckout: git("rev-parse", "HEAD") });
+    const report = await runFirstOpenInstallReadback({ env, actualCheckout: git("rev-parse", "HEAD"), async uploadEarly(input) {
+      const { checkedRunnerPaths, firstOpenSameRunUpload } = await import("./runner-supply.ts");
+      return firstOpenSameRunUpload(checkedRunnerPaths("install-readback", env), env)(input);
+    } });
     writeFileSync(join(env.RUNNER_TEMP, "fc41597f-install-readback.json"), JSON.stringify(report) + "\n", { flag: "wx", mode: 0o600 });
     if (report.phases.grant?.status !== "MATCHED_INSTALLED_POLICY_DOCUMENTS" ||
       report.phases.relock?.status !== "MATCHED_INSTALLED_POLICY_DOCUMENTS") throw Error("FIRST_OPEN_INSTALL_READBACK_INCOMPLETE");

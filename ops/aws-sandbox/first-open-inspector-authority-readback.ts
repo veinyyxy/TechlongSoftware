@@ -8,7 +8,7 @@ import { firstOpenInspectorAuthorityReadScope, firstOpenInspectorAuthorityReadSt
 import type { FirstOpenFrozenRelease } from "./first-open-release-entry.ts";
 import { sdkConfig, type FirstOpenCredentials } from "./first-open-express-aws.ts";
 import { firstOpenInstallInspectorPolicies, firstOpenInstallProvisionerLane, firstOpenInstallProvisionerObservation,
-  isFirstOpenInstallProvisionerChangeSetId, type FirstOpenInstallWindow } from "./first-open-install-inspector-scope.ts";
+  isFirstOpenInstallProvisionerChangeSetId, type FirstOpenInstallWindow, type FirstOpenInstallStagingScope } from "./first-open-install-inspector-scope.ts";
 
 const fail = (): never => { throw Error("FIRST_OPEN_INSPECTOR_AUTHORITY_READBACK_UNPROVED"); };
 const sorted = (items: readonly string[]) => [...items].sort();
@@ -37,12 +37,13 @@ export async function bindFirstOpenInspectorAuthorityReadback(input: {
 
 export async function bindFirstOpenInstallProvisionerReadback(input: {
   release: FirstOpenFrozenRelease; releaseSha256: string; window: FirstOpenInstallWindow; approvedScopeSha256: string;
+  staging?: FirstOpenInstallStagingScope;
   credentials: Credentials;
 }, now = Date.now) {
-  const { release, releaseSha256, window, approvedScopeSha256 } = structuredClone({
-    release: input.release, releaseSha256: input.releaseSha256, window: input.window, approvedScopeSha256: input.approvedScopeSha256,
+  const { release, releaseSha256, window, approvedScopeSha256, staging } = structuredClone({
+    release: input.release, releaseSha256: input.releaseSha256, window: input.window, approvedScopeSha256: input.approvedScopeSha256, staging: input.staging,
   });
-  const { scope } = await firstOpenInstallInspectorPolicies(release, releaseSha256, window, approvedScopeSha256);
+  const { scope } = await firstOpenInstallInspectorPolicies(release, releaseSha256, window, approvedScopeSha256, staging);
   const read = createFirstOpenInspectorReadback(release, releaseSha256, input.credentials, true, now, { scope, approvedScopeSha256 });
   return async (...args: Parameters<typeof read>) => {
     const observed = await read(...args);

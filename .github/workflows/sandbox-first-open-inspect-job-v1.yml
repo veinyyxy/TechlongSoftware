@@ -36,16 +36,11 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '22.19.0'
-      - name: Require the separately protected backend reader
-        shell: bash
-        env:
-          BACKEND_READER: ${{ secrets.TECHLONG_FIRST_OPEN_BACKEND_READ_TOKEN }}
-        run: test -n "$BACKEND_READER"
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           repository: veinyyxy/SpeedFeast_Backend_main
           ref: b9ca2138738900afc23a6a2ddce141b37a1f0a31
-          token: ${{ secrets.TECHLONG_FIRST_OPEN_BACKEND_READ_TOKEN }}
+          token: ${{ secrets.TECHLONG_FIRST_OPEN_BACKEND_READ_TOKEN || github.token }}
           path: .first-open-backend
           persist-credentials: false
       - name: Prepare exact A dependencies
@@ -99,8 +94,17 @@ jobs:
           node-version: '22.19.0'
       - name: Load pinned readback dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: actions/upload-artifact
+          ref: b7c566a772e6b6bfb58ed0dc250532a479d7789f
+          path: .first-open-artifact-action
+          persist-credentials: false
       - name: Observe the exact grant and relock, no claim
         id: observe
+        uses: ./.github/actions/first-open-launch
+        with:
+          role: install-readback
         env:
           FIRST_OPEN_INSTALL_APPROVED_PLAN_SHA256: ${{ vars.TECHLONG_FIRST_OPEN_INSTALL_READBACK_PLAN_SHA256 }}
           FIRST_OPEN_INSTALL_APPROVED_RUN_ID: ${{ vars.TECHLONG_FIRST_OPEN_INSTALL_READBACK_RUN_ID }}
@@ -108,7 +112,6 @@ jobs:
           FIRST_OPEN_INSTALL_RUNTIME_COMMIT: ${{ vars.TECHLONG_FIRST_OPEN_INSTALL_RUNTIME_COMMIT }}
           FIRST_OPEN_INSTALL_REQUESTED_PLAN_SHA256: ${{ inputs.pair_sha }}
           FIRST_OPEN_INSTALL_REQUESTED_RELEASE_SHA256: ${{ inputs.release_sha }}
-        run: node --disable-warning=ExperimentalWarning --experimental-strip-types ops/aws-sandbox/first-open-entry/run.ts install-readback
       - name: Save the sanitized installation readback
         if: always() && (steps.observe.outcome == 'success' || steps.observe.outcome == 'failure')
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f

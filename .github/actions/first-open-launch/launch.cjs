@@ -1,7 +1,7 @@
 const { spawnSync } = require("node:child_process");
 
 const role = process.env.INPUT_ROLE;
-if (!["runonce", "inspect"].includes(role) || !process.env.ACTIONS_RUNTIME_TOKEN || !process.env.ACTIONS_RESULTS_URL) {
+if (!["runonce", "inspect", "install-readback"].includes(role) || !process.env.ACTIONS_RUNTIME_TOKEN || !process.env.ACTIONS_RESULTS_URL) {
   console.error("FIRST_OPEN_ARTIFACT_RUNTIME_UNAVAILABLE");
   process.exitCode = 1;
 } else {

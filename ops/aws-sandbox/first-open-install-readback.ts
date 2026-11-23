@@ -1,13 +1,20 @@
 import { setTimeout as delay } from "node:timers/promises";
+import { createHash } from "node:crypto";
+import { GetObjectCommand, S3Client, type GetObjectCommandOutput } from "@aws-sdk/client-s3";
 import { AssumeRoleWithWebIdentityCommand, STSClient } from "@aws-sdk/client-sts";
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
+import { FIRST_OPEN_BASELINE_BINDING, validFirstOpenVersionId } from "../../lib/deployments/execution/first-onboarding-baseline-versions.ts";
 import { SANDBOX_FIRST_OPEN as s } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
+import { canonical as ordinal, hash as templateHash } from "../temporary-idle/environment-cfn.mjs";
 import { bindFirstOpenInstallProvisionerReadback } from "./first-open-inspector-authority-readback.ts";
 import { firstOpenInstallInspectorPolicies, firstOpenInstallProvisionerChangeSetName, firstOpenInstallProvisionerLane,
-  firstOpenInstallProvisionerObservation, isFirstOpenInstallProvisionerChangeSetId, type FirstOpenInstallWindow } from "./first-open-install-inspector-scope.ts";
+  firstOpenInstallProvisionerObservation, isFirstOpenInstallProvisionerChangeSetId, type FirstOpenInstallWindow,
+  type FirstOpenInstallStagingScope } from "./first-open-install-inspector-scope.ts";
 import { firstOpenProvisionerChanges, firstOpenProvisionerProjection, type renderFirstOpenProvisionerTargets } from "./first-open-provisioner-policy.ts";
-import { bindFirstOpenSession, type FirstOpenCredentialSource } from "./first-open-sessions.ts";
+import { assertFirstOpenSession, bindFirstOpenSession, type FirstOpenCaller, type FirstOpenCredentialSource } from "./first-open-sessions.ts";
+import { sdkConfig } from "./first-open-express-aws.ts";
 import { firstOpenRunnerOidc } from "./first-open-workflow-launcher.ts";
+import { firstOpenOwnerStageKey } from "./first-open-owner-stage-proof.ts";
 import type { FirstOpenFrozenRelease } from "./first-open-release-entry.ts";
 import oidc from "./first-open-fc41597f-oidc-handoffs.prepared.json" with { type: "json" };
 
@@ -24,6 +31,9 @@ const same = (a: unknown, b: unknown) => canonicalJson(a) === canonicalJson(b);
 const phases = ["grant", "relock"] as const;
 const planSchema = "techlong/fc41597f-independent-install-readback/v2" as const;
 const reportSchema = "techlong/fc41597f-independent-install-observed/v2" as const;
+type StagingUpload = { versionId: string; acknowledgedAt: number; putReceiptRawSha256: string };
+type UploadEarly = (input: { name: string; member: "handoff.json"; bytes: Uint8Array; signal: AbortSignal }) => Promise<{ artifactId: string }>;
+type ReadStaging = (command: GetObjectCommand, signal: AbortSignal) => Promise<GetObjectCommandOutput>;
 
 export type FirstOpenInstallReadbackPlan = {
   schema: typeof planSchema;
@@ -36,7 +46,21 @@ export type FirstOpenInstallReadbackPlan = {
   window: FirstOpenInstallWindow;
   expectedBucketSha256: string;
   targets: Record<Phase, Target>;
+  staging?: { scope: FirstOpenInstallStagingScope; uploads: Partial<Record<Phase, StagingUpload>> };
 };
+
+/** Freeze coordinates from the actual install target bytes before any PUT.
+ * The inner release approval is distinct from the outer installation plan SHA. */
+export function firstOpenInstallStagingKeys(release: FirstOpenFrozenRelease, targets: Targets, readBefore: number) {
+  const entries = ([ ["grant", targets.grant], ["relock", targets.restore] ] as const).flatMap(([phase, template]) => {
+    const targetBytes = Buffer.byteLength(JSON.stringify(ordinal(template))), targetCanonicalSha256 = templateHash(template);
+    if (targetBytes > 1_048_576) return fail("STAGE_SIZE");
+    if (targetBytes <= 51_200) return [];
+    return [[phase, { targetBytes, targetCanonicalSha256, key: firstOpenOwnerStageKey({ approvalSha256: release.approvalSha256,
+      phase: phase === "grant" ? "provisioner-grant" : "provisioner-relock", targetCanonicalSha256 }) }]] as const;
+  });
+  return { readBefore, targets: Object.fromEntries(entries) as Partial<Record<Phase, { targetBytes: number; targetCanonicalSha256: string; key: string }>> };
+}
 
 /** Render only projections of exact reviewed templates, never the templates
  * or protected runtime capsules. Seal with a distinct install approval. */
@@ -45,6 +69,12 @@ export async function buildFirstOpenInstallReadbackPlan(input: Omit<FirstOpenIns
 }) {
   const { targets, ...rest } = structuredClone(input);
   if (await sha256Hex(targets.grant) !== targets.grantSha256 || await sha256Hex(targets.restore) !== targets.restoreSha256) return fail("TARGET");
+  if (rest.staging) {
+    const expected = firstOpenInstallStagingKeys(rest.release, targets, rest.staging.scope.readBefore);
+    const pins = Object.fromEntries(Object.entries(expected.targets).map(([k, pin]) => [k,
+      { targetBytes: pin.targetBytes, targetCanonicalSha256: pin.targetCanonicalSha256 }]));
+    if (!same(rest.staging.scope, { readBefore: expected.readBefore, targets: pins })) return fail("STAGE_TARGET");
+  }
   const plan: FirstOpenInstallReadbackPlan = { ...rest, schema: planSchema, lane: firstOpenInstallProvisionerLane, jobId: s.jobId,
     targets: {
       grant: { templateSha256: targets.grantSha256, projection: await firstOpenProvisionerProjection(targets.grant) },
@@ -58,7 +88,15 @@ async function checkPlan(p: FirstOpenInstallReadbackPlan) {
   if (p?.schema !== planSchema || p.lane !== firstOpenInstallProvisionerLane || p.jobId !== s.jobId ||
     ![p.factsReceiptSha256, p.expectedBucketSha256, p.authorityScopeSha256, p.releaseSha256].every(x => hex.test(x)) ||
     ![p.release?.callerCommit, p.release?.runtimeCommit].every(x => commit.test(x)) || !id.test(p.release.workflowId)) return fail("PLAN");
-  const { scope } = await firstOpenInstallInspectorPolicies(p.release, p.releaseSha256, p.window, p.authorityScopeSha256);
+  const { scope } = await firstOpenInstallInspectorPolicies(p.release, p.releaseSha256, p.window, p.authorityScopeSha256, p.staging?.scope);
+  if (p.staging) {
+    if (!scope.staging || !p.staging.uploads || !same(Object.keys(p.staging.uploads).sort(), Object.keys(scope.staging.targets).sort())) return fail("STAGE_UPLOAD");
+    for (const x of Object.values(p.staging.uploads)) {
+      if (!x || !same(Object.keys(x).sort(), ["acknowledgedAt", "putReceiptRawSha256", "versionId"]) ||
+        !validFirstOpenVersionId(x.versionId) || !hex.test(x.putReceiptRawSha256) || !Number.isSafeInteger(x.acknowledgedAt) ||
+        x.acknowledgedAt < p.window.startAt || x.acknowledgedAt >= p.staging.scope.readBefore) return fail("STAGE_UPLOAD");
+    }
+  }
   for (const stage of phases) {
     const t = p.targets[stage], r = t?.projection?.role, docs = t?.projection?.policies;
     const inlineName = stage === "grant" ? "FirstOpenFc41597fWriterFence" : "FirstOpenFc41597fWriterLock";
@@ -83,8 +121,59 @@ export async function authorizeFirstOpenInstallReadback(input: { env: Env; actua
     p.release?.runtimeCommit !== input.actualCheckout || p.release?.runtimeCommit !== e.FIRST_OPEN_INSTALL_RUNTIME_COMMIT ||
     p.releaseSha256 !== e.FIRST_OPEN_INSTALL_REQUESTED_RELEASE_SHA256) return fail("PLAN_BINDING");
   const scope = await checkPlan(p);
-  if (now < p.window.startAt || now >= p.window.issueBefore) return fail("ISSUE_WINDOW");
+  if (now < p.window.startAt || now >= p.window.issueBefore || (p.staging &&
+    (now >= p.staging.scope.readBefore || Object.values(p.staging.uploads).some(x => x!.acknowledgedAt > now)))) return fail("ISSUE_WINDOW");
   return { plan: p, planSha256: approved, scope, runId: e.GITHUB_RUN_ID! };
+}
+
+/** One GET per prepared install object, using the already-identified install
+ * session. The report contains only per-version digest/metadata receipts. */
+export async function readFirstOpenInstallStaging(a: Awaited<ReturnType<typeof authorizeFirstOpenInstallReadback>>,
+  identity: FirstOpenCaller, read: ReadStaging, upstream: AbortSignal, now = Date.now) {
+  const { plan, scope, planSha256, runId } = a;
+  if (!plan.staging || !scope.staging) return fail("STAGE_SCOPE");
+  assertFirstOpenSession("installObserver", identity, now(), plan.window.relockBefore);
+  const deadline = scope.staging.readBefore, remaining = deadline - now();
+  if (now() < plan.window.startAt || remaining <= 0) return fail("STAGE_WINDOW");
+  const signal = AbortSignal.any([upstream, AbortSignal.timeout(remaining)]);
+  const receipts: Partial<Record<Phase, { rawSha256: string; receiptB64: string }>> = {};
+  for (const phase of phases) {
+    const pin = scope.staging.targets[phase];
+    if (!pin) continue;
+    signal.throwIfAborted();
+    const upload = plan.staging.uploads[phase];
+    if (!upload || upload.acknowledgedAt > now() || now() >= deadline) return fail("STAGE_WINDOW");
+    const req = { Bucket: FIRST_OPEN_BASELINE_BINDING.bucket, Key: pin.key, ExpectedBucketOwner: s.account,
+      VersionId: upload.versionId, ChecksumMode: "ENABLED" as const };
+    const got = await read(new GetObjectCommand(req), signal);
+    const body = got.Body as (AsyncIterable<Uint8Array> & { destroy?(): void }) | undefined;
+    const checksum = Buffer.from(pin.targetCanonicalSha256, "hex").toString("base64");
+    try {
+      if (got.$metadata.httpStatusCode !== 200 || got.VersionId !== req.VersionId || got.DeleteMarker === true ||
+        got.ContentType !== "application/json" || got.ContentLength !== pin.targetBytes || got.ContentEncoding !== undefined ||
+        got.ServerSideEncryption !== "AES256" || got.ChecksumSHA256 !== checksum || !body?.[Symbol.asyncIterator]) return fail("STAGE_BODY");
+      const hash = createHash("sha256");
+      let bytes = 0;
+      for await (const chunk of body) {
+        signal.throwIfAborted();
+        if (!(chunk instanceof Uint8Array) || (bytes += chunk.byteLength) > pin.targetBytes) return fail("STAGE_BODY");
+        hash.update(chunk);
+      }
+      const raw = hash.digest("hex"), checkedAt = now();
+      if (bytes !== pin.targetBytes || raw !== pin.targetCanonicalSha256 || checkedAt >= deadline) return fail("STAGE_BODY");
+      const receipt = Buffer.from(canonicalJson({ schema: "techlong/fc41597f-owner-stage-exact-get/v1", jobId: s.jobId,
+        approvalSha256: plan.release.approvalSha256, phase: phase === "grant" ? "provisioner-grant" : "provisioner-relock", checkedAt,
+        putReceiptRawSha256: upload.putReceiptRawSha256, source: { Account: identity.accountId, Arn: identity.arn,
+          UserId: `${identity.roleId}:${scope.roleSessionName}` }, request: req, response: { ContentType: got.ContentType,
+          ContentLength: bytes, ChecksumSHA256: checksum, ServerSideEncryption: "AES256", bodyRawSha256: raw,
+          httpStatus: 200, VersionId: got.VersionId, DeleteMarker: false, ContentEncoding: null } }));
+      receipts[phase] = { rawSha256: createHash("sha256").update(receipt).digest("hex"), receiptB64: receipt.toString("base64") };
+    } finally { body?.destroy?.(); }
+  }
+  signal.throwIfAborted();
+  if (now() >= deadline) return fail("STAGE_WINDOW");
+  return { schema: "techlong/fc41597f-install-staging-observed/v1", jobId: s.jobId, planSha256, runId, attempt: 1,
+    approvalSha256: plan.release.approvalSha256, receipts };
 }
 
 export function firstOpenInstallInspectorCredentials(a: Awaited<ReturnType<typeof authorizeFirstOpenInstallReadback>>,
@@ -181,14 +270,26 @@ export function assertFirstOpenInstallReadbackAck(report: Awaited<ReturnType<typ
   return p;
 }
 
-export async function runFirstOpenInstallReadback(input: Parameters<typeof authorizeFirstOpenInstallReadback>[0]) {
+export async function runFirstOpenInstallReadback(input: Parameters<typeof authorizeFirstOpenInstallReadback>[0] & { uploadEarly?: UploadEarly }) {
   const a = await authorizeFirstOpenInstallReadback(input);
+  if (a.plan.staging && !input.uploadEarly) return fail("STAGE_ARTIFACT");
   const signal = AbortSignal.timeout(Math.max(1, a.plan.window.relockBefore - Date.now()));
   const observer = bindFirstOpenSession("installObserver", firstOpenInstallInspectorCredentials(a, input.env), a.plan.window.relockBefore);
   // Issue and identify while issuance is allowed, not after the first wait.
-  await observer.identify(signal);
-  const { plan: { release, releaseSha256, window, authorityScopeSha256 } } = a;
+  const identity = await observer.identify(signal);
+  const { plan: { release, releaseSha256, window, authorityScopeSha256, staging } } = a;
+  if (staging) {
+    if (Date.now() >= staging.scope.readBefore) return fail("STAGE_WINDOW");
+    const early = AbortSignal.any([signal, AbortSignal.timeout(Math.max(1, staging.scope.readBefore - Date.now()))]);
+    const client = new S3Client(sdkConfig(await observer.credentials(early)));
+    try {
+      const evidence = await readFirstOpenInstallStaging(a, identity, (cmd, mark) => client.send(cmd, { abortSignal: mark }), early);
+      await input.uploadEarly!({ name: `fc41597f-${a.planSha256}-install-staging-readback`, member: "handoff.json",
+        bytes: Buffer.from(canonicalJson(evidence)), signal: early });
+      early.throwIfAborted();
+    } finally { client.destroy(); }
+  }
   const read = await bindFirstOpenInstallProvisionerReadback({ release, releaseSha256, window,
-    approvedScopeSha256: authorityScopeSha256, credentials: observer.credentials });
+    approvedScopeSha256: authorityScopeSha256, credentials: observer.credentials, staging: staging?.scope });
   return observeFirstOpenInstallReadback(a, read, signal);
 }
