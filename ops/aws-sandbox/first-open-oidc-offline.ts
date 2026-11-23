@@ -29,6 +29,14 @@ const schedule = contract.handoffs.flatMap(h => [
   ...(h.intentSuffix ? [{ kind: h.intentSuffix, writer: true, keys: h.intentPayloadKeys! }] : []),
   { kind: h.receiptSuffix, writer: false, keys: h.receiptPayloadKeys },
 ]);
+export const validFirstOpenG1ArnSuffix = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9]{6}$/.test(v);
+export function firstOpenHandoffPayloadKeys(pair: FirstOpenHandoffPair, index: number) {
+  const stage = schedule[index];
+  if (!stage) return fail("SEQUENCE_CLOSED");
+  // Only the server-assigned suffix is exposed; the exact name, account and
+  // region are already pinned by the reader. The historical contract is unchanged.
+  return pair.taskRelease && stage.kind === "02-g1-check-request" ? [...stage.keys, "g1ArnSuffix"] : stage.keys;
+}
 export function offlineHandoffTitle(pair: FirstOpenHandoffPair, writer: boolean) {
   return writer ? `first-open-fc41597f-runonce-${pair.pairSha256}-${pair.inspectId}` :
     `first-open-fc41597f-inspect-${pair.pairSha256}`;
@@ -110,7 +118,8 @@ export function offlineFirstOpenHandoffVerifier(source: FirstOpenHandoffPair) {
       const { artifactId, archiveDigest, created } = firstOpenArtifactMetadata(pair, listed, index, now);
       if (artifactIds.has(artifactId)) return fail("ARTIFACT_PROVENANCE");
       const { body, bodySha256 } = decodeFirstOpenHandoffArchive(input.zip, archiveDigest), payload = object(body.payload), time = ms(body.producedAtUtc);
-      if (!keysMatch(body, contract.artifactContract.envelopeKeys) || !keysMatch(payload, stage.keys) ||
+      if (!keysMatch(body, contract.artifactContract.envelopeKeys) || !keysMatch(payload, firstOpenHandoffPayloadKeys(pair, index)) ||
+        (pair.taskRelease && stage.kind === "02-g1-check-request" && !validFirstOpenG1ArnSuffix(payload.g1ArnSuffix)) ||
         body.schema !== firstOpenHandoffSchema || body.kind !== stage.kind || body.jobId !== contract.jobId ||
         body.pairSha256 !== pair.pairSha256 || body.approvalSha256 !== pair.approvalSha256 ||
         body.runOnceId !== pair.runOnceId || body.inspectId !== pair.inspectId || body.producerAttempt !== 1 ||

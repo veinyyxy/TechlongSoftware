@@ -1,12 +1,14 @@
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
 import { firstOpenVersion, type FirstOpenTaskRelease } from "../../lib/deployments/execution/first-onboarding-version.ts";
-import { assertInitialSecretVersion } from "../../lib/deployments/execution/first-onboarding-express.ts";
+import { assertInitialSecretVersion, FIRST_OPEN_G1_TAG_PROOF_MODE } from "../../lib/deployments/execution/first-onboarding-express.ts";
 import { verifyFirstOnboardingRuntime, type FirstOnboardingIndependentHandoff } from "../../lib/deployments/execution/first-onboarding-inspection.ts";
 import { firstOnboardingReadOnlyBoundary, type FirstOnboardingReadOnlyPort } from "../../lib/deployments/execution/first-onboarding-reader.ts";
 import { checkSandboxFirstOpenApproval, SANDBOX_FIRST_OPEN as scope, SANDBOX_FIRST_OPEN_STACK } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
 import { type FirstOpenGitHubHandoff, type FirstOpenAuthorityIntent, type firstOpenGitHubAuthorityArtifacts } from "./first-open-github-handoff.ts";
 import { firstOpenVersionAuthorityScope, type VersionAuthorityScope } from "./first-open-controlled-cfn.ts";
-import { offlineRuntimeObservationSha, rebuildOfflineFirstOpenBinding } from "./first-open-oidc-offline.ts";
+import type { FirstOpenVersionRelockProof } from "./first-open-version-authority-proof.ts";
+import { offlineRuntimeObservationSha, rebuildOfflineFirstOpenBinding, validFirstOpenG1ArnSuffix } from "./first-open-oidc-offline.ts";
+import { assertFirstOpenG1InspectedMetadata } from "./first-open-express-aws.ts";
 import { sameFirstOpenFence } from "./first-open-express-scope.ts";
 import { firstOpenIndependentDatabase, type FirstOpenReadSession } from "./first-open-express-database.ts";
 import { assertFirstOpenSession, type FirstOpenCaller } from "./first-open-sessions.ts";
@@ -23,9 +25,10 @@ const fieldsMatch = (actual: Record<string, unknown>, expected: Record<string, u
 const secretPrefix = `arn:aws:secretsmanager:${scope.region}:${scope.account}:secret:${scope.secretName}-`;
 
 export type FirstOpenInspectorAuthority = {
-  artifacts: Pick<ReturnType<typeof firstOpenGitHubAuthorityArtifacts>, "sourceSha256" | "readIntent" | "publishVerified">;
+  artifacts: Pick<ReturnType<typeof firstOpenGitHubAuthorityArtifacts>, "sourceSha256" | "readIntent" | "publishVerified" | "publishRelocked" | "relockBefore">;
   runId: string; submitBefore: number;
   verifyInstalledPolicy(scope: VersionAuthorityScope, signal: AbortSignal): Promise<Record<string, unknown>>;
+  verifyRelockedPolicy(scope: VersionAuthorityScope, signal: AbortSignal): Promise<FirstOpenVersionRelockProof>;
 };
 
 async function secretProjection(ack: SecretAck, signal: AbortSignal) {
@@ -34,6 +37,20 @@ async function secretProjection(ack: SecretAck, signal: AbortSignal) {
     !/^[a-f0-9]{64}$/.test(ack.versionId)) return fail("G1_COORDINATES");
   return { secretReferenceSha256: await sha256Hex(ack.arn), versionIdSha256: await sha256Hex(ack.versionId),
     g1e1FenceSha256: await sha256Hex(ack.externalFence) };
+}
+
+/** Match the request to the independently derived version/fence and pinned
+ * name before making the one exact-ARN read. No name fallback for real G1. */
+export async function observeFirstOpenTaggedG1(payload: Record<string, unknown>, planned: Pick<SecretAck, "versionId" | "externalFence">,
+  read: (arn: string, signal: AbortSignal) => Promise<Parameters<typeof assertFirstOpenG1InspectedMetadata>[0]>, signal: AbortSignal) {
+  const suffix = payload.g1ArnSuffix;
+  if (!validFirstOpenG1ArnSuffix(suffix)) return fail("G1_REQUEST");
+  const ack = { ...structuredClone(planned), arn: secretPrefix + suffix };
+  const projection = await secretProjection(ack, signal);
+  if (!fieldsMatch(payload, projection)) return fail("G1_REQUEST");
+  signal.throwIfAborted();
+  assertFirstOpenG1InspectedMetadata(await read(ack.arn, signal), ack, signal);
+  return { arn: ack.arn, projection };
 }
 
 async function runtimeProjection(x: Runtime, taskRelease?: FirstOpenTaskRelease) {
@@ -88,7 +105,7 @@ export function firstOpenRunOnceHandoff(wire: FirstOpenGitHubHandoff, approvedTa
     async checkIdentity(signal) { await wire.take("01-inspector-ready", signal); },
     async verifyInitialSecret(ack, signal) {
       const expected = await secretProjection(ack, signal);
-      await wire.emit("02-g1-check-request", expected, signal);
+      await wire.emit("02-g1-check-request", taskRelease ? { ...expected, g1ArnSuffix: ack.arn.slice(secretPrefix.length) } : expected, signal);
       const { payload } = await wire.take("02-g1-metadata-observed", signal);
       if (!fieldsMatch(payload, expected)) return fail("G1_RECEIPT");
     },
@@ -124,6 +141,8 @@ export function bindFirstOpenPairedInspect(input: {
   versionAuthority?: FirstOpenInspectorAuthority;
 }, now: () => number = Date.now) {
   const approval = structuredClone(input.approval), seed = structuredClone(input.expectedSeed);
+  const taggedG1 = approval.taskRelease !== undefined;
+  if (taggedG1 && approval.express?.g1StandaloneTagProof !== FIRST_OPEN_G1_TAG_PROOF_MODE) return fail("G1_TAG_PROOF_APPROVAL");
   pairFirstOpenApproval(input.wire, approval, input.approvalSha256);
   let used = false;
   return async (upstream: AbortSignal) => {
@@ -152,13 +171,19 @@ export function bindFirstOpenPairedInspect(input: {
     await input.wire.emit("01-inspector-ready", { inspectorRoleId: caller.roleId, inspectorSessionArnSha256: await sha256Hex(caller.arn),
       credentialExpiresAtUtc: iso(caller.credentialExpiresAt), verifiedAtUtc: iso(issued) }, signal);
     const request = await input.wire.take("02-g1-check-request", signal);
-    // Exact fixed name, not a caller-supplied ARN or Secret value.
-    const observed = await independent.secret(scope.secretName, signal), arn = observed.ARN ?? "";
-    assertInitialSecretVersion(observed, arn, planned.versionId);
-    const expected = await secretProjection({ arn, versionId: planned.versionId, externalFence: planned.epoch }, signal);
-    if (!fieldsMatch(request.payload, expected)) return fail("G1_REQUEST");
+    const plannedG1 = { versionId: planned.versionId, externalFence: planned.epoch };
+    const { arn, projection: expected } = taggedG1
+      ? await observeFirstOpenTaggedG1(request.payload, plannedG1, independent.secret, signal)
+      : await (async () => {
+        const observed = await independent.secret(scope.secretName, signal), arn = observed.ARN ?? "";
+        assertInitialSecretVersion(observed, arn, plannedG1.versionId);
+        const projection = await secretProjection({ ...plannedG1, arn }, signal);
+        if (!fieldsMatch(request.payload, projection)) return fail("G1_REQUEST");
+        return { arn, projection };
+      })();
     await input.wire.emit("02-g1-metadata-observed", { ...expected, requestBodySha256: request.bodySha256,
       observedAtUtc: iso(now()), onlyCurrentVersionVerified: true, notDeletingOrRotatingVerified: true }, signal);
+    let granted: VersionAuthorityScope | undefined;
     if (input.versionAuthority) {
       const { runId, submitBefore, artifacts, verifyInstalledPolicy } = input.versionAuthority;
       if (now() >= submitBefore) return fail("AUTHORITY_WINDOW");
@@ -177,8 +202,10 @@ export function bindFirstOpenPairedInspect(input: {
       authoritySignal.throwIfAborted();
       if (authorized?.scopeSha256 !== p.scopeSha256 || now() >= submitBefore) return fail("AUTHORITY_OBSERVATION");
       await artifacts.publishVerified(authorized, authoritySignal);
+      granted = reviewed;
     }
     const intent = await input.wire.take("03-runtime-check-request", signal);
+    const afterRequest = now();
     const stackId = await independent.createdStackId(SANDBOX_FIRST_OPEN_STACK, signal);
     const db = await observeDatabase({ databaseName: scope.tenantDatabase, roleName: scope.tenantRole, signal });
     databaseState.observed = db;
@@ -193,6 +220,21 @@ export function bindFirstOpenPairedInspect(input: {
       applicationRoleArn: approval.express!.applicationRoleArn });
     const checked = await verifyFirstOnboardingRuntime({ ...x, reader, now });
     if (!checked.initialBindingText) return fail("INSPECT_BINDING");
+    if (input.versionAuthority) {
+      // The runtime request follows the real, already acknowledged CreateStack.
+      // Read the executed owner relock once; expiry alone is not a relock.
+      // The Source writer is deliberately not part of these protected jobs.
+      const { artifacts, verifyRelockedPolicy } = input.versionAuthority;
+      const time = artifacts.relockBefore - now();
+      if (!granted || time <= 0) return fail("RELOCK_WINDOW");
+      const bounded = AbortSignal.any([signal, AbortSignal.timeout(time)]);
+      const receipt = await verifyRelockedPolicy(granted, bounded);
+      bounded.throwIfAborted();
+      if (receipt.relocked !== true || receipt.scopeSha256 !== await sha256Hex(granted) ||
+        !Number.isSafeInteger(receipt.checkedAt) || receipt.checkedAt < afterRequest || receipt.checkedAt > now() ||
+        now() >= artifacts.relockBefore) return fail("RELOCK_OBSERVATION");
+      await artifacts.publishRelocked(receipt, bounded);
+    }
     const { configurationAckSha256: _local, ...scopeProjection } = projection;
     void _local;
     await input.wire.emit("03-runtime-observed", { ...scopeProjection, requestBodySha256: intent.bodySha256,

@@ -37,6 +37,13 @@ export interface FirstOpenVersionAuthoritySource extends Binding {
   evidenceBucketPolicySha256: string;
 }
 
+export interface FirstOpenVersionRelockProof {
+  checkedAt: number;
+  scopeSha256: string;
+  policySha256: string;
+  relocked: true;
+}
+
 function authorCannotChangePolicy(template: Target, authorId: string) {
   const p = template.Resources.ProvisionerRole?.Properties;
   if (p?.RoleName !== s.workerRole.split("/").at(-1) || !Array.isArray(p.Policies)) return false;
@@ -142,7 +149,7 @@ export async function bindFirstOpenVersionAuthorityComparison(
   const { v, scope, inline, doc } = await checkFirstOpenVersionAuthoritySource(source, protectedSourceSha256);
   return async (phase: Phase, request: VersionAuthorityScope, signal: AbortSignal) => {
     signal.throwIfAborted();
-    const cutoff = phase === "grant" ? request.submitBefore : v.release.writeBefore;
+    const cutoff = phase === "grant" ? request.submitBefore : v.release.phaseCutoffs[4];
     if (request.sourceSha256 !== protectedSourceSha256 || request.approvalSha256 !== v.release.approvalSha256 ||
       request.putAcknowledgedAt < v.release.startAt || request.submitBefore !== v.release.phaseCutoffs[3] ||
       now() < request.putAcknowledgedAt || now() >= cutoff) return fail();
@@ -186,7 +193,7 @@ export function firstOpenInspectorVersionAuthorityProof(source: FirstOpenVersion
     };
   }, verifyRelockWithInspector(credentials: Credentials) {
     let used = false;
-    return async (request: VersionAuthorityScope, signal: AbortSignal) => {
+    return async (request: VersionAuthorityScope, signal: AbortSignal): Promise<FirstOpenVersionRelockProof> => {
       if (used) return fail();
       used = true;
       const verify = await bind(credentials);

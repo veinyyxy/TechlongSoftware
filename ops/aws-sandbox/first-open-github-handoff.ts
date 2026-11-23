@@ -2,17 +2,16 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
 import { validFirstOpenVersionId } from "../../lib/deployments/execution/first-onboarding-baseline-versions.ts";
 import { firstOpenVersion, type FirstOpenTaskRelease } from "../../lib/deployments/execution/first-onboarding-version.ts";
-import { assertFirstOpenProducer, decodeFirstOpenHandoffArchive, firstOpenArtifactMetadata, firstOpenNamedArtifactMetadata, firstOpenHandoffSchema, offlineFirstOpenHandoffVerifier,
-  offlineHandoffArtifactName, type FirstOpenHandoffPair } from "./first-open-oidc-offline.ts";
+import { assertFirstOpenProducer, decodeFirstOpenHandoffArchive, firstOpenArtifactMetadata, firstOpenNamedArtifactMetadata,
+  firstOpenHandoffPayloadKeys, firstOpenHandoffSchema, offlineFirstOpenHandoffVerifier,
+  offlineHandoffArtifactName, validFirstOpenG1ArnSuffix, type FirstOpenHandoffPair } from "./first-open-oidc-offline.ts";
+import type { VersionAuthorityScope } from "./first-open-controlled-cfn.ts";
 import contract from "./first-open-fc41597f-oidc-handoffs.prepared.json" with { type: "json" };
 
 type Fields = Record<string, unknown>;
 type OwnUpload = (input: { name: string; member: "handoff.json"; bytes: Uint8Array; signal: AbortSignal }) => Promise<{ artifactId: string }>;
 const api = "https://api.github.com/repos/veinyyxy/TechlongSoftware/actions";
 const maxZip = contract.artifactContract.maxZipBytes, maxJson = contract.artifactContract.maxJsonBytes;
-const stageKeys = contract.handoffs.flatMap(h => [
-  ...(h.intentSuffix ? [h.intentPayloadKeys!] : []), h.receiptPayloadKeys,
-]);
 const stages = contract.artifactContract.chain;
 const fail = (code: string): never => { throw Error("FIRST_OPEN_HANDOFF_" + code); };
 const object = (v: unknown): Fields => v !== null && typeof v === "object" && !Array.isArray(v) ? v as Fields : fail("OBJECT");
@@ -101,10 +100,11 @@ export function firstOpenGitHubHandoff(options: ArtifactIoOptions & {
       const source = fromWriter ? pair.runOnceId : pair.inspectId, name = offlineHandoffArtifactName(pair.pairSha256, kind);
       let ownId: string | undefined;
       if (payload) {
-        const keys = stageKeys[index];
+        const keys = firstOpenHandoffPayloadKeys(pair, index);
         if (Object.keys(payload).length !== keys.length || !keys.every(key => Object.hasOwn(payload, key) &&
           (key.endsWith("Sha256") ? typeof payload[key] === "string" && /^[a-f0-9]{64}$/.test(payload[key] as string) :
             key.endsWith("Utc") ? typeof payload[key] === "string" && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(payload[key] as string) :
+            key === "g1ArnSuffix" ? validFirstOpenG1ArnSuffix(payload[key]) :
             key === "inspectorRoleId" ? payload[key] === contract.federatedTrust.inspect.targets[0].roleId :
             key === "releaseId" ? payload[key] === releaseId : payload[key] === true))) return fail("UPLOAD_PROJECTION");
         const bytes = new TextEncoder().encode(canonicalJson({
@@ -185,21 +185,23 @@ export function firstOpenGitHubAuthorityArtifacts(options: ArtifactIoOptions & {
 }) {
   const { pair: pairInput, role, ownRunId, sourceSha256, inspectReusableCommit, runOnceReusableCommit, submitBefore, uploadOwn } = options;
   const pair = structuredClone(pairInput), { now, json, readListed, archive } = firstOpenArtifactIo(options);
+  const relockBefore = pair.phaseCutoffs[4];
   const id = /^[1-9][0-9]{0,19}$/, commit = /^[a-f0-9]{40}$/;
   if (!["runonce", "inspect", "management"].includes(role) || !pair.taskRelease ||
     ownRunId !== (role === "inspect" ? pair.inspectId : pair.runOnceId) ||
     ![pair.runOnceId, pair.inspectId, pair.workflowId].every(x => id.test(x)) || pair.runOnceId === pair.inspectId ||
     ![pair.pairSha256, pair.approvalSha256, pair.runtimeSourceSha256, sourceSha256].every(digest) ||
     ![pair.callerCommit, inspectReusableCommit, runOnceReusableCommit].every(x => commit.test(x)) ||
-    ![pair.startAt, submitBefore, pair.writeBefore].every(whole) || submitBefore !== pair.phaseCutoffs[3] ||
-    !(pair.startAt < submitBefore && submitBefore < pair.writeBefore)) return fail("AUTHORITY_SOURCE");
+    ![pair.startAt, submitBefore, relockBefore, pair.writeBefore].every(whole) || submitBefore !== pair.phaseCutoffs[3] ||
+    !(pair.startAt < submitBefore && submitBefore < relockBefore && relockBefore < pair.writeBefore)) return fail("AUTHORITY_SOURCE");
   const used = new Set<AuthorityKind>();
+  let intended: string | undefined, granted: { scopeSha256: string; checkedAt: number } | undefined;
   async function exchange(kind: AuthorityKind, upstream: AbortSignal, payload?: Fields, expectedScope?: string) {
     const writer = kind === "request", owns = writer ? role === "runonce" : role === "inspect";
     const mayRead = writer ? role === "inspect" : role === "management";
     if (used.has(kind) || (payload ? !owns || !uploadOwn : !mayRead)) return fail("AUTHORITY_SEQUENCE");
     used.add(kind);
-    const cutoff = kind === "relocked" ? pair.writeBefore : submitBefore;
+    const cutoff = kind === "relocked" ? relockBefore : submitBefore;
     const at = now();
     if (at < pair.startAt || at >= cutoff) return fail("AUTHORITY_WINDOW");
     const signal = AbortSignal.any([upstream, AbortSignal.timeout(cutoff - at)]);
@@ -242,7 +244,7 @@ export function firstOpenGitHubAuthorityArtifacts(options: ArtifactIoOptions & {
       const p = object(raw);
       authorityBody(kind, p);
       if (canonicalJson(fields) !== canonicalJson(envelope) || !whole(producedAt) || Number(producedAt) < pair.startAt ||
-        Number(producedAt) > now() || Number(producedAt) > created + 1_000 || now() >= cutoff ||
+        Number(producedAt) > now() || Number(producedAt) >= cutoff || Number(producedAt) > created + 1_000 || now() >= cutoff ||
         (expectedScope !== undefined && p.scopeSha256 !== expectedScope) ||
         (payload !== undefined && canonicalJson(payload) !== canonicalJson(p))) return fail("AUTHORITY_BINDING");
       return { payload: p, bodySha256, producedAt: Number(producedAt) };
@@ -251,20 +253,45 @@ export function firstOpenGitHubAuthorityArtifacts(options: ArtifactIoOptions & {
       return fail("AUTHORITY_IO_STOP");
     }
   }
+  async function scopeHash(scope: VersionAuthorityScope) {
+    if (scope.sourceSha256 !== sourceSha256 || scope.runId !== pair.runOnceId || scope.approvalSha256 !== pair.approvalSha256 ||
+      scope.submitBefore !== submitBefore) return fail("AUTHORITY_BINDING");
+    return sha256Hex(scope);
+  }
   return {
-    sourceSha256,
+    sourceSha256, relockBefore,
     publishIntent: (p: FirstOpenAuthorityIntent, signal: AbortSignal) => exchange("request", signal, p),
-    readIntent: (signal: AbortSignal) => exchange("request", signal),
-    publishVerified: (p: Fields, signal: AbortSignal) => exchange("observed", signal, p),
-    async readVerified(scope: Parameters<import("./first-open-controlled-cfn.ts").FirstOpenVersionAuthorityReader["readVerified"]>[0],
-      signal: AbortSignal) {
-      if (scope.sourceSha256 !== sourceSha256 || scope.runId !== pair.runOnceId || scope.approvalSha256 !== pair.approvalSha256 ||
-        scope.submitBefore !== submitBefore) return fail("AUTHORITY_BINDING");
-      const receipt = await exchange("observed", signal, undefined, await sha256Hex(scope));
-      if (Number(receipt.payload.checkedAt) > receipt.producedAt) return fail("AUTHORITY_BINDING");
+    async readIntent(signal: AbortSignal) {
+      const receipt = await exchange("request", signal);
+      intended = receipt.payload.scopeSha256 as string;
+      return receipt;
+    },
+    async publishVerified(p: Fields, signal: AbortSignal) {
+      if (!intended || p.scopeSha256 !== intended || !whole(p.checkedAt) || Number(p.checkedAt) > now() || p.expiresAt !== submitBefore) {
+        return fail("AUTHORITY_SEQUENCE");
+      }
+      const receipt = await exchange("observed", signal, p);
+      granted = { scopeSha256: intended, checkedAt: Number(p.checkedAt) };
+      return receipt;
+    },
+    async readVerified(scope: VersionAuthorityScope, signal: AbortSignal) {
+      const scopeSha256 = await scopeHash(scope), receipt = await exchange("observed", signal, undefined, scopeSha256);
+      const checkedAt = Number(receipt.payload.checkedAt);
+      if (checkedAt < scope.putAcknowledgedAt || checkedAt > receipt.producedAt || receipt.payload.expiresAt !== submitBefore) return fail("AUTHORITY_BINDING");
+      granted = { scopeSha256, checkedAt };
       return receipt.payload;
     },
-    publishRelocked: (p: Fields, signal: AbortSignal) => exchange("relocked", signal, p),
-    readRelocked: (scopeSha256: string, signal: AbortSignal) => exchange("relocked", signal, undefined, scopeSha256),
+    async publishRelocked(p: { checkedAt: number; policySha256: string; relocked: true; scopeSha256: string }, signal: AbortSignal) {
+      if (!granted || p.scopeSha256 !== granted.scopeSha256 || !(p.checkedAt > granted.checkedAt && p.checkedAt <= now())) return fail("AUTHORITY_SEQUENCE");
+      return exchange("relocked", signal, p);
+    },
+    async readRelocked(scope: VersionAuthorityScope, signal: AbortSignal) {
+      const scopeSha256 = await scopeHash(scope);
+      if (!granted || scopeSha256 !== granted.scopeSha256) return fail("AUTHORITY_SEQUENCE");
+      const receipt = await exchange("relocked", signal, undefined, scopeSha256);
+      const checkedAt = Number(receipt.payload.checkedAt);
+      if (!(checkedAt > granted.checkedAt && checkedAt <= receipt.producedAt)) return fail("AUTHORITY_BINDING");
+      return receipt;
+    },
   };
 }

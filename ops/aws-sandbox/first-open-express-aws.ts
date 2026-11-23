@@ -1,12 +1,16 @@
 import { createHash, randomBytes } from "node:crypto";
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { CreateSecretCommand, DescribeSecretCommand, GetSecretValueCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
+import { CreateSecretCommand, DescribeSecretCommand, GetSecretValueCommand, SecretsManagerClient, SecretsManagerServiceException,
+  TagResourceCommand, type DescribeSecretCommandOutput } from "@aws-sdk/client-secrets-manager";
 import { GetCallerIdentityCommand, STSClient } from "@aws-sdk/client-sts";
 import { firstOpenBuyerSignerSecretName, isFirstOpenBuyerSignerPin, isFirstOpenBuyerSigningKey,
   type FirstOpenBuyerSignerPin } from "../../lib/buyer-forward/signer-binding.ts";
 import { FIRST_OPEN_BASELINE_BINDING as baseline } from "../../lib/deployments/execution/first-onboarding-baseline-versions.ts";
 import { generateRuntimeSecretMaterialC4d } from "../../lib/deployments/execution/express-runtime-secret-c4d.ts";
-import { assertInitialSecretVersion, firstOnboardingInitialSecretVersion, type FirstOnboardingExpressPorts } from "../../lib/deployments/execution/first-onboarding-express.ts";
+import { assertInitialSecretVersion, FIRST_OPEN_G1_TAG_PROOF_MODE, firstOnboardingInitialSecretVersion,
+  type FirstOnboardingExpressPorts } from "../../lib/deployments/execution/first-onboarding-express.ts";
+import type { FirstOnboardingIndependentHandoff } from "../../lib/deployments/execution/first-onboarding-inspection.ts";
+import { canonicalJson } from "../../lib/deployments/execution/hash.ts";
 import { SANDBOX_FIRST_OPEN as s } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
 import { sameFirstOpenFence, stopFirstOpen, type FirstOpenFenceInput } from "./first-open-express-scope.ts";
 
@@ -84,24 +88,51 @@ export function firstOpenBuyerSigningMaterial(client: Pick<SecretsManagerClient,
   };
 }
 
+type ObserveG1 = FirstOnboardingIndependentHandoff["verifyInitialSecret"];
+type G1Ack = Parameters<ObserveG1>[0];
+const name = s.secretName, prefix = `arn:aws:secretsmanager:${s.region}:${s.account}:secret:${name}-`;
+const goodG1Arn = (value: string | undefined): value is string =>
+  Boolean(value?.startsWith(prefix) && /^[A-Za-z0-9]{6}$/.test(value.slice(prefix.length)));
+const plannedG1Tags = (ownershipMarker: string) => ({
+  ManagedBy: "techlong-sandbox", SecretSchema: "techlong-runtime-four-key-v2", DatabaseProfile: "express_iam",
+  ResourceGeneration: "1", StableIdentity: s.stableIdentity, AppInstanceId: s.instanceId, DeploymentId: s.deploymentId,
+  OwnershipMarker: ownershipMarker,
+});
+
+/** Project only independent metadata for this exact tagged creation. The
+ * ordinary initial-version check alone does not establish tag-on-create. */
+export function assertFirstOpenG1InspectedMetadata(metadata: Parameters<typeof assertInitialSecretVersion>[0] &
+  Pick<DescribeSecretCommandOutput, "Name" | "Tags" | "KmsKeyId" | "PrimaryRegion" | "ReplicationStatus">, ack: G1Ack, signal: AbortSignal) {
+  sameFirstOpenFence({ fence: ack.externalFence.resourceFence, externalFence: ack.externalFence, signal });
+  if (!goodG1Arn(ack.arn) || !/^[a-f0-9]{64}$/.test(ack.versionId) || metadata.Name !== name ||
+    metadata.DeletedDate != null || (metadata.RotationEnabled !== undefined && metadata.RotationEnabled !== false) ||
+    (metadata.ReplicationStatus !== undefined && (!Array.isArray(metadata.ReplicationStatus) || metadata.ReplicationStatus.length !== 0)) ||
+    (metadata.PrimaryRegion !== undefined && metadata.PrimaryRegion !== s.region) ||
+    (metadata.KmsKeyId !== undefined && metadata.KmsKeyId !== "alias/aws/secretsmanager")) return stopFirstOpen("G1_INSPECT_SCOPE");
+  const tags = Object.entries(plannedG1Tags(ack.externalFence.resourceFence.ownershipMarker));
+  if (!Array.isArray(metadata.Tags) || metadata.Tags.length !== tags.length || tags.some(([Key, Value]) =>
+    metadata.Tags!.filter(t => t?.Key === Key && t.Value === Value).length !== 1)) return stopFirstOpen("G1_INSPECT_TAGS");
+  assertInitialSecretVersion(metadata, ack.arn, ack.versionId);
+  if (metadata.VersionIdsToStages?.[ack.versionId]?.length !== 1) return stopFirstOpen("G1_INSPECT_VERSION");
+}
+
 export function firstOpenInitialSecret(input: {
   approvedSha256: string; client: Pick<SecretsManagerClient, "send">; sts: Pick<STSClient, "send">;
   loadTenantPaymentMaterial: FirstOpenPaymentSource;
   rememberOwnerSeed?(input: { arn: string; versionId: string; externalFence: FirstOpenFenceInput["externalFence"]; key: string }): void;
-}): FirstOnboardingExpressPorts["secret"] {
+  /** Derived only by the protected RunOnce binding from the hashed approval. */
+  g1StandaloneTagProof?: typeof FIRST_OPEN_G1_TAG_PROOF_MODE;
+}): FirstOnboardingExpressPorts["secret"] & {
+  verifyStandaloneTagDenials(ack: G1Ack, signal: AbortSignal, observe: ObserveG1): Promise<void>;
+} {
   let vacant = false, started = false, arn: string | undefined, token: string | undefined, epoch: string | undefined;
-  const name = s.secretName, prefix = `arn:aws:secretsmanager:${s.region}:${s.account}:secret:${name}-`;
-  const goodArn = (value: string | undefined): value is string =>
-    Boolean(value?.startsWith(prefix) && /^[A-Za-z0-9]{6}$/.test(value.slice(prefix.length)));
+  let createdFence: G1Ack["externalFence"] | undefined, tested = false;
+  const tagProof = input.g1StandaloneTagProof === FIRST_OPEN_G1_TAG_PROOF_MODE;
   const check = (x: FirstOpenFenceInput) => {
     sameFirstOpenFence(x);
     if (epoch && epoch !== x.externalFence.operationHash) stopFirstOpen("SECRET_EPOCH_CHANGED");
   };
-  const tags = (x: FirstOpenFenceInput) => ({
-    ManagedBy: "techlong-sandbox", SecretSchema: "techlong-runtime-four-key-v2", DatabaseProfile: "express_iam",
-    ResourceGeneration: "1", StableIdentity: s.stableIdentity, AppInstanceId: s.instanceId, DeploymentId: s.deploymentId,
-    OwnershipMarker: x.fence.ownershipMarker,
-  });
+  const tags = (x: FirstOpenFenceInput) => plannedG1Tags(x.fence.ownershipMarker);
   const present = (x: FirstOpenFenceInput, secretRef: string, versionRef: string) => ({
     fence: x.fence, externalFence: x.externalFence, state: "present" as const, secretRef, versionRef, ownershipMarker: x.fence.ownershipMarker,
   });
@@ -153,7 +184,7 @@ export function firstOpenInitialSecret(input: {
         const ack = await input.client.send(new CreateSecretCommand({ Name: name, ClientRequestToken: expected,
           SecretString: JSON.stringify(material), Tags: Object.entries(tags(x)).map(([Key, Value]) => ({ Key, Value })) }), { abortSignal: x.signal });
         check(x);
-        if (!goodArn(ack.ARN) || ack.Name !== name || ack.VersionId !== expected) return stopFirstOpen("SECRET_ACK_CHANGED");
+        if (!goodG1Arn(ack.ARN) || ack.Name !== name || ack.VersionId !== expected) return stopFirstOpen("SECRET_ACK_CHANGED");
         // The web forwarder can sign requests, but its key must never let it
         // derive the first merchant owner's password. Do not persist this seed.
         if (input.rememberOwnerSeed) {
@@ -163,10 +194,36 @@ export function firstOpenInitialSecret(input: {
           } finally { ownerSeed.fill(0); }
         }
         arn = ack.ARN; token = expected;
+        if (tagProof) createdFence = structuredClone(x.externalFence);
         return { requestSha256: expected, metadata: present(x, arn, token) };
       } catch {
         return stopFirstOpen("SECRET_CREATE_UNVERIFIED_NO_RETRY");
       }
+    },
+    async verifyStandaloneTagDenials(ack, signal, observe) {
+      signal.throwIfAborted();
+      if (!tagProof || tested || !arn || !token || !createdFence || ack.arn !== arn || ack.versionId !== token ||
+        canonicalJson(ack.externalFence) !== canonicalJson(createdFence)) return stopFirstOpen("G1_TAG_PROOF_SCOPE");
+      tested = true; // no retry, including if the independent observation fails
+      const actual = { arn, versionId: token, externalFence: createdFence };
+      const x = { fence: createdFence.resourceFence, externalFence: createdFence, signal };
+      check(x);
+      await observe(structuredClone(actual), signal);
+      check(x);
+      for (const SecretId of [actual.arn, name]) {
+        check(x);
+        try {
+          await input.client.send(new TagResourceCommand({ SecretId, Tags: Object.entries(tags(x)).map(([Key, Value]) => ({ Key, Value })) }),
+            { abortSignal: signal });
+        } catch (error) {
+          check(x);
+          if (error instanceof SecretsManagerServiceException && [400, 403].includes(error.$metadata.httpStatusCode ?? 0) &&
+            (error.name === "AccessDenied" || error.name === "AccessDeniedException")) continue;
+          return stopFirstOpen("G1_TAG_DENIAL_UNPROVED");
+        }
+        return stopFirstOpen("G1_TAG_STANDALONE_ALLOWED");
+      }
+      check(x);
     },
   };
 }

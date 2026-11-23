@@ -7,6 +7,7 @@ import { validateSingleDeploymentScope, type SingleDeploymentClaimScope } from "
 import type { FirstOnboardingExpressComposition } from "./first-onboarding-express.ts";
 import { FIRST_OPEN_BASELINE_BINDING } from "./first-onboarding-baseline-versions.ts";
 import { assertFirstOpenBuyerParameters } from "./first-open-buyer-binding.ts";
+import { freezeFirstOpenTemplate } from "./first-open-frozen-template.ts";
 import { FIRST_OPEN_CELL_STACK, FIRST_OPEN_CLEANUP_RESERVE_MS, FIRST_OPEN_TTL_SECONDS, type FirstOpenExecutionWindow } from "./first-onboarding-window.ts";
 
 type Rendered = Awaited<ReturnType<typeof renderSingleTenantAcceptanceWorkload>>;
@@ -212,7 +213,17 @@ async function renderFirstOnboardingStack(input: AwsSandboxTenantStackInput, con
     rendered.templateBody = canonicalJson(rendered.template);
     rendered.templateSha256 = await sha256Hex(rendered.template);
   }
-  return finalizeRenderedStack({ rendered, context, express, expectedRuntimeSecretName: input.runtimeSecretName });
+  const finalizedStack = finalizeRenderedStack({ rendered, context, express, expectedRuntimeSecretName: input.runtimeSecretName });
+  if (!window || !context.binding || !scopedBindings.has(context.binding)) return finalizedStack;
+  // The renderer has two built-in String defaults not supplied by the
+  // protected environment. Freeze those too, so DescribeStacks agrees.
+  const parameters = { JwtExpiresIn: "7d", MerchantJwtExpiresIn: "12h", ...finalizedStack.parameters,
+    SubnetIds: finalizedStack.parameters.SubnetIds.split(",").map(s => s.trim()).join(",") };
+  const template = freezeFirstOpenTemplate(finalizedStack.template, parameters);
+  const stack = freeze({ ...finalizedStack, parameters, template,
+    templateBody: canonicalJson(template), templateSha256: await sha256Hex(template) });
+  finalized.add(stack);
+  return stack;
 }
 
 /** Inspector gets only data, never the apply-capable, process-local object. */

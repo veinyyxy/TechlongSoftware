@@ -5,6 +5,8 @@ import { isAbsolute, join } from "node:path";
 import { promisify } from "node:util";
 import type { FirstOpenRolePorts } from "../first-open-workflow-launcher.ts";
 
+// Management and Inspector load only the original A's pinned DB utility
+// source. The task-only release changes the deployed app, not these tools.
 const backendCommit = "b9ca2138738900afc23a6a2ddce141b37a1f0a31";
 const artifactCommit = "b7c566a772e6b6bfb58ed0dc250532a479d7789f";
 const run = promisify(execFile);
@@ -19,7 +21,7 @@ export function checkedRunnerPaths(role: "management" | "runonce" | "inspect", e
   const backend = join(root, ".first-open-backend"), artifact = join(root, ".first-open-artifact-action");
   if (role !== "runonce" && git(backend) !== backendCommit) return fail("BACKEND_COMMIT");
   if (role !== "management" && git(artifact) !== artifactCommit) return fail("ARTIFACT_COMMIT");
-  return Object.freeze({ backend, artifact, temp: env.RUNNER_TEMP, pgRestore: join(env.RUNNER_TEMP, "first-open-pg-restore"),
+  return Object.freeze({ role, backend, artifact, temp: env.RUNNER_TEMP, pgRestore: join(env.RUNNER_TEMP, "first-open-pg-restore"),
     workspace: join(env.RUNNER_TEMP, "first-open-fc41597f-baseline") });
 }
 
@@ -54,9 +56,13 @@ export function firstOpenSameRunUpload(paths: ReturnType<typeof checkedRunnerPat
       !u.hostname.endsWith(".actions.githubusercontent.com")) return fail("ARTIFACT_ENDPOINT");
   }
   const names = new Set<string>();
+  const lanes = new Set<string>(paths.role === "inspect" ? ["01-inspector-ready", "02-g1-metadata-observed", "03-runtime-observed",
+    "cfn-version-observed", "cfn-version-relocked"] : paths.role === "runonce" ? ["02-g1-check-request", "03-runtime-check-request",
+      "cfn-version-request"] : []);
   return async ({ name, member, bytes, signal }) => {
     signal.throwIfAborted();
-    if (!/^fc41597f-[a-f0-9]{64}-(?:01-inspector-ready|02-g1-check-request|02-g1-metadata-observed|03-runtime-check-request|03-runtime-observed)$/.test(name) ||
+    const lane = /^fc41597f-[a-f0-9]{64}-([0-9a-z-]+)$/.exec(name)?.[1];
+    if (!lane || !lanes.has(lane) ||
       member !== "handoff.json" || !bytes.length || bytes.length > 16_384 || names.has(name)) return fail("ARTIFACT_SCOPE");
     names.add(name);
     const dir = await mkdtemp(join(paths.temp, "first-open-handoff-")), output = join(dir, "outputs");

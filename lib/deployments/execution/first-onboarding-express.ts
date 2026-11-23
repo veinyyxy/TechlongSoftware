@@ -16,6 +16,7 @@ const account = "402010193138", region = "ca-central-1";
 const cluster = "techlong-sandbox-express-d001";
 const digest = /^[a-f0-9]{64}$/;
 export const fixedSecretVersionPattern = /^[a-zA-Z0-9-]{32,64}$/;
+export const FIRST_OPEN_G1_TAG_PROOF_MODE = "arn-then-name-identical-tags-v1" as const;
 export interface FirstOnboardingExpressApproval {
   target: ExpressManagementTargetV3;
   nonce: string;
@@ -26,6 +27,8 @@ export interface FirstOnboardingExpressApproval {
   environmentParametersSha256: string;
   /** The real fc41597f entry requires this exact approved signer-only version. */
   buyerForwardSigner?: FirstOpenBuyerSignerPin;
+  /** Explicitly reviews the two same-tag write requests that must be denied. */
+  g1StandaloneTagProof?: typeof FIRST_OPEN_G1_TAG_PROOF_MODE;
   sampling: ReleaseSamplingBinding; // static; contains only the exact control public key reference
   mediaPublicBaseUrl: string;
 }

@@ -35,6 +35,17 @@ export const FIRST_OPEN_MANAGER_IDENTITY_SQL = `SELECT current_database() AS dat
    AND pg_catalog.has_database_privilege(r.oid,other.oid,'CONNECT')) AS no_other_databases
  FROM pg_catalog.pg_roles r CROSS JOIN pg_catalog.pg_database d WHERE r.rolname=current_user AND d.datname=current_database()`;
 
+const CLEANUP_VERIFY_SQL = `SELECT NOT pg_is_in_recovery() AS writer,
+  NOT EXISTS (SELECT 1 FROM pg_database WHERE datname=$1)
+  AND NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname=$2) AS vacant,
+  EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace=n.oid
+   WHERE p.oid=to_regprocedure('first_open_fc41597f_cleanup.cleanup_role(text,oid)')
+    AND pg_get_userbyid(p.proowner)=$3 AND p.prosecdef
+    AND has_schema_privilege(current_user,n.oid,'USAGE')
+    AND has_function_privilege(current_user,p.oid,'EXECUTE')
+    AND encode(sha256(convert_to(replace(p.prosrc,chr(13)||chr(10),chr(10)),'UTF8')),'hex')
+          = 'c2e08c26098f9fc5688177c84185fb95d6a3dd4efff2ae66804b0386263bcd4e') AS installed`;
+
 const INSTALL_SQL = `WITH checked_roles AS (
  SELECT r.rolname, r.rolcanlogin, r.rolcreaterole, r.rolconnlimit,
   NOT (r.rolcreatedb OR r.rolsuper OR r.rolinherit OR r.rolreplication OR r.rolbypassrls)
@@ -78,7 +89,7 @@ export function firstOpenManagerSessions(input: {
   let managerRoleOid: string | undefined;
   const bounded = (signal: AbortSignal) => AbortSignal.any([signal, AbortSignal.timeout(120_000)]);
   async function owned<T>(database: string, databaseOid: string, signal: AbortSignal,
-    group: Set<FirstOpenPg>, run: (sql: Sql, roleOid: string) => Promise<T>) {
+    group: Set<FirstOpenPg>, run: (sql: Sql, roleOid: string) => Promise<T>, readOnly = false) {
     signal.throwIfAborted();
     if (!validOid(databaseOid)) return stopFirstOpen("MANAGEMENT_DATABASE_OID_REQUIRED");
     let signed = false, lost = false, active = true;
@@ -116,15 +127,17 @@ export function firstOpenManagerSessions(input: {
         return result;
       };
       await query("SET search_path = pg_catalog; SET statement_timeout = '20s'; SET lock_timeout = '5s'; SET idle_in_transaction_session_timeout = '20s'");
+      if (readOnly) await query("BEGIN READ ONLY");
       const identity = await query(FIRST_OPEN_MANAGER_IDENTITY_SQL, [target.tenantDatabase]);
       const row = identity.rows[0];
       if (identity.rowCount !== 1 || identity.rows.length !== 1 || row.database !== database || row.database_oid !== databaseOid ||
         row.username !== sqlUser || row.session_username !== sqlUser || !validOid(row.role_oid) || (managerRoleOid && row.role_oid !== managerRoleOid) ||
         (database === target.tenantDatabase ? row.owner_oid !== row.role_oid : row.owner_oid === row.role_oid) ||
-        row.version !== 170009 || row.read_only !== "off" || row.encoding !== "UTF8" || row.tls !== true || row.limited_role !== true ||
+        row.version !== 170009 || row.read_only !== (readOnly ? "on" : "off") || row.encoding !== "UTF8" || row.tls !== true || row.limited_role !== true ||
         row.no_other_databases !== true) return stopFirstOpen("MANAGEMENT_SQL_IDENTITY_UNPROVED");
       managerRoleOid ??= row.role_oid;
       const result = await run(query, row.role_oid);
+      if (readOnly) await query("COMMIT");
       signal.throwIfAborted();
       if (lost) return stopFirstOpen("MANAGEMENT_SESSION_LOST");
       return result;
@@ -145,6 +158,15 @@ export function firstOpenManagerSessions(input: {
   return Object.freeze({
     management<T>(signal: AbortSignal, run: (sql: Sql, roleOid: string) => Promise<T>) {
       return owned("postgres", "5", bounded(signal), new Set(), run);
+    },
+    verifyCleanup(signal: AbortSignal) {
+      return owned("postgres", "5", bounded(signal), new Set(), async sql => {
+        const r = await sql(CLEANUP_VERIFY_SQL, [s.tenantDatabase, s.tenantRole, FIRST_OPEN_SQL_DEFINER]);
+        if (r.rowCount !== 1 || r.rows.length !== 1 || r.rows[0].writer !== true || r.rows[0].vacant !== true || r.rows[0].installed !== true) {
+          return stopFirstOpen("CLEANUP_READ_ONLY_UNPROVED");
+        }
+        return { maintenanceWriter: true, tenantAbsent: true, fixedRoutineVisible: true } as const;
+      }, true);
     },
     pair<T>(targetOid: string, signal: AbortSignal, run: (management: Sql, tenant: Sql) => Promise<T>) {
       if (!managerRoleOid || !validOid(targetOid) || targetOid === "5") return stopFirstOpen("MANAGEMENT_TARGET_OID_CHANGED");

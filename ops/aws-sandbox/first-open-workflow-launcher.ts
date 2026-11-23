@@ -8,6 +8,7 @@ import { bindFirstOpenExpressInspector, bindProtectedFirstOpenManagementClient, 
 import { prepareFirstOpenInspectSeed, type FirstOpenInspectSeed } from "./first-open-inspect-input.ts";
 import { firstOpenGitHubIssuedSession, firstOpenSessionArn } from "./first-open-sessions.ts";
 import { firstOpenGitHubAuthorityArtifacts } from "./first-open-github-handoff.ts";
+import type { VersionAuthorityScope } from "./first-open-controlled-cfn.ts";
 
 const repo = "veinyyxy/TechlongSoftware", dispatcher = ".github/workflows/sandbox-first-open-v1.yml";
 const hex = /^[a-f0-9]{64}$/, id = /^[1-9][0-9]{0,19}$/;
@@ -43,7 +44,8 @@ export interface FirstOpenRolePorts {
       controlMaterial: NonNullable<Writer["sources"]["controlMaterial"]>;
     }>>;
   inspect(input: { signal: AbortSignal }): Promise<Pick<Inspector, "backendDirectory" | "readOnly"> & { uploadOwn: HandoffUpload;
-    versionAuthorityProof?: { sourceSha256: string; verifyWithInspector: NonNullable<Inspector["versionAuthority"]>["verifyWithInspector"] };
+    versionAuthorityProof?: { sourceSha256: string } & Pick<NonNullable<Inspector["versionAuthority"]>,
+      "verifyWithInspector" | "verifyRelockWithInspector">;
   }>;
 }
 
@@ -229,9 +231,22 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
     try {
       const artifacts = authorityArtifacts();
       if (artifacts && ports.controlledCfnPreclaimProof?.authoritySourceSha256 !== artifacts.sourceSha256) return fail("AUTHORITY_SOURCE_UNBOUND");
+      let installed: VersionAuthorityScope | undefined;
+      const versionAuthorityReader = artifacts && { sourceSha256: artifacts.sourceSha256,
+        async readVerified(scope: VersionAuthorityScope, bounded: AbortSignal) {
+          const result = await artifacts.readVerified(scope, bounded);
+          installed = structuredClone(scope);
+          return result;
+        } };
       await runProtectedFirstOpenManagement({ ...hostInput, getToken, management: ports.management, claimReader: ports.claimReader,
         renderStack: prepared.renderStack, controlledCfnPreclaimProof: ports.controlledCfnPreclaimProof,
-        versionAuthorityReader: artifacts ?? ports.versionAuthorityReader }, signal, now);
+        versionAuthorityReader: versionAuthorityReader ?? ports.versionAuthorityReader }, signal, now);
+      // The broker has already written the existing CreateStack reply; waiting
+      // earlier would prevent RunOnce from sending Inspector its runtime check.
+      if (artifacts) {
+        if (!installed) return fail("AUTHORITY_RELOCK_UNBOUND");
+        await artifacts.readRelocked(installed, signal);
+      }
     } finally { await ports.dispose?.(); }
     return;
   }
@@ -240,13 +255,15 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
     const { uploadOwn, backendDirectory, readOnly, versionAuthorityProof } = await host.inspect({ signal });
     const artifacts = authorityArtifacts(uploadOwn);
     if (artifacts && (!versionAuthorityProof || versionAuthorityProof.sourceSha256 !== artifacts.sourceSha256 ||
-      typeof versionAuthorityProof.verifyWithInspector !== "function")) return fail("AUTHORITY_SOURCE_UNBOUND");
+      typeof versionAuthorityProof.verifyWithInspector !== "function" ||
+      typeof versionAuthorityProof.verifyRelockWithInspector !== "function")) return fail("AUTHORITY_SOURCE_UNBOUND");
     const { wire } = await firstOpenReleaseTransport(release, trustedReleaseSha256, { ...actual, role }, { token, uploadOwn, now });
     await bindFirstOpenExpressInspector({ approval, approvalSha256: release.approvalSha256, wire,
       expectedSeed: record.inspectorSeed, expectedSeedSha256: release.inspectorSeedSha256,
       inspectorCredentials: credentialSource, backendDirectory, readOnly,
       ...(artifacts && versionAuthorityProof && { versionAuthority: { artifacts, runId: actual.runOnceId, submitBefore: release.phaseCutoffs[3],
-        verifyWithInspector: versionAuthorityProof.verifyWithInspector } }) }, now)(signal);
+        verifyWithInspector: versionAuthorityProof.verifyWithInspector,
+        verifyRelockWithInspector: versionAuthorityProof.verifyRelockWithInspector } }) }, now)(signal);
     return;
   }
   const { uploadOwn, loadTenantPaymentMaterial, controlMaterial, dispose, ...ports } = await host.runonce({ credentials: credentialSource,

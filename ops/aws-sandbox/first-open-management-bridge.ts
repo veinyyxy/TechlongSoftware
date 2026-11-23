@@ -3,13 +3,12 @@ import { setTimeout as delay } from "node:timers/promises";
 import { compileExpressBootstrapCandidateV3 } from "../../lib/deployments/execution/aurora-express-bootstrap-v3.ts";
 import { firstOnboardingInitialSecretVersion, type FirstOnboardingDatabaseIdentity, type FirstOnboardingExpressApproval,
   type FirstOnboardingExpressPorts } from "../../lib/deployments/execution/first-onboarding-express.ts";
-import { FIRST_OPEN_BASELINE_BINDING } from "../../lib/deployments/execution/first-onboarding-baseline-versions.ts";
+import { FIRST_OPEN_BASELINE_BINDING, validFirstOpenVersionId } from "../../lib/deployments/execution/first-onboarding-baseline-versions.ts";
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
 import { SANDBOX_FIRST_OPEN as s, SANDBOX_FIRST_OPEN_STACK } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
 import type { FirstOpenFixedManagement } from "./first-open-express-runtime.ts";
 import { sameFirstOpenFence, stopFirstOpen, type FirstOpenFenceInput } from "./first-open-express-scope.ts";
 import { assertFinalizedSupervisedTenantStack } from "../../lib/deployments/execution/single-tenant-workload-strategy.ts";
-import { firstOpenControlledCfnTemplate } from "./first-open-controlled-cfn.ts";
 import prepared from "./first-open-fc41597f-remaining-install.prepared.json" with { type: "json" };
 
 const fail = (code: string): never => stopFirstOpen("MANAGEMENT_BRIDGE_" + code);
@@ -145,7 +144,8 @@ function within(signal: AbortSignal, deadline: number, now: () => number) {
 /** RunOnce receives this port, never a lifecycle signer/session/driver.
  * All stage parameters that can affect SQL are frozen on the other side. */
 export async function firstOpenManagementClient(input: FirstOpenManagementScope, wire: Mailbox, now = Date.now,
-  controlledWorkload = false): Promise<FirstOpenFixedManagement> {
+  author?: (stack: Parameters<NonNullable<FirstOpenFixedManagement["submitStack"]>>[0], signal: AbortSignal) =>
+    Promise<{ requestSha256: string; versionId: string; putAcknowledgedAt: number }>): Promise<FirstOpenFixedManagement> {
   const { scope, scopeHash, program } = await setup(input);
   let index = 0, last: string | undefined, secret: string | undefined, running = false, stopped = false, migration: string | undefined;
   const readReply = async (slot: number, requestSha256: string | null, signal: AbortSignal) => {
@@ -202,14 +202,16 @@ export async function firstOpenManagementClient(input: FirstOpenManagementScope,
       inspect: x => send("inspect", x), prepare: x => send("prepare", x), restore: x => send("restore", x),
       migrateSaas: x => send("migrateSaas", x), activateApplication: x => send("activateApplication", x), verify: x => send("verify", x),
     }),
-    ...(controlledWorkload && { async submitStack(stack: Parameters<NonNullable<FirstOpenFixedManagement["submitStack"]>>[0], upstream: AbortSignal) {
+    ...(author && { async submitStack(stack: Parameters<NonNullable<FirstOpenFixedManagement["submitStack"]>>[0], upstream: AbortSignal) {
       if (stopped || running || !last || index !== workloadSlot - 1) return fail("WORKLOAD_ORDER");
       const signal = within(upstream, scope.writeBefore, now);
       running = true;
       try {
         assertFinalizedSupervisedTenantStack(stack);
-        const { requestSha256 } = await firstOpenControlledCfnTemplate(scope.approvalSha256, stack);
-        const request = { scope: scopeHash, slot: workloadSlot, previousReplySha256: last, requestSha256 };
+        const { requestSha256, versionId, putAcknowledgedAt } = await author(stack, signal);
+        if (!hex.test(requestSha256) || !validFirstOpenVersionId(versionId) ||
+          !Number.isSafeInteger(putAcknowledgedAt) || putAcknowledgedAt <= 0 || putAcknowledgedAt > now()) return fail("WORKLOAD_TEMPLATE_ACK");
+        const request = { scope: scopeHash, slot: workloadSlot, previousReplySha256: last, requestSha256, versionId, putAcknowledgedAt };
         await wire.put({ direction: "request", slot: workloadSlot, signal }, request);
         const raw = await wire.take({ direction: "reply", slot: workloadSlot, signal });
         record(raw, ["requestSha256", "scope", "slot", "stackId"]);
@@ -228,7 +230,8 @@ export async function firstOpenManagementClient(input: FirstOpenManagementScope,
  * The claim/fence gate is independently read, not a boolean from RunOnce. */
 export async function serveFirstOpenManagement(input: FirstOpenManagementScope, wire: Mailbox, management: FirstOpenFixedManagement,
   verifyClaim: (signal: AbortSignal) => Promise<void>, upstream: AbortSignal, now = Date.now,
-  submit?: (request: { arn: string; identity: FirstOnboardingDatabaseIdentity; requestSha256: string; signal: AbortSignal }) => Promise<{ stackId: string }>) {
+  submit?: (request: { arn: string; identity: FirstOnboardingDatabaseIdentity; requestSha256: string; versionId: string;
+    putAcknowledgedAt: number; signal: AbortSignal }) => Promise<{ stackId: string }>) {
   const { scope, scopeHash, program } = await setup(input);
   const early = within(upstream, scope.applicationLoginBefore, now);
   await management.checkReady(scope.approvalSha256, scope.applicationLoginBefore, early);
@@ -275,13 +278,15 @@ export async function serveFirstOpenManagement(input: FirstOpenManagementScope, 
     if (!verifiedIdentity || !usableArn(secret)) return fail("WORKLOAD_IDENTITY");
     const signal = within(upstream, scope.writeBefore, now);
     const raw = await wire.take({ direction: "request", slot: workloadSlot, signal });
-    record(raw, ["previousReplySha256", "requestSha256", "scope", "slot"]);
-    const req = raw as { previousReplySha256: string; requestSha256: string; scope: string; slot: number };
+    record(raw, ["previousReplySha256", "putAcknowledgedAt", "requestSha256", "scope", "slot", "versionId"]);
+    const req = raw as { previousReplySha256: string; requestSha256: string; scope: string; slot: number; versionId: string; putAcknowledgedAt: number };
     if (req.scope !== scopeHash || req.slot !== workloadSlot || req.previousReplySha256 !== last! ||
-      typeof req.requestSha256 !== "string" || !hex.test(req.requestSha256)) return fail("WORKLOAD_REQUEST");
+      typeof req.requestSha256 !== "string" || !hex.test(req.requestSha256) || !validFirstOpenVersionId(req.versionId) ||
+      !Number.isSafeInteger(req.putAcknowledgedAt) || req.putAcknowledgedAt <= 0 || req.putAcknowledgedAt > now()) return fail("WORKLOAD_REQUEST");
     await verifyClaim(signal);
     signal.throwIfAborted();
-    const ack = await submit({ arn: secret, identity: verifiedIdentity, requestSha256: req.requestSha256, signal });
+    const ack = await submit({ arn: secret, identity: verifiedIdentity, requestSha256: req.requestSha256,
+      versionId: req.versionId, putAcknowledgedAt: req.putAcknowledgedAt, signal });
     if (!stackIdPattern.test(ack.stackId)) return fail("WORKLOAD_REPLY");
     await wire.put({ direction: "reply", slot: workloadSlot, signal }, { scope: scopeHash, slot: workloadSlot,
       requestSha256: await sha256Hex(req), stackId: ack.stackId });

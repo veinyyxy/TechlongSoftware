@@ -28,9 +28,10 @@ export async function checkFirstOpenCleanupPermit(input: FirstOpenCleanupPermit,
   return p;
 }
 
-export function assertFirstOpenCleanupOidc(claims: Record<string, unknown>, permit: FirstOpenCleanupPermit) {
+export function assertFirstOpenCleanupOidc(claims: Record<string, unknown>, permit: FirstOpenCleanupPermit, callerCommit?: string) {
   const expected = { ...bases, iss: oidc.federatedTrust.issuer, actor_id: "14145707", repository: repo,
-    job_workflow_ref: `${repo}/${cleanupReusable}@${permit.sourceCommit}`, run_id: permit.runId, run_attempt: "1", event_name: "workflow_dispatch" };
+    job_workflow_ref: `${repo}/${cleanupReusable}@${permit.sourceCommit}`, run_id: permit.runId, run_attempt: "1", event_name: "workflow_dispatch",
+    ...(callerCommit ? { sha: callerCommit, workflow_ref: `${repo}/.github/workflows/sandbox-first-open-v1.yml@refs/heads/main` } : {}) };
   if (!claims || !Object.entries(expected).every(([key, value]) => claims[key] === value)) fail("OIDC_SCOPE");
 }
 
@@ -43,7 +44,7 @@ export function firstOpenCleanupPermitClaims(permit: FirstOpenCleanupPermit) {
 }
 
 export function bindFirstOpenCleanupVerify(input: { permit: FirstOpenCleanupPermit; permitSha256: string;
-  getToken(audience: string, signal: AbortSignal): Promise<string>; backendDirectory: string }, now = Date.now) {
+  getToken(audience: string, signal: AbortSignal): Promise<string>; backendDirectory: string; callerCommit?: string }, now = Date.now) {
   let used = false;
   return async () => {
     if (used) return fail("SLOT_USED");
@@ -58,7 +59,7 @@ export function bindFirstOpenCleanupVerify(input: { permit: FirstOpenCleanupPerm
       try {
         const token = await input.getToken("sts.amazonaws.com", bound);
         if (typeof token !== "string" || token.length > 32_768 || !/^[\w-]+\.[\w-]+\.[\w-]+$/.test(token)) return fail("OIDC_FORMAT");
-        assertFirstOpenCleanupOidc(JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8")), p);
+        assertFirstOpenCleanupOidc(JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8")), p, input.callerCommit);
         bound.throwIfAborted();
         if (now() >= p.issueBefore) return fail("ISSUE_WINDOW");
         const { Credentials: c } = await client.send(new AssumeRoleWithWebIdentityCommand({ RoleArn: s.lifecycleRole,
