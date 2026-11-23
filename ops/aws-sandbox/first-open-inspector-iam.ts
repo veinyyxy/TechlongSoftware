@@ -3,6 +3,7 @@ import { FIRST_OPEN_BASELINE_BINDING } from "../../lib/deployments/execution/fir
 import { firstOpenVersion, verifyFirstOpenTaskRelease } from "../../lib/deployments/execution/first-onboarding-version.ts";
 import { SANDBOX_FIRST_OPEN as s, SANDBOX_FIRST_OPEN_STACK as stackName } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
 import type { FirstOpenFrozenRelease } from "./first-open-release-entry.ts";
+import { firstOpenProvisionerChangeSetName } from "./first-open-provisioner-lanes.ts";
 import postRestore from "./first-open-fc41597f-post-restore-install.prepared.json" with { type: "json" };
 import oidc from "./first-open-fc41597f-oidc-handoffs.prepared.json" with { type: "json" };
 import probe from "./first-open-fc41597f-session-deltas.prepared.json" with { type: "json" };
@@ -39,8 +40,8 @@ export function firstOpenInspectorAuthorityReadScope(release: FirstOpenFrozenRel
       .map(name => `arn:aws:iam::${s.account}:policy/${name}`),
     evidenceBucketArn: authorityBucket, ownerStackArn: authorityStack,
     changeSetNames: [stem + "-grant", stem + "-relock"],
-    provisionerChangeSetNames: ["fc41597f-provisioner-" + release.approvalSha256.slice(0, 24) + "-grant",
-      "fc41597f-provisioner-" + release.approvalSha256.slice(0, 24) + "-relock"],
+    provisionerChangeSetNames: [firstOpenProvisionerChangeSetName(release.approvalSha256, "formal-provisioner", "grant"),
+      firstOpenProvisionerChangeSetName(release.approvalSha256, "formal-provisioner", "relock")],
     notBefore: new Date(release.startAt).toISOString(), notAtOrAfter: new Date(release.writeBefore).toISOString(),
   };
 }

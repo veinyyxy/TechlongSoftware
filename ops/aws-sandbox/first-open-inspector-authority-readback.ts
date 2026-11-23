@@ -7,7 +7,8 @@ import { SANDBOX_FIRST_OPEN as s } from "../../lib/deployments/execution/first-o
 import { firstOpenInspectorAuthorityReadScope, firstOpenInspectorAuthorityReadStatements, type FirstOpenInspectorAuthorityReadConsent } from "./first-open-inspector-iam.ts";
 import type { FirstOpenFrozenRelease } from "./first-open-release-entry.ts";
 import { sdkConfig, type FirstOpenCredentials } from "./first-open-express-aws.ts";
-import { firstOpenInstallInspectorPolicies, type FirstOpenInstallWindow } from "./first-open-install-inspector-scope.ts";
+import { firstOpenInstallInspectorPolicies, firstOpenInstallProvisionerLane, firstOpenInstallProvisionerObservation,
+  isFirstOpenInstallProvisionerChangeSetId, type FirstOpenInstallWindow } from "./first-open-install-inspector-scope.ts";
 
 const fail = (): never => { throw Error("FIRST_OPEN_INSPECTOR_AUTHORITY_READBACK_UNPROVED"); };
 const sorted = (items: readonly string[]) => [...items].sort();
@@ -15,6 +16,7 @@ const sameNames = (a: readonly string[], b: readonly string[]) => canonicalJson(
 const provisionerBoundary = `arn:aws:iam::${s.account}:policy/TechlongSandboxProvisionerBoundary`;
 const provisionerInline = { grant: "FirstOpenFc41597fWriterFence", relock: "FirstOpenFc41597fWriterLock" } as const;
 type Credentials = (signal: AbortSignal) => Promise<Exclude<FirstOpenCredentials, (...args: never[]) => unknown>>;
+type InstallScope = Awaited<ReturnType<typeof firstOpenInstallInspectorPolicies>>["scope"];
 function iamDocument(raw?: string) {
   if (!raw) return fail();
   // IAM can return either the literal JSON or RFC3986-encoded JSON.
@@ -40,12 +42,17 @@ export async function bindFirstOpenInstallProvisionerReadback(input: {
   const { release, releaseSha256, window, approvedScopeSha256 } = structuredClone({
     release: input.release, releaseSha256: input.releaseSha256, window: input.window, approvedScopeSha256: input.approvedScopeSha256,
   });
-  await firstOpenInstallInspectorPolicies(release, releaseSha256, window, approvedScopeSha256);
-  return createFirstOpenInspectorReadback(release, releaseSha256, input.credentials, true, now, { window, approvedScopeSha256 });
+  const { scope } = await firstOpenInstallInspectorPolicies(release, releaseSha256, window, approvedScopeSha256);
+  const read = createFirstOpenInspectorReadback(release, releaseSha256, input.credentials, true, now, { scope, approvedScopeSha256 });
+  return async (...args: Parameters<typeof read>) => {
+    const observed = await read(...args);
+    return { ...observed, schema: firstOpenInstallProvisionerObservation, lane: firstOpenInstallProvisionerLane,
+      changeSetName: scope.changeSetNames[args[0] === "grant" ? 0 : 1] };
+  };
 }
 
 function createFirstOpenInspectorReadback(release: FirstOpenFrozenRelease, releaseSha256: string, credentials: Credentials,
-  provisionerOnly: boolean, now: () => number, installation?: { window: FirstOpenInstallWindow; approvedScopeSha256: string }) {
+  provisionerOnly: boolean, now: () => number, installation?: { scope: InstallScope; approvedScopeSha256: string }) {
   const review = firstOpenInspectorAuthorityReadScope(release, releaseSha256);
   const roles = provisionerOnly ? review.roles.slice(0, 1) : review.roles;
   const used = new Set<"grant" | "relock">();
@@ -55,7 +62,7 @@ function createFirstOpenInspectorReadback(release: FirstOpenFrozenRelease, relea
       expectedInlineNames.some(names => names.length > 4 || new Set(names).size !== names.length ||
         names.some(n => !/^[A-Za-z0-9+=,.@_-]{1,128}$/.test(n)))) return fail();
     used.add(phase);
-    const window = installation?.window;
+    const window = installation?.scope.window;
     const from = window ? (phase === "grant" ? window.grantAt : window.relockAt) : release.startAt;
     const before = window ? (phase === "grant" ? window.grantBefore : window.relockBefore) :
       (phase === "grant" ? (provisionerOnly ? release.claimBefore : release.phaseCutoffs[3]) : release.writeBefore);
@@ -107,7 +114,8 @@ function createFirstOpenInspectorReadback(release: FirstOpenFrozenRelease, relea
       const bucket = await s3.send(new GetBucketPolicyCommand({ Bucket: review.evidenceBucketArn.slice("arn:aws:s3:::".length),
         ExpectedBucketOwner: s.account }), options());
       const stack = await cfn.send(new DescribeStacksCommand({ StackName: review.ownerStackArn }), options());
-      const changeName = (provisionerOnly ? review.provisionerChangeSetNames : review.changeSetNames)[phase === "grant" ? 0 : 1];
+      const changeNames = installation?.scope.changeSetNames ?? (provisionerOnly ? review.provisionerChangeSetNames : review.changeSetNames);
+      const changeName = changeNames[phase === "grant" ? 0 : 1];
       const change = await cfn.send(new DescribeChangeSetCommand({ StackName: review.ownerStackArn, ChangeSetName: changeName }), options());
       const template = await cfn.send(new GetTemplateCommand({ StackName: review.ownerStackArn, TemplateStage: "Original" }), options());
       checked.throwIfAborted();
@@ -115,6 +123,7 @@ function createFirstOpenInspectorReadback(release: FirstOpenFrozenRelease, relea
         stack.Stacks[0].StackId !== review.ownerStackArn || stack.Stacks[0].StackStatus !== "UPDATE_COMPLETE" ||
         change.StackId !== review.ownerStackArn || change.ChangeSetName !== changeName || !change.ChangeSetId || change.NextToken ||
         change.Status !== "CREATE_COMPLETE" || change.ExecutionStatus !== "EXECUTE_COMPLETE" ||
+        (installation && !isFirstOpenInstallProvisionerChangeSetId(change.ChangeSetId, changeName)) ||
         (window && (!change.CreationTime || !(change.CreationTime.getTime() >= window.startAt && change.CreationTime.getTime() <= now())))) return fail();
       return { phase, checkedAt: now(), exactOwnerStackArn: review.ownerStackArn, exactChangeSetId: change.ChangeSetId,
         changesSha256: await sha256Hex(change.Changes), evidenceBucketPolicySha256: await sha256Hex(JSON.parse(bucket.Policy)),

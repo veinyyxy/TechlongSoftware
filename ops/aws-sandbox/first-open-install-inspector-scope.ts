@@ -2,15 +2,28 @@ import { sha256Hex } from "../../lib/deployments/execution/hash.ts";
 import { SANDBOX_FIRST_OPEN as s } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
 import { verifyFirstOpenTaskRelease } from "../../lib/deployments/execution/first-onboarding-version.ts";
 import { firstOpenInspectorAuthorityReadScope } from "./first-open-inspector-iam.ts";
+import { firstOpenProvisionerChangeSetName } from "./first-open-provisioner-lanes.ts";
 import type { FirstOpenFrozenRelease } from "./first-open-release-entry.ts";
 import contract from "./first-open-fc41597f-oidc-handoffs.prepared.json" with { type: "json" };
 
 export const firstOpenInstallInspectorSession = "first-open-fc41597f-install-readback";
+export const firstOpenInstallProvisionerLane = "install" as const;
+export const firstOpenInstallProvisionerObservation = "techlong/fc41597f-install-provisioner-observation/v1" as const;
 export type FirstOpenInstallWindow = { startAt: number; issueBefore: number; grantAt: number; grantBefore: number;
   relockAt: number; relockBefore: number; factsCutoff: number };
 const fail = (): never => { throw Error("FIRST_OPEN_INSTALL_INSPECTOR_SCOPE"); };
 const provider = contract.federatedTrust.existingProviderArn;
 const iso = (at: number) => ({ "aws:CurrentTime": new Date(at).toISOString() });
+
+export function firstOpenInstallProvisionerChangeSetName(approvalSha256: string, phase: "grant" | "relock") {
+  return firstOpenProvisionerChangeSetName(approvalSha256, firstOpenInstallProvisionerLane, phase);
+}
+
+export function isFirstOpenInstallProvisionerChangeSetId(changeSetId: string, exactName: string) {
+  const stem = `arn:aws:cloudformation:${s.region}:${s.account}:changeSet/${exactName}/`;
+  return typeof changeSetId === "string" && changeSetId.startsWith(stem) &&
+    /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(changeSetId.slice(stem.length));
+}
 
 export async function firstOpenInstallInspectorScope(release: FirstOpenFrozenRelease, releaseSha256: string, window: FirstOpenInstallWindow) {
   const { startAt, issueBefore, grantAt, grantBefore, relockAt, relockBefore, factsCutoff } = window;
@@ -24,11 +37,13 @@ export async function firstOpenInstallInspectorScope(release: FirstOpenFrozenRel
   await verifyFirstOpenTaskRelease(release.taskRelease);
   const original = firstOpenInspectorAuthorityReadScope(release, releaseSha256);
   return {
-    schema: "techlong/fc41597f-install-inspector-scope/v1", releaseSha256, jobId: s.jobId, window: structuredClone(window),
+    schema: "techlong/fc41597f-install-inspector-scope/v2", lane: firstOpenInstallProvisionerLane,
+    releaseSha256, jobId: s.jobId, window: structuredClone(window),
     roleArn: original.roleArn, roleId: original.roleId, roleSessionName: firstOpenInstallInspectorSession,
     provider, roleToRead: original.roles[0], boundaryToRead: original.boundaries[0],
     evidenceBucketArn: original.evidenceBucketArn, ownerStackArn: original.ownerStackArn,
-    changeSetNames: original.provisionerChangeSetNames,
+    changeSetNames: [firstOpenInstallProvisionerChangeSetName(release.approvalSha256, "grant"),
+      firstOpenInstallProvisionerChangeSetName(release.approvalSha256, "relock")],
     reusableRef: `veinyyxy/TechlongSoftware/${contract.federatedTrust.inspect.reusablePathCandidate}@${release.inspectReusableCommit}`,
   };
 }

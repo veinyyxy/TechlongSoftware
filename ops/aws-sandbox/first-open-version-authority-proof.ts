@@ -7,6 +7,7 @@ import { FIRST_OPEN_AUTHORITY_RESOURCES, renderFirstOpenVersionGrantRelockTarget
 import { bindFirstOpenInspectorAuthorityReadback } from "./first-open-inspector-authority-readback.ts";
 import { firstOpenInspectorAuthorityReadScope } from "./first-open-inspector-iam.ts";
 import { firstOpenLifecycleAuthoritySchedule } from "./first-open-release-entry.ts";
+import { matchFirstOpenFormalProvisionerReceipt, type FirstOpenFormalProvisionerReceipt } from "./first-open-provisioner-lanes.ts";
 import oidcContract from "./first-open-fc41597f-oidc-handoffs.prepared.json" with { type: "json" };
 
 type Reader = Awaited<ReturnType<typeof bindFirstOpenInspectorAuthorityReadback>>;
@@ -37,6 +38,8 @@ export interface FirstOpenVersionAuthoritySource extends Binding {
   roles: Readback["roles"];
   policies: Readback["policies"];
   evidenceBucketPolicySha256: string;
+  /** Required in a real protected capsule; never an installation observation. */
+  formalProvisionerGrant?: FirstOpenFormalProvisionerReceipt;
 }
 
 export interface FirstOpenVersionRelockProof {
@@ -44,6 +47,15 @@ export interface FirstOpenVersionRelockProof {
   scopeSha256: string;
   policySha256: string;
   relocked: true;
+}
+
+export async function requireFirstOpenFormalProvisionerGrant(v: FirstOpenVersionAuthoritySource, now = Date.now()) {
+  if (!v.release.taskRelease) return fail();
+  const scope = firstOpenInspectorAuthorityReadScope(v.release, v.releaseSha256);
+  return matchFirstOpenFormalProvisionerReceipt(v.formalProvisionerGrant, { release: v.release, releaseSha256: v.releaseSha256,
+    phase: "grant", scopeSha256: await sha256Hex(scope), exactOwnerStackArn: scope.ownerStackArn,
+    targetSha256: v.preGrantSha256, roles: v.roles.slice(0, 1), policies: v.policies.filter(p => p.policyArn === v.roles[0]?.boundaryArn),
+    evidenceBucketPolicySha256: v.evidenceBucketPolicySha256 }, now);
 }
 
 function authorCannotChangePolicy(template: Target, authorId: string) {
@@ -194,6 +206,9 @@ export async function bindFirstOpenVersionAuthorityComparison(
 export function firstOpenInspectorVersionAuthorityProof(source: FirstOpenVersionAuthoritySource, sourceSha256: string, now = Date.now) {
   const v = structuredClone(source);
   const bind = async (credentials: Credentials) => {
+    // The inspected runtime may outlive claimBefore; the protected startup
+    // evidence must still have been captured before it, not regenerated now.
+    if (v.release.taskRelease) await requireFirstOpenFormalProvisionerGrant(v, now());
     const read = await bindFirstOpenInspectorAuthorityReadback({ ...v, credentials }, now);
     return bindFirstOpenVersionAuthorityComparison(v, sourceSha256, read, now);
   };

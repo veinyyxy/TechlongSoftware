@@ -3,7 +3,8 @@ import { AssumeRoleWithWebIdentityCommand, STSClient } from "@aws-sdk/client-sts
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
 import { SANDBOX_FIRST_OPEN as s } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
 import { bindFirstOpenInstallProvisionerReadback } from "./first-open-inspector-authority-readback.ts";
-import { firstOpenInstallInspectorPolicies, type FirstOpenInstallWindow } from "./first-open-install-inspector-scope.ts";
+import { firstOpenInstallInspectorPolicies, firstOpenInstallProvisionerChangeSetName, firstOpenInstallProvisionerLane,
+  firstOpenInstallProvisionerObservation, isFirstOpenInstallProvisionerChangeSetId, type FirstOpenInstallWindow } from "./first-open-install-inspector-scope.ts";
 import { firstOpenProvisionerChanges, firstOpenProvisionerProjection, type renderFirstOpenProvisionerTargets } from "./first-open-provisioner-policy.ts";
 import { bindFirstOpenSession, type FirstOpenCredentialSource } from "./first-open-sessions.ts";
 import { firstOpenRunnerOidc } from "./first-open-workflow-launcher.ts";
@@ -21,9 +22,12 @@ const hex = /^[a-f0-9]{64}$/, commit = /^[a-f0-9]{40}$/, id = /^[1-9][0-9]{0,19}
 const fail = (code: string): never => { throw Error("FIRST_OPEN_INSTALL_READBACK_" + code); };
 const same = (a: unknown, b: unknown) => canonicalJson(a) === canonicalJson(b);
 const phases = ["grant", "relock"] as const;
+const planSchema = "techlong/fc41597f-independent-install-readback/v2" as const;
+const reportSchema = "techlong/fc41597f-independent-install-observed/v2" as const;
 
 export type FirstOpenInstallReadbackPlan = {
-  schema: "techlong/fc41597f-independent-install-readback/v1";
+  schema: typeof planSchema;
+  lane: typeof firstOpenInstallProvisionerLane;
   jobId: typeof s.jobId;
   release: FirstOpenFrozenRelease;
   releaseSha256: string;
@@ -36,12 +40,12 @@ export type FirstOpenInstallReadbackPlan = {
 
 /** Render only projections of exact reviewed templates, never the templates
  * or protected runtime capsules. Seal with a distinct install approval. */
-export async function buildFirstOpenInstallReadbackPlan(input: Omit<FirstOpenInstallReadbackPlan, "schema" | "jobId" | "targets"> & {
+export async function buildFirstOpenInstallReadbackPlan(input: Omit<FirstOpenInstallReadbackPlan, "schema" | "lane" | "jobId" | "targets"> & {
   targets: Targets;
 }) {
   const { targets, ...rest } = structuredClone(input);
   if (await sha256Hex(targets.grant) !== targets.grantSha256 || await sha256Hex(targets.restore) !== targets.restoreSha256) return fail("TARGET");
-  const plan: FirstOpenInstallReadbackPlan = { schema: "techlong/fc41597f-independent-install-readback/v1", jobId: s.jobId, ...rest,
+  const plan: FirstOpenInstallReadbackPlan = { ...rest, schema: planSchema, lane: firstOpenInstallProvisionerLane, jobId: s.jobId,
     targets: {
       grant: { templateSha256: targets.grantSha256, projection: await firstOpenProvisionerProjection(targets.grant) },
       relock: { templateSha256: targets.restoreSha256, projection: await firstOpenProvisionerProjection(targets.restore) },
@@ -51,7 +55,7 @@ export async function buildFirstOpenInstallReadbackPlan(input: Omit<FirstOpenIns
 }
 
 async function checkPlan(p: FirstOpenInstallReadbackPlan) {
-  if (p?.schema !== "techlong/fc41597f-independent-install-readback/v1" || p.jobId !== s.jobId ||
+  if (p?.schema !== planSchema || p.lane !== firstOpenInstallProvisionerLane || p.jobId !== s.jobId ||
     ![p.factsReceiptSha256, p.expectedBucketSha256, p.authorityScopeSha256, p.releaseSha256].every(x => hex.test(x)) ||
     ![p.release?.callerCommit, p.release?.runtimeCommit].every(x => commit.test(x)) || !id.test(p.release.workflowId)) return fail("PLAN");
   const { scope } = await firstOpenInstallInspectorPolicies(p.release, p.releaseSha256, p.window, p.authorityScopeSha256);
@@ -127,10 +131,11 @@ export async function observeFirstOpenInstallReadback(
   pause = (ms: number, signal: AbortSignal) => delay(ms, undefined, { signal }),
 ) {
   const { plan: p, scope, planSha256, runId } = a;
-  const report = { schema: "techlong/fc41597f-independent-install-observed/v1", jobId: s.jobId, planSha256, runId, attempt: 1,
+  const report = { schema: reportSchema, lane: firstOpenInstallProvisionerLane, jobId: s.jobId,
+    approvalSha256: p.release.approvalSha256, authorityScopeSha256: p.authorityScopeSha256, planSha256, runId, attempt: 1,
     runtimeCommit: p.release.runtimeCommit, issuerSessionArnSha256: await sha256Hex(`arn:aws:sts::${s.account}:assumed-role/${scope.roleArn.split("/").at(-1)}/${scope.roleSessionName}`),
     phases: {} as Partial<Record<Phase, { status: "UNPROVED" } | { status: "MATCHED_INSTALLED_POLICY_DOCUMENTS"; checkedAt: number;
-      changeSetId: string; targetSha256: string; projectionSha256: string }>>, executionAuthorized: false };
+      changeSetId: string; changeSetName: string; targetSha256: string; projectionSha256: string }>>, executionAuthorized: false as const };
   for (const phase of phases) {
     upstream.throwIfAborted();
     const at = phase === "grant" ? p.window.grantAt : p.window.relockAt;
@@ -142,13 +147,15 @@ export async function observeFirstOpenInstallReadback(
       const o = await read(phase, [t.projection.role.inline.map(x => x.name)], signal);
       signal.throwIfAborted();
       const name = scope.changeSetNames[phase === "grant" ? 0 : 1];
-      if (o.phase !== phase || !Number.isSafeInteger(o.checkedAt) || o.checkedAt < at || o.checkedAt > now() || now() >= before ||
+      if (o.schema !== firstOpenInstallProvisionerObservation || o.lane !== firstOpenInstallProvisionerLane || o.authorizationProved !== false ||
+        o.phase !== phase || !Number.isSafeInteger(o.checkedAt) || o.checkedAt < at || o.checkedAt > now() || now() >= before ||
         o.scopeSha256 !== p.authorityScopeSha256 || o.exactOwnerStackArn !== scope.ownerStackArn ||
-        !o.exactChangeSetId.startsWith(`arn:aws:cloudformation:${s.region}:${s.account}:changeSet/${name}/`) ||
+        o.changeSetName !== name || !isFirstOpenInstallProvisionerChangeSetId(o.exactChangeSetId, name) ||
         o.ownerStackOriginalSha256 !== t.templateSha256 || o.evidenceBucketPolicySha256 !== p.expectedBucketSha256 ||
         !same(o.roles, [t.projection.role]) || !same(o.policies, t.projection.policies) ||
         !same([...o.changes].sort((l, r) => (l.logicalId ?? "").localeCompare(r.logicalId ?? "")), changed)) return fail("OBSERVATION");
-      report.phases[phase] = { status: "MATCHED_INSTALLED_POLICY_DOCUMENTS", checkedAt: o.checkedAt, changeSetId: o.exactChangeSetId,
+      report.phases[phase] = { status: "MATCHED_INSTALLED_POLICY_DOCUMENTS", checkedAt: o.checkedAt,
+        changeSetId: o.exactChangeSetId, changeSetName: name,
         targetSha256: t.templateSha256, projectionSha256: await sha256Hex(o) };
     } catch {
       report.phases[phase] = { status: "UNPROVED" };
@@ -160,12 +167,16 @@ export async function observeFirstOpenInstallReadback(
 /** Reconcile a report obtained from the authenticated exact GitHub run with
  * the independent installer receipt. Observation time is not Execute time. */
 export function assertFirstOpenInstallReadbackAck(report: Awaited<ReturnType<typeof observeFirstOpenInstallReadback>>,
-  phase: Phase, expected: { planSha256: string; runId: string; changeSetId: string; targetSha256: string; executedAt: number }) {
-  const p = report.phases[phase];
-  if (report.schema !== "techlong/fc41597f-independent-install-observed/v1" || report.jobId !== s.jobId ||
+  phase: Phase, expected: { lane: typeof firstOpenInstallProvisionerLane; approvalSha256: string;
+    planSha256: string; runId: string; changeSetId: string; targetSha256: string; executedAt: number }) {
+  if (expected.lane !== firstOpenInstallProvisionerLane || !hex.test(expected.approvalSha256)) return fail("EXECUTE_ACK");
+  const name = firstOpenInstallProvisionerChangeSetName(expected.approvalSha256, phase), p = report.phases?.[phase];
+  if (report.schema !== reportSchema || report.lane !== firstOpenInstallProvisionerLane || report.jobId !== s.jobId ||
+    report.approvalSha256 !== expected.approvalSha256 || !hex.test(report.authorityScopeSha256) || report.executionAuthorized !== false ||
     report.planSha256 !== expected.planSha256 || report.runId !== expected.runId || report.attempt !== 1 ||
     p?.status !== "MATCHED_INSTALLED_POLICY_DOCUMENTS" || p.changeSetId !== expected.changeSetId ||
-    p.targetSha256 !== expected.targetSha256 || !Number.isSafeInteger(expected.executedAt) ||
+    p.changeSetName !== name || !isFirstOpenInstallProvisionerChangeSetId(expected.changeSetId, name) ||
+    p.targetSha256 !== expected.targetSha256 || !Number.isSafeInteger(expected.executedAt) || !Number.isSafeInteger(p.checkedAt) ||
     expected.executedAt <= 0 || p.checkedAt < expected.executedAt) return fail("EXECUTE_ACK");
   return p;
 }
