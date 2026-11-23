@@ -31,6 +31,8 @@ export interface FirstOpenLaunchRecord {
   hostSha256: Record<Mode, string>;
   /** Exact reviewed Inspector authority-read source; never a workflow input. */
   versionAuthoritySourceSha256?: string;
+  /** The operator's formal Grant ACK pin, not an independent IAM receipt. */
+  formalProvisionerGrantAckSha256?: string;
 }
 
 /** Host-side adapters from the privately sealed installation, never dispatcher
@@ -46,7 +48,7 @@ export interface FirstOpenRolePorts {
     }>>;
   inspect(input: { signal: AbortSignal }): Promise<Pick<Inspector, "backendDirectory" | "readOnly"> & { uploadOwn: HandoffUpload;
     versionAuthorityProof?: { sourceSha256: string } & Pick<NonNullable<Inspector["versionAuthority"]>,
-      "verifyWithInspector" | "verifyRelockWithInspector">;
+      "verifyFormalGrantWithInspector" | "verifyWithInspector" | "verifyRelockWithInspector">;
   }>;
 }
 
@@ -89,6 +91,9 @@ export async function authorizeFirstOpenLaunch(input: LocalLaunch, now = Date.no
   if (approval.writeBefore !== release.writeBefore || approval.controlledWindow?.startAt !== release.startAt ||
     approval.controlledWindow?.claimBefore !== release.claimBefore) return fail("APPROVAL_WINDOW");
   if (!same(release.taskRelease ?? null, approval.taskRelease ?? null)) return fail("TASK_RELEASE");
+  const sourceSha = record.versionAuthoritySourceSha256, grantAckSha = record.formalProvisionerGrantAckSha256;
+  if (release.taskRelease ? typeof sourceSha !== "string" || !hex.test(sourceSha) || typeof grantAckSha !== "string" || !hex.test(grantAckSha)
+    : sourceSha !== undefined || grantAckSha !== undefined) return fail("AUTHORITY_SOURCE_UNBOUND");
   firstOpenLifecycleAuthoritySchedule(release);
   return { record, approval, trustedReleaseSha256 };
 }
@@ -209,8 +214,8 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
   const { pair } = await bindFirstOpenReleaseEntry(release, trustedReleaseSha256, actual);
   const token = env.GH_TOKEN;
   const sourceSha256 = record.versionAuthoritySourceSha256;
+  const formalAckSha256 = record.formalProvisionerGrantAckSha256;
   if (!token) return fail("HANDOFF_TOKEN");
-  if (release.taskRelease ? !sourceSha256 || !hex.test(sourceSha256) : sourceSha256 !== undefined) return fail("AUTHORITY_SOURCE_UNBOUND");
   const authorityArtifacts = (uploadOwn?: HandoffUpload) => sourceSha256 ? firstOpenGitHubAuthorityArtifacts({
     pair, role, ownRunId, token, now, sourceSha256, submitBefore: release.phaseCutoffs[3],
     inspectReusableCommit: release.inspectReusableCommit, runOnceReusableCommit: release.runOnceReusableCommit, uploadOwn,
@@ -276,13 +281,15 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
     const { uploadOwn, backendDirectory, readOnly, versionAuthorityProof } = await host.inspect({ signal });
     const artifacts = authorityArtifacts(uploadOwn);
     if (artifacts && (!versionAuthorityProof || versionAuthorityProof.sourceSha256 !== artifacts.sourceSha256 ||
+      typeof versionAuthorityProof.verifyFormalGrantWithInspector !== "function" ||
       typeof versionAuthorityProof.verifyWithInspector !== "function" ||
       typeof versionAuthorityProof.verifyRelockWithInspector !== "function")) return fail("AUTHORITY_SOURCE_UNBOUND");
     const { wire } = await firstOpenReleaseTransport(release, trustedReleaseSha256, { ...actual, role }, { token, uploadOwn, now });
     await bindFirstOpenExpressInspector({ approval, approvalSha256: release.approvalSha256, wire,
       expectedSeed: record.inspectorSeed, expectedSeedSha256: release.inspectorSeedSha256,
       inspectorCredentials: credentialSource, backendDirectory, readOnly,
-      ...(artifacts && versionAuthorityProof && { versionAuthority: { artifacts, runId: actual.runOnceId, submitBefore: release.phaseCutoffs[3],
+      ...(artifacts && versionAuthorityProof && formalAckSha256 && { versionAuthority: { artifacts, runId: actual.runOnceId, submitBefore: release.phaseCutoffs[3],
+        formalProvisionerGrantAckSha256: formalAckSha256, verifyFormalGrantWithInspector: versionAuthorityProof.verifyFormalGrantWithInspector,
         verifyWithInspector: versionAuthorityProof.verifyWithInspector,
         verifyRelockWithInspector: versionAuthorityProof.verifyRelockWithInspector } }) }, now)(signal);
     return;
@@ -300,7 +307,7 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
       describeTenantStack: ports.aws.describeTenantStack.bind(ports.aws),
       applySupervisedTenantStack: (stack: Parameters<typeof submitStack>[0], x: { signal: AbortSignal }) => submitStack(stack, x.signal) };
     await bindReviewedSandboxFirstOpenWithExpress({ ...ports, aws, approval, approvedSha256: release.approvalSha256, reviewedTaskBinding: prepared.binding,
-      applicationLoginBefore: release.applicationLoginBefore,
+      applicationLoginBefore: release.applicationLoginBefore, formalProvisionerGrantAckSha256: formalAckSha256,
       sources: { provisionerCredentials: credentialSource, management, loadTenantPaymentMaterial, handoff: wire, controlMaterial } }, now)();
   } finally { await dispose?.(); }
 }

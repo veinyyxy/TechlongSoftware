@@ -20,6 +20,7 @@ type SecretAck = Parameters<FirstOnboardingIndependentHandoff["verifyInitialSecr
 const fail = (code: string): never => { throw Error("FIRST_OPEN_PAIRED_" + code); };
 const iso = (n: number) => new Date(n).toISOString();
 const equal = (l: unknown, r: unknown) => canonicalJson(l) === canonicalJson(r);
+const digest = (value: unknown): value is string => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 const fieldsMatch = (actual: Record<string, unknown>, expected: Record<string, unknown>) =>
   Object.entries(expected).every(([key, value]) => actual[key] === value);
 const secretPrefix = `arn:aws:secretsmanager:${scope.region}:${scope.account}:secret:${scope.secretName}-`;
@@ -27,6 +28,8 @@ const secretPrefix = `arn:aws:secretsmanager:${scope.region}:${scope.account}:se
 export type FirstOpenInspectorAuthority = {
   artifacts: Pick<ReturnType<typeof firstOpenGitHubAuthorityArtifacts>, "sourceSha256" | "readIntent" | "publishVerified" | "publishRelocked" | "relockBefore">;
   runId: string; submitBefore: number;
+  formalProvisionerGrantAckSha256: string;
+  verifyFormalGrant(signal: AbortSignal): Promise<{ executeAckSha256: string; receiptSha256: string }>;
   verifyInstalledPolicy(scope: VersionAuthorityScope, signal: AbortSignal): Promise<Record<string, unknown>>;
   verifyRelockedPolicy(scope: VersionAuthorityScope, signal: AbortSignal): Promise<FirstOpenVersionRelockProof>;
 };
@@ -99,10 +102,16 @@ export function pairFirstOpenApproval(wire: FirstOpenGitHubHandoff, approval: Ha
 }
 
 /** Only the three existing authorization/inspection gates; no Inspector credentials or raw facts. */
-export function firstOpenRunOnceHandoff(wire: FirstOpenGitHubHandoff, approvedTaskRelease?: FirstOpenTaskRelease): FirstOnboardingIndependentHandoff {
+export function firstOpenRunOnceHandoff(wire: FirstOpenGitHubHandoff, approvedTaskRelease?: FirstOpenTaskRelease,
+  expectedFormalGrantAckSha256?: string): FirstOnboardingIndependentHandoff {
   const taskRelease = approvedTaskRelease && structuredClone(approvedTaskRelease);
+  if (taskRelease ? !digest(expectedFormalGrantAckSha256) : expectedFormalGrantAckSha256 !== undefined) return fail("FORMAL_GRANT_BINDING");
   return {
-    async checkIdentity(signal) { await wire.take("01-inspector-ready", signal); },
+    async checkIdentity(signal) {
+      const { payload } = await wire.take("01-inspector-ready", signal);
+      if (taskRelease && (payload.formalProvisionerGrantAckSha256 !== expectedFormalGrantAckSha256 ||
+        !digest(payload.formalProvisionerGrantReceiptSha256))) return fail("FORMAL_GRANT_RECEIPT");
+    },
     async verifyInitialSecret(ack, signal) {
       const expected = await secretProjection(ack, signal);
       await wire.emit("02-g1-check-request", taskRelease ? { ...expected, g1ArnSuffix: ack.arn.slice(secretPrefix.length) } : expected, signal);
@@ -143,6 +152,11 @@ export function bindFirstOpenPairedInspect(input: {
   const approval = structuredClone(input.approval), seed = structuredClone(input.expectedSeed);
   const taggedG1 = approval.taskRelease !== undefined;
   if (taggedG1 && approval.express?.g1StandaloneTagProof !== FIRST_OPEN_G1_TAG_PROOF_MODE) return fail("G1_TAG_PROOF_APPROVAL");
+  const authority = input.versionAuthority, expectedFormalGrantAckSha256 = authority?.formalProvisionerGrantAckSha256;
+  if (taggedG1 && (!authority || !digest(expectedFormalGrantAckSha256) || typeof authority.verifyFormalGrant !== "function")) {
+    return fail("FORMAL_GRANT_BINDING");
+  }
+  const verifyFormalGrant = taggedG1 ? authority!.verifyFormalGrant.bind(authority) : undefined;
   pairFirstOpenApproval(input.wire, approval, input.approvalSha256);
   let used = false;
   return async (upstream: AbortSignal) => {
@@ -168,8 +182,20 @@ export function bindFirstOpenPairedInspect(input: {
       },
     }, scope.inspectorRole, now, approval.writeBefore);
     await independent.checkIdentity(signal);
+    let grantFields: Record<string, string> = {};
+    if (verifyFormalGrant) {
+      const claimBefore = approval.controlledWindow!.claimBefore, remaining = claimBefore - now();
+      if (remaining <= 0) return fail("FORMAL_GRANT_WINDOW");
+      const bounded = AbortSignal.any([signal, AbortSignal.timeout(remaining)]);
+      const proof = await verifyFormalGrant(bounded);
+      bounded.throwIfAborted();
+      if (now() >= claimBefore || !proof || proof.executeAckSha256 !== expectedFormalGrantAckSha256 || !digest(proof.receiptSha256)) {
+        return fail("FORMAL_GRANT_RECEIPT");
+      }
+      grantFields = { formalProvisionerGrantAckSha256: proof.executeAckSha256, formalProvisionerGrantReceiptSha256: proof.receiptSha256 };
+    }
     await input.wire.emit("01-inspector-ready", { inspectorRoleId: caller.roleId, inspectorSessionArnSha256: await sha256Hex(caller.arn),
-      credentialExpiresAtUtc: iso(caller.credentialExpiresAt), verifiedAtUtc: iso(issued) }, signal);
+      credentialExpiresAtUtc: iso(caller.credentialExpiresAt), verifiedAtUtc: iso(verifyFormalGrant ? now() : issued), ...grantFields }, signal);
     const request = await input.wire.take("02-g1-check-request", signal);
     const plannedG1 = { versionId: planned.versionId, externalFence: planned.epoch };
     const { arn, projection: expected } = taggedG1

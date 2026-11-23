@@ -7,13 +7,16 @@ import { FIRST_OPEN_AUTHORITY_RESOURCES, renderFirstOpenVersionGrantRelockTarget
 import { bindFirstOpenInspectorAuthorityReadback } from "./first-open-inspector-authority-readback.ts";
 import { firstOpenInspectorAuthorityReadScope } from "./first-open-inspector-iam.ts";
 import { firstOpenLifecycleAuthoritySchedule } from "./first-open-release-entry.ts";
-import { matchFirstOpenFormalProvisionerReceipt, type FirstOpenFormalProvisionerReceipt } from "./first-open-provisioner-lanes.ts";
+import { isFirstOpenFormalProvisionerChangeSetId, type FirstOpenFormalProvisionerGrantAck,
+  type FirstOpenFormalProvisionerReceipt } from "./first-open-provisioner-lanes.ts";
+import { firstOpenProvisionerProjection } from "./first-open-provisioner-policy.ts";
+import { verifyFirstOpenProvisionerPhase } from "./first-open-provisioner-readback.ts";
 import oidcContract from "./first-open-fc41597f-oidc-handoffs.prepared.json" with { type: "json" };
 
 type Reader = Awaited<ReturnType<typeof bindFirstOpenInspectorAuthorityReadback>>;
 type Readback = Awaited<ReturnType<Reader>>;
 type Target = Parameters<typeof renderFirstOpenVersionGrantRelockTargets>[0];
-type Binding = Omit<Parameters<typeof bindFirstOpenInspectorAuthorityReadback>[0], "credentials">;
+type Binding = Omit<Parameters<typeof bindFirstOpenInspectorAuthorityReadback>[0], "credentials" | "target">;
 type Credentials = Parameters<typeof bindFirstOpenInspectorAuthorityReadback>[0]["credentials"];
 type Phase = Parameters<Reader>[0];
 const fail = (): never => { throw Error("FIRST_OPEN_VERSION_AUTHORITY_OBSERVATION_MISMATCH"); };
@@ -38,8 +41,9 @@ export interface FirstOpenVersionAuthoritySource extends Binding {
   roles: Readback["roles"];
   policies: Readback["policies"];
   evidenceBucketPolicySha256: string;
-  /** Required in a real protected capsule; never an installation observation. */
-  formalProvisionerGrant?: FirstOpenFormalProvisionerReceipt;
+  /** Source's Execute acknowledgement only; the formal Inspector observes
+   * the result independently after startup, before a claim can proceed. */
+  formalProvisionerGrantAck?: FirstOpenFormalProvisionerGrantAck;
 }
 
 export interface FirstOpenVersionRelockProof {
@@ -49,13 +53,15 @@ export interface FirstOpenVersionRelockProof {
   relocked: true;
 }
 
-export async function requireFirstOpenFormalProvisionerGrant(v: FirstOpenVersionAuthoritySource, now = Date.now()) {
-  if (!v.release.taskRelease) return fail();
-  const scope = firstOpenInspectorAuthorityReadScope(v.release, v.releaseSha256);
-  return matchFirstOpenFormalProvisionerReceipt(v.formalProvisionerGrant, { release: v.release, releaseSha256: v.releaseSha256,
-    phase: "grant", scopeSha256: await sha256Hex(scope), exactOwnerStackArn: scope.ownerStackArn,
-    targetSha256: v.preGrantSha256, roles: v.roles.slice(0, 1), policies: v.policies.filter(p => p.policyArn === v.roles[0]?.boundaryArn),
-    evidenceBucketPolicySha256: v.evidenceBucketPolicySha256 }, now);
+export function requireFirstOpenFormalProvisionerGrantAck(v: FirstOpenVersionAuthoritySource, now = Date.now()) {
+  const { release, formalProvisionerGrantAck: ack } = v;
+  const deadline = Math.min(release.phaseCutoffs[0], release.claimBefore);
+  if (!release.taskRelease || !ack || Object.keys(ack).sort().join(",") !== "changeSetId,executedAt,targetSha256" ||
+    ![deadline, now, release.startAt, ack.executedAt].every(Number.isSafeInteger) ||
+    !isFirstOpenFormalProvisionerChangeSetId(ack.changeSetId, release.approvalSha256, "grant") ||
+    ack.executedAt < release.startAt || ack.executedAt > now || now >= deadline ||
+    !hex.test(ack.targetSha256) || ack.targetSha256 !== v.preGrantSha256) throw Error("FIRST_OPEN_FORMAL_PROVISIONER_ACK_UNBOUND");
+  return structuredClone(ack);
 }
 
 function authorCannotChangePolicy(template: Target, authorId: string) {
@@ -76,7 +82,8 @@ export async function checkFirstOpenVersionAuthoritySource(source: FirstOpenVers
   const v = structuredClone(source);
   const schedule = firstOpenLifecycleAuthoritySchedule(v.release);
   const scope = firstOpenInspectorAuthorityReadScope(v.release, v.releaseSha256);
-  if (!hex.test(protectedSourceSha256) || await sha256Hex(v) !== protectedSourceSha256 ||
+  if (Object.hasOwn(v, "target") || Object.hasOwn(v, "formalProvisionerGrant") ||
+    !hex.test(protectedSourceSha256) || await sha256Hex(v) !== protectedSourceSha256 ||
     await sha256Hex(v.release) !== v.releaseSha256 || await sha256Hex(v.preGrant) !== v.preGrantSha256 ||
     !hex.test(v.evidenceBucketPolicySha256) || v.roles.length !== scope.roles.length ||
     v.roles.some((r, i) => r.arn !== scope.roles[i] || r.roleId !== scope.roleIds[i] || !scope.boundaries.includes(r.boundaryArn) ||
@@ -154,6 +161,29 @@ export async function requireFirstOpenTemplateAuthor(source: FirstOpenVersionAut
     !roleDocs.flatMap(sts).some(hasPut) || !sts(boundary.PolicyDocument).some(hasPut)) {
     throw Error("FIRST_OPEN_TEMPLATE_AUTHOR_LOCKED_OR_UNVERIFIED");
   }
+  const projection = await firstOpenProvisionerProjection(source.preGrant);
+  if (projection.role.inline[0]?.name !== "FirstOpenFc41597fWriterFence" || !same(projection.role, attached) ||
+    !same(projection.policies, policies.filter(p => p.policyArn === projection.role.boundaryArn))) return fail();
+  return projection;
+}
+
+/** Independently compare a single formal Grant sample before the first
+ * phase cutoff. The sealed ACK supplies identity and timing, never proof. */
+export async function bindFirstOpenFormalProvisionerGrantComparison(
+  source: FirstOpenVersionAuthoritySource, protectedSourceSha256: string, read: Reader, now = Date.now,
+) {
+  const { v } = await checkFirstOpenVersionAuthoritySource(source, protectedSourceSha256);
+  const projection = await requireFirstOpenTemplateAuthor(v);
+  const { release, releaseSha256, evidenceBucketPolicySha256: expectedBucketSha256 } = v;
+  let used = false;
+  return async (signal: AbortSignal) => {
+    signal.throwIfAborted();
+    if (used) return fail();
+    used = true;
+    const ack = requireFirstOpenFormalProvisionerGrantAck(v, now());
+    return verifyFirstOpenProvisionerPhase({ release, releaseSha256, expectedBucketSha256, read, projection,
+      phase: "grant", ack, targetSha256: v.preGrantSha256, deadline: Math.min(release.phaseCutoffs[0], release.claimBefore), signal }, now);
+  };
 }
 
 /** This verifies deployed IAM documents and exact owner Change Set, not
@@ -205,28 +235,43 @@ export async function bindFirstOpenVersionAuthorityComparison(
 
 export function firstOpenInspectorVersionAuthorityProof(source: FirstOpenVersionAuthoritySource, sourceSha256: string, now = Date.now) {
   const v = structuredClone(source);
+  let preclaimAttempted = false;
+  let verifiedCredentials: Credentials | undefined;
+  const used = new Set<Phase>();
   const bind = async (credentials: Credentials) => {
-    // The inspected runtime may outlive claimBefore; the protected startup
-    // evidence must still have been captured before it, not regenerated now.
-    if (v.release.taskRelease) await requireFirstOpenFormalProvisionerGrant(v, now());
-    const read = await bindFirstOpenInspectorAuthorityReadback({ ...v, credentials }, now);
+    if (!verifiedCredentials || verifiedCredentials !== credentials) return fail();
+    const read = await bindFirstOpenInspectorAuthorityReadback({ release: v.release, releaseSha256: v.releaseSha256,
+      consent: v.consent, credentials }, now);
     return bindFirstOpenVersionAuthorityComparison(v, sourceSha256, read, now);
   };
-  return { sourceSha256, verifyWithInspector(credentials: Credentials) {
-    let used = false;
+  return { sourceSha256, verifyFormalGrantWithInspector(credentials: Credentials) {
+    return async (signal: AbortSignal): Promise<FirstOpenFormalProvisionerReceipt> => {
+      signal.throwIfAborted();
+      if (preclaimAttempted || typeof credentials !== "function") return fail();
+      preclaimAttempted = true;
+      requireFirstOpenFormalProvisionerGrantAck(v, now());
+      const read = await bindFirstOpenInspectorAuthorityReadback({ release: v.release, releaseSha256: v.releaseSha256,
+        consent: v.consent, target: "provisioner", credentials }, now);
+      const compare = await bindFirstOpenFormalProvisionerGrantComparison(v, sourceSha256, read, now);
+      const receipt = await compare(signal);
+      signal.throwIfAborted();
+      if (now() >= Math.min(v.release.phaseCutoffs[0], v.release.claimBefore)) return fail();
+      verifiedCredentials = credentials;
+      return receipt;
+    };
+  }, verifyWithInspector(credentials: Credentials) {
     return async (request: VersionAuthorityScope, signal: AbortSignal) => {
-      if (used) return fail();
-      used = true;
+      if (used.has("grant")) return fail();
+      used.add("grant");
       const verify = await bind(credentials);
       const checked = await verify("grant", request, signal);
       return { schema: "techlong/fc41597f-exact-cfn-version-authority/v2", ...checked, expiresAt: request.submitBefore,
         evidence: "MATCHED_INSTALLED_POLICY_DOCUMENTS" };
     };
   }, verifyRelockWithInspector(credentials: Credentials) {
-    let used = false;
     return async (request: VersionAuthorityScope, signal: AbortSignal): Promise<FirstOpenVersionRelockProof> => {
-      if (used) return fail();
-      used = true;
+      if (used.has("relock")) return fail();
+      used.add("relock");
       const verify = await bind(credentials);
       return { ...await verify("relock", request, signal), relocked: true as const };
     };

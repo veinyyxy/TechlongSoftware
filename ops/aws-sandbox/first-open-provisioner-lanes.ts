@@ -3,6 +3,7 @@ import type { FirstOpenFrozenRelease } from "./first-open-release-entry.ts";
 
 export type FirstOpenProvisionerLane = "install" | "formal-provisioner";
 export type FirstOpenProvisionerPhase = "grant" | "relock";
+export type FirstOpenFormalProvisionerGrantAck = { changeSetId: string; executedAt: number; targetSha256: string };
 const hex = /^[a-f0-9]{64}$/;
 const suffix = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
 const cfn = "arn:aws:cloudformation:ca-central-1:402010193138:";
@@ -11,6 +12,11 @@ const stop = (): never => { throw Error("FIRST_OPEN_FORMAL_PROVISIONER_RECEIPT_U
 export function firstOpenProvisionerChangeSetName(approvalSha256: string, lane: FirstOpenProvisionerLane, phase: FirstOpenProvisionerPhase) {
   if (!hex.test(approvalSha256) || (lane !== "install" && lane !== "formal-provisioner") || (phase !== "grant" && phase !== "relock")) return stop();
   return `fc41597f-${lane === "install" ? "install-provisioner" : "provisioner"}-${approvalSha256.slice(0, 24)}-${phase}`;
+}
+
+export function isFirstOpenFormalProvisionerChangeSetId(value: unknown, approvalSha256: string, phase: FirstOpenProvisionerPhase) {
+  const prefix = cfn + `changeSet/${firstOpenProvisionerChangeSetName(approvalSha256, "formal-provisioner", phase)}/`;
+  return typeof value === "string" && value.startsWith(prefix) && suffix.test(value.slice(prefix.length));
 }
 
 export type FirstOpenFormalProvisionerReceipt = {
@@ -47,8 +53,7 @@ export async function matchFirstOpenFormalProvisionerReceipt(receipt: FirstOpenF
     p.authorizationProved !== false || ![p.executeAckSha256, p.projectionSha256].every(x => typeof x === "string" && hex.test(x)) ||
     ![p.executedAt, p.checkedAt, now].every(Number.isSafeInteger) || !(r.startAt <= p.executedAt && p.executedAt <= p.checkedAt &&
       p.checkedAt <= now && p.checkedAt < (e.phase === "grant" ? r.claimBefore : r.writeBefore))) return stop();
-  const prefix = cfn + `changeSet/${firstOpenProvisionerChangeSetName(r.approvalSha256, "formal-provisioner", e.phase)}/`;
-  if (typeof p.changeSetId !== "string" || !p.changeSetId.startsWith(prefix) || !suffix.test(p.changeSetId.slice(prefix.length)) ||
+  if (!isFirstOpenFormalProvisionerChangeSetId(p.changeSetId, r.approvalSha256, e.phase) ||
     p.executeAckSha256 !== await sha256Hex({ changeSetId: p.changeSetId, executedAt: p.executedAt, targetSha256: p.targetSha256 }) ||
     p.provisionerDocumentsSha256 !== await sha256Hex({ roles: e.roles, policies: e.policies })) return stop();
   return p;

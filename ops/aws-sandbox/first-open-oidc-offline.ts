@@ -33,6 +33,9 @@ export const validFirstOpenG1ArnSuffix = (v: unknown): v is string => typeof v =
 export function firstOpenHandoffPayloadKeys(pair: FirstOpenHandoffPair, index: number) {
   const stage = schedule[index];
   if (!stage) return fail("SEQUENCE_CLOSED");
+  if (pair.taskRelease && stage.kind === "01-inspector-ready") {
+    return [...stage.keys, "formalProvisionerGrantAckSha256", "formalProvisionerGrantReceiptSha256"];
+  }
   // Only the server-assigned suffix is exposed; the exact name, account and
   // region are already pinned by the reader. The historical contract is unchanged.
   return pair.taskRelease && stage.kind === "02-g1-check-request" ? [...stage.keys, "g1ArnSuffix"] : stage.keys;

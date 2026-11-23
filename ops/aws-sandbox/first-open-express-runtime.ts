@@ -29,6 +29,7 @@ import type { SupervisedTenantStack } from "../../lib/deployments/execution/sing
 import { createFirstOpenControlledCfnAuthor, createFirstOpenControlledCfnSubmitter, firstOpenVersionAuthorityScope,
   type FirstOpenVersionAuthorityReader } from "./first-open-controlled-cfn.ts";
 import type { prepareFirstOpenInspectSeed } from "./first-open-inspect-input.ts";
+import type { FirstOpenFormalProvisionerReceipt } from "./first-open-provisioner-lanes.ts";
 import prepared from "./first-open-fc41597f-remaining-install.prepared.json" with { type: "json" };
 
 type Reviewed = Parameters<typeof bindReviewedSandboxFirstOpenRunOnce>[0];
@@ -418,7 +419,9 @@ export function bindFirstOpenExpressInspector(input: Omit<PairedInspect, "identi
   backendDirectory: string;
   inspectorCredentials: CredentialSource;
   readOnly(credentials: (signal: AbortSignal) => ReturnType<CredentialSource>): PairedInspect["readOnly"];
-  versionAuthority?: Omit<NonNullable<PairedInspect["versionAuthority"]>, "verifyInstalledPolicy" | "verifyRelockedPolicy"> & {
+  versionAuthority?: Omit<NonNullable<PairedInspect["versionAuthority"]>, "verifyFormalGrant" | "verifyInstalledPolicy" | "verifyRelockedPolicy"> & {
+    verifyFormalGrantWithInspector(credentials: ReturnType<typeof bindFirstOpenSession>["credentials"]):
+      (signal: AbortSignal) => Promise<FirstOpenFormalProvisionerReceipt>;
     verifyWithInspector(credentials: ReturnType<typeof bindFirstOpenSession>["credentials"]):
       NonNullable<PairedInspect["versionAuthority"]>["verifyInstalledPolicy"];
     verifyRelockWithInspector(credentials: ReturnType<typeof bindFirstOpenSession>["credentials"]):
@@ -432,7 +435,11 @@ export function bindFirstOpenExpressInspector(input: Omit<PairedInspect, "identi
   const load = createRequire(join(backendDirectory, "package.json"));
   return bindFirstOpenPairedInspect({ ...review, identify: inspector.identify, readOnly: readOnly(inspector.credentials),
     ...(versionAuthority && { versionAuthority: { runId: versionAuthority.runId, submitBefore: versionAuthority.submitBefore,
-      artifacts: versionAuthority.artifacts, verifyInstalledPolicy: versionAuthority.verifyWithInspector(inspector.credentials),
+      artifacts: versionAuthority.artifacts, formalProvisionerGrantAckSha256: versionAuthority.formalProvisionerGrantAckSha256,
+      async verifyFormalGrant(signal) {
+        const receipt = await versionAuthority.verifyFormalGrantWithInspector(inspector.credentials)(signal);
+        return { executeAckSha256: receipt.executeAckSha256, receiptSha256: await sha256Hex(receipt) };
+      }, verifyInstalledPolicy: versionAuthority.verifyWithInspector(inspector.credentials),
       verifyRelockedPolicy: versionAuthority.verifyRelockWithInspector(inspector.credentials) } }),
     database: { roleDirectorySql: load("./services/saas/aurora_role_directory_v2.js").ROLE_DIRECTORY_SQL,
       session: firstOpenReadSession(backendDirectory, express.target, FIRST_OPEN_INSPECTOR_SQL_USER, inspector.credentials) },
@@ -445,8 +452,9 @@ export function bindReviewedSandboxFirstOpenWithExpress(input: Omit<Reviewed, "p
   ports: Omit<Reviewed["ports"], "express" | "verifyEmptyExpressCapability">;
   sources: FirstOpenExpressSources;
   applicationLoginBefore: number; // from the frozen first-open release
+  formalProvisionerGrantAckSha256?: string;
 }, now: () => number = Date.now) {
-  const { sources, applicationLoginBefore, ...reviewed } = input, express = reviewed.approval.express;
+  const { sources, applicationLoginBefore, formalProvisionerGrantAckSha256, ...reviewed } = input, express = reviewed.approval.express;
   if (!express || !/^[a-f0-9]{64}$/.test(reviewed.approvedSha256)) return stopFirstOpen("REVIEW_SCOPE_REQUIRED");
   const taggedG1 = reviewed.approval.taskRelease !== undefined;
   if (taggedG1 && express.g1StandaloneTagProof !== FIRST_OPEN_G1_TAG_PROOF_MODE) return stopFirstOpen("G1_TAG_PROOF_APPROVAL_REQUIRED");
@@ -464,7 +472,7 @@ export function bindReviewedSandboxFirstOpenWithExpress(input: Omit<Reviewed, "p
     sts: new STSClient(secretConfig), loadTenantPaymentMaterial: sources.loadTenantPaymentMaterial,
     rememberOwnerSeed: sources.controlMaterial?.rememberOwnerSeed,
     ...(taggedG1 && { g1StandaloneTagProof: FIRST_OPEN_G1_TAG_PROOF_MODE }) });
-  const handoff = firstOpenRunOnceHandoff(sources.handoff, reviewed.approval.taskRelease);
+  const handoff = firstOpenRunOnceHandoff(sources.handoff, reviewed.approval.taskRelease, formalProvisionerGrantAckSha256);
   const cleanup = reviewed.ports.cleanupReadiness;
   return bindReviewedSandboxFirstOpenRunOnce({ ...reviewed, ports: { ...reviewed.ports, async verifyEmptyExpressCapability(x) {
     const remaining = reviewed.approval.controlledWindow!.claimBefore - now();
