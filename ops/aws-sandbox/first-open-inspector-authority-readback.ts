@@ -4,11 +4,13 @@ import { GetPolicyCommand, GetPolicyVersionCommand, GetRoleCommand, GetRolePolic
 import { GetBucketPolicyCommand, S3Client } from "@aws-sdk/client-s3";
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
 import { SANDBOX_FIRST_OPEN as s } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
+import { canonical as ordinal, hash as templateHash } from "../temporary-idle/environment-cfn.mjs";
 import { firstOpenInspectorAuthorityReadScope, firstOpenInspectorAuthorityReadStatements, type FirstOpenInspectorAuthorityReadConsent } from "./first-open-inspector-iam.ts";
 import type { FirstOpenFrozenRelease } from "./first-open-release-entry.ts";
 import { sdkConfig, type FirstOpenCredentials } from "./first-open-express-aws.ts";
 import { firstOpenInstallInspectorPolicies, firstOpenInstallProvisionerLane, firstOpenInstallProvisionerObservation,
   isFirstOpenInstallProvisionerChangeSetId, type FirstOpenInstallWindow, type FirstOpenInstallStagingScope } from "./first-open-install-inspector-scope.ts";
+import { parseCloudFormationTemplateDocument } from "./scripts/cloudformation-template-document.mjs";
 
 const fail = (): never => { throw Error("FIRST_OPEN_INSPECTOR_AUTHORITY_READBACK_UNPROVED"); };
 const sorted = (items: readonly string[]) => [...items].sort();
@@ -49,6 +51,73 @@ export async function bindFirstOpenInstallProvisionerReadback(input: {
     const observed = await read(...args);
     return { ...observed, schema: firstOpenInstallProvisionerObservation, lane: firstOpenInstallProvisionerLane,
       changeSetName: scope.changeSetNames[args[0] === "grant" ? 0 : 1] };
+  };
+}
+
+const sharedPredecessorChanges = [
+  { logicalId: "FirstOpenFc41597fLifecycleBoundary", type: "AWS::IAM::ManagedPolicy", action: "Add", replacement: null },
+  { logicalId: "ProvisionerRole", type: "AWS::IAM::Role", action: "Modify", replacement: "False" },
+  { logicalId: "TenantLifecycleTaskRole", type: "AWS::IAM::Role", action: "Modify", replacement: "False" },
+];
+const failShared = (): never => { throw Error("FIRST_OPEN_INSTALL_SHARED_PREDECESSOR_UNPROVED"); };
+
+/** Once under the separately identified install observer; no wait, polling,
+ * provider retry or use of an operator's response as independent evidence. */
+export async function bindFirstOpenInstallSharedPredecessorReadback(input: {
+  release: FirstOpenFrozenRelease; releaseSha256: string; window: FirstOpenInstallWindow; approvedScopeSha256: string;
+  staging: FirstOpenInstallStagingScope; credentials: Credentials;
+}, now = Date.now) {
+  const { credentials, ...data } = input;
+  const { release, releaseSha256, window, approvedScopeSha256, staging } = structuredClone(data);
+  const { scope } = await firstOpenInstallInspectorPolicies(release, releaseSha256, window, approvedScopeSha256, staging);
+  const timing = scope.staging?.sharedObservation, target = scope.staging?.targets.shared;
+  if (!timing || !target) return failShared();
+  const { ownerStackArn: exactOwnerStackArn } = scope, { at, before, changeSetName } = timing;
+  let used = false;
+  return async (signal: AbortSignal) => {
+    const start = now();
+    if (used || signal.aborted || start < at || start >= before) return failShared();
+    used = true;
+    const bounded = AbortSignal.any([signal, AbortSignal.timeout(before - start)]), options = { abortSignal: bounded };
+    let cfn: CloudFormationClient | undefined;
+    const insideWindow = () => { if (bounded.aborted || now() >= before) return failShared(); };
+    try {
+      cfn = new CloudFormationClient(sdkConfig(await credentials(bounded)));
+      insideWindow();
+      const stack = await cfn.send(new DescribeStacksCommand({ StackName: exactOwnerStackArn }), options);
+      insideWindow();
+      const current = stack.Stacks?.[0];
+      if (stack.NextToken || stack.Stacks?.length !== 1 || current?.StackId !== exactOwnerStackArn || current.StackStatus !== "UPDATE_COMPLETE" ||
+        current.ParentId || current.RootId || current.DeletionTime || current.RoleARN !== undefined) return failShared();
+      const change = await cfn.send(new DescribeChangeSetCommand({ StackName: exactOwnerStackArn, ChangeSetName: changeSetName }), options);
+      insideWindow();
+      const changeSetId = change.ChangeSetId, created = change.CreationTime?.getTime(), updated = current.LastUpdatedTime?.getTime();
+      if (change.NextToken || change.StackId !== exactOwnerStackArn || change.ChangeSetName !== changeSetName || !changeSetId ||
+        !isFirstOpenInstallProvisionerChangeSetId(changeSetId, changeSetName) || change.IncludeNestedStacks ||
+        change.RootChangeSetId || change.ParentChangeSetId || change.Status !== "CREATE_COMPLETE" || change.ExecutionStatus !== "EXECUTE_COMPLETE" ||
+        created === undefined || !Number.isSafeInteger(created) || created < window.startAt || created > now() ||
+        (updated !== undefined && (!Number.isSafeInteger(updated) || updated < created || updated > now())) ||
+        change.Changes?.length !== 3) return failShared();
+      const changes = change.Changes.map(x => {
+        const row = x.ResourceChange;
+        if (x.Type !== "Resource" || !row?.LogicalResourceId || row.ChangeSetId) return failShared();
+        return { logicalId: row.LogicalResourceId, type: row.ResourceType, action: row.Action, replacement: row.Replacement ?? null };
+      }).sort((x, y) => x.logicalId.localeCompare(y.logicalId));
+      if (canonicalJson(changes) !== canonicalJson(sharedPredecessorChanges)) return failShared();
+      const response = await cfn.send(new GetTemplateCommand({ StackName: exactOwnerStackArn, TemplateStage: "Original" }), options);
+      insideWindow();
+      if (!response.TemplateBody || !response.StagesAvailable?.includes("Original")) return failShared();
+      const original = parseCloudFormationTemplateDocument(response.TemplateBody), targetCanonicalSha256 = templateHash(original);
+      const targetBytes = Buffer.byteLength(JSON.stringify(ordinal(original)));
+      if (targetCanonicalSha256 !== target.targetCanonicalSha256 || targetBytes !== target.targetBytes) return failShared();
+      const changesSha256 = await sha256Hex(changes), checkedAt = now();
+      insideWindow();
+      return { schema: "techlong/fc41597f-install-shared-predecessor-observed/v1" as const, lane: firstOpenInstallProvisionerLane,
+        jobId: s.jobId, releaseSha256, approvalSha256: release.approvalSha256, authorityScopeSha256: approvedScopeSha256,
+        checkedAt, exactOwnerStackArn, changeSetName, changeSetId, targetCanonicalSha256, targetBytes, key: target.key,
+        changesSha256, executionAuthorized: false as const };
+    } catch { return failShared(); }
+    finally { cfn?.destroy(); }
   };
 }
 

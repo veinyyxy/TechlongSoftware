@@ -5,7 +5,7 @@ import { canonicalJson } from "../../lib/deployments/execution/hash.ts";
 const { bucket, jobId } = FIRST_OPEN_BASELINE_BINDING;
 const account = "402010193138", region = "ca-central-1";
 const source = { Account: account, Arn: `arn:aws:iam::${account}:user/techlong-sandbox-dev`, UserId: "AIDAV3GNMXTZEO7SHLC2X" };
-const phases = ["provisioner-grant", "provisioner-relock", "formal-provisioner-grant", "formal-provisioner-relock"] as const;
+const phases = ["shared-predecessor", "provisioner-grant", "provisioner-relock", "formal-provisioner-grant", "formal-provisioner-relock"] as const;
 type Phase = (typeof phases)[number];
 type Identity = Readonly<{ Account: string; Arn: string; UserId: string }>;
 const hex = /^[a-f0-9]{64}$/;
@@ -27,6 +27,11 @@ export type FirstOpenOwnerStageExpectation = Readonly<{
   putReceiptRawSha256: string;
   getReceiptRawSha256: string;
 }>;
+
+export function firstOpenSharedPredecessorChangeSetName(approvalSha256: string) {
+  if (!validSha(approvalSha256)) return fail("KEY_SCOPE");
+  return `fc41597f-install-shared-${approvalSha256.slice(0, 24)}-prepare`;
+}
 
 export function firstOpenOwnerStageKey(scope: Pick<FirstOpenOwnerStageExpectation, "approvalSha256" | "phase" | "targetCanonicalSha256">) {
   const { approvalSha256, phase, targetCanonicalSha256 } = scope;

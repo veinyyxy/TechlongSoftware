@@ -58,12 +58,12 @@ export function firstOpenSameRunUpload(paths: ReturnType<typeof checkedRunnerPat
   const names = new Set<string>();
   const lanes = new Set<string>(paths.role === "inspect" ? ["01-inspector-ready", "02-g1-metadata-observed", "03-runtime-observed",
     "cfn-version-observed", "cfn-version-relocked"] : paths.role === "runonce" ? ["02-g1-check-request", "03-runtime-check-request",
-      "cfn-version-request"] : paths.role === "install-readback" ? ["install-staging-readback"] : []);
+      "cfn-version-request"] : paths.role === "install-readback" ? ["install-staging-readback", "install-shared-predecessor-observed"] : []);
   return async ({ name, member, bytes, signal }) => {
     signal.throwIfAborted();
     const lane = /^fc41597f-[a-f0-9]{64}-([0-9a-z-]+)$/.exec(name)?.[1];
     if (!lane || !lanes.has(lane) || (paths.role === "install-readback" &&
-      name !== `fc41597f-${env.FIRST_OPEN_INSTALL_APPROVED_PLAN_SHA256}-install-staging-readback`) ||
+      name !== `fc41597f-${env.FIRST_OPEN_INSTALL_APPROVED_PLAN_SHA256}-${lane}`) ||
       member !== "handoff.json" || !bytes.length || bytes.length > 16_384 || names.has(name)) return fail("ARTIFACT_SCOPE");
     names.add(name);
     const dir = await mkdtemp(join(paths.temp, "first-open-handoff-")), output = join(dir, "outputs");

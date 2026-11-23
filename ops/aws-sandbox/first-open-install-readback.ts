@@ -6,7 +6,7 @@ import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.t
 import { FIRST_OPEN_BASELINE_BINDING, validFirstOpenVersionId } from "../../lib/deployments/execution/first-onboarding-baseline-versions.ts";
 import { SANDBOX_FIRST_OPEN as s } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
 import { canonical as ordinal, hash as templateHash } from "../temporary-idle/environment-cfn.mjs";
-import { bindFirstOpenInstallProvisionerReadback } from "./first-open-inspector-authority-readback.ts";
+import { bindFirstOpenInstallProvisionerReadback, bindFirstOpenInstallSharedPredecessorReadback } from "./first-open-inspector-authority-readback.ts";
 import { firstOpenInstallInspectorPolicies, firstOpenInstallProvisionerChangeSetName, firstOpenInstallProvisionerLane,
   firstOpenInstallProvisionerObservation, isFirstOpenInstallProvisionerChangeSetId, type FirstOpenInstallWindow,
   type FirstOpenInstallStagingScope } from "./first-open-install-inspector-scope.ts";
@@ -29,6 +29,9 @@ const hex = /^[a-f0-9]{64}$/, commit = /^[a-f0-9]{40}$/, id = /^[1-9][0-9]{0,19}
 const fail = (code: string): never => { throw Error("FIRST_OPEN_INSTALL_READBACK_" + code); };
 const same = (a: unknown, b: unknown) => canonicalJson(a) === canonicalJson(b);
 const phases = ["grant", "relock"] as const;
+const stagePhases = ["shared", ...phases] as const;
+type Stage = typeof stagePhases[number];
+const stagingPhase = (phase: Stage) => phase === "shared" ? "shared-predecessor" as const : phase === "grant" ? "provisioner-grant" as const : "provisioner-relock" as const;
 const planSchema = "techlong/fc41597f-independent-install-readback/v2" as const;
 const reportSchema = "techlong/fc41597f-independent-install-observed/v2" as const;
 type StagingUpload = { versionId: string; acknowledgedAt: number; putReceiptRawSha256: string };
@@ -46,20 +49,23 @@ export type FirstOpenInstallReadbackPlan = {
   window: FirstOpenInstallWindow;
   expectedBucketSha256: string;
   targets: Record<Phase, Target>;
-  staging?: { scope: FirstOpenInstallStagingScope; uploads: Partial<Record<Phase, StagingUpload>> };
+  staging?: { scope: FirstOpenInstallStagingScope; uploads: Partial<Record<Stage, StagingUpload>> };
 };
 
 /** Freeze coordinates from the actual install target bytes before any PUT.
  * The inner release approval is distinct from the outer installation plan SHA. */
-export function firstOpenInstallStagingKeys(release: FirstOpenFrozenRelease, targets: Targets, readBefore: number) {
-  const entries = ([ ["grant", targets.grant], ["relock", targets.restore] ] as const).flatMap(([phase, template]) => {
+export function firstOpenInstallStagingKeys(release: FirstOpenFrozenRelease, targets: Targets, readBefore: number, includeShared = false) {
+  // The shared transition installs exactly the same closed template that the
+  // later Provisioner Relock restores. Separate phases never share a key.
+  const entries = stagePhases.filter(phase => phase !== "shared" || includeShared).flatMap(phase => {
+    const template = phase === "grant" ? targets.grant : targets.restore;
     const targetBytes = Buffer.byteLength(JSON.stringify(ordinal(template))), targetCanonicalSha256 = templateHash(template);
-    if (targetBytes > 1_048_576) return fail("STAGE_SIZE");
+    if (targetBytes > 1_048_576 || (phase === "shared" && targetBytes <= 51_200)) return fail("STAGE_SIZE");
     if (targetBytes <= 51_200) return [];
     return [[phase, { targetBytes, targetCanonicalSha256, key: firstOpenOwnerStageKey({ approvalSha256: release.approvalSha256,
-      phase: phase === "grant" ? "provisioner-grant" : "provisioner-relock", targetCanonicalSha256 }) }]] as const;
+      phase: stagingPhase(phase), targetCanonicalSha256 }) }]] as const;
   });
-  return { readBefore, targets: Object.fromEntries(entries) as Partial<Record<Phase, { targetBytes: number; targetCanonicalSha256: string; key: string }>> };
+  return { readBefore, targets: Object.fromEntries(entries) as Partial<Record<Stage, { targetBytes: number; targetCanonicalSha256: string; key: string }>> };
 }
 
 /** Render only projections of exact reviewed templates, never the templates
@@ -70,10 +76,11 @@ export async function buildFirstOpenInstallReadbackPlan(input: Omit<FirstOpenIns
   const { targets, ...rest } = structuredClone(input);
   if (await sha256Hex(targets.grant) !== targets.grantSha256 || await sha256Hex(targets.restore) !== targets.restoreSha256) return fail("TARGET");
   if (rest.staging) {
-    const expected = firstOpenInstallStagingKeys(rest.release, targets, rest.staging.scope.readBefore);
+    const { sharedObservation } = rest.staging.scope;
+    const expected = firstOpenInstallStagingKeys(rest.release, targets, rest.staging.scope.readBefore, sharedObservation !== undefined);
     const pins = Object.fromEntries(Object.entries(expected.targets).map(([k, pin]) => [k,
       { targetBytes: pin.targetBytes, targetCanonicalSha256: pin.targetCanonicalSha256 }]));
-    if (!same(rest.staging.scope, { readBefore: expected.readBefore, targets: pins })) return fail("STAGE_TARGET");
+    if (!same(rest.staging.scope, { readBefore: expected.readBefore, targets: pins, ...(sharedObservation && { sharedObservation }) })) return fail("STAGE_TARGET");
   }
   const plan: FirstOpenInstallReadbackPlan = { ...rest, schema: planSchema, lane: firstOpenInstallProvisionerLane, jobId: s.jobId,
     targets: {
@@ -91,6 +98,10 @@ async function checkPlan(p: FirstOpenInstallReadbackPlan) {
   const { scope } = await firstOpenInstallInspectorPolicies(p.release, p.releaseSha256, p.window, p.authorityScopeSha256, p.staging?.scope);
   if (p.staging) {
     if (!scope.staging || !p.staging.uploads || !same(Object.keys(p.staging.uploads).sort(), Object.keys(scope.staging.targets).sort())) return fail("STAGE_UPLOAD");
+    const shared = scope.staging.targets.shared, relock = scope.staging.targets.relock;
+    if (shared && (!relock || shared.targetCanonicalSha256 !== relock.targetCanonicalSha256 || shared.targetBytes !== relock.targetBytes)) {
+      return fail("SHARED_PREIMAGE");
+    }
     for (const x of Object.values(p.staging.uploads)) {
       if (!x || !same(Object.keys(x).sort(), ["acknowledgedAt", "putReceiptRawSha256", "versionId"]) ||
         !validFirstOpenVersionId(x.versionId) || !hex.test(x.putReceiptRawSha256) || !Number.isSafeInteger(x.acknowledgedAt) ||
@@ -136,8 +147,8 @@ export async function readFirstOpenInstallStaging(a: Awaited<ReturnType<typeof a
   const deadline = scope.staging.readBefore, remaining = deadline - now();
   if (now() < plan.window.startAt || remaining <= 0) return fail("STAGE_WINDOW");
   const signal = AbortSignal.any([upstream, AbortSignal.timeout(remaining)]);
-  const receipts: Partial<Record<Phase, { rawSha256: string; receiptB64: string }>> = {};
-  for (const phase of phases) {
+  const receipts: Partial<Record<Stage, { rawSha256: string; receiptB64: string }>> = {};
+  for (const phase of stagePhases) {
     const pin = scope.staging.targets[phase];
     if (!pin) continue;
     signal.throwIfAborted();
@@ -162,7 +173,7 @@ export async function readFirstOpenInstallStaging(a: Awaited<ReturnType<typeof a
       const raw = hash.digest("hex"), checkedAt = now();
       if (bytes !== pin.targetBytes || raw !== pin.targetCanonicalSha256 || checkedAt >= deadline) return fail("STAGE_BODY");
       const receipt = Buffer.from(canonicalJson({ schema: "techlong/fc41597f-owner-stage-exact-get/v1", jobId: s.jobId,
-        approvalSha256: plan.release.approvalSha256, phase: phase === "grant" ? "provisioner-grant" : "provisioner-relock", checkedAt,
+        approvalSha256: plan.release.approvalSha256, phase: stagingPhase(phase), checkedAt,
         putReceiptRawSha256: upload.putReceiptRawSha256, source: { Account: identity.accountId, Arn: identity.arn,
           UserId: `${identity.roleId}:${scope.roleSessionName}` }, request: req, response: { ContentType: got.ContentType,
           ContentLength: bytes, ChecksumSHA256: checksum, ServerSideEncryption: "AES256", bodyRawSha256: raw,
@@ -270,6 +281,32 @@ export function assertFirstOpenInstallReadbackAck(report: Awaited<ReturnType<typ
   return p;
 }
 
+type SharedObservation = Awaited<ReturnType<Awaited<ReturnType<typeof bindFirstOpenInstallSharedPredecessorReadback>>>>;
+type SharedReport = { schema: "techlong/fc41597f-install-shared-predecessor-observed/v1"; jobId: string; planSha256: string;
+  authorityScopeSha256: string; runId: string; attempt: number; approvalSha256: string; result: SharedObservation };
+
+/** Compare the decoded report from the authenticated exact install run with
+ * the separate operator ACK. Neither report can substitute for the other. */
+export function assertFirstOpenInstallSharedPredecessorAck(report: SharedReport,
+  a: Awaited<ReturnType<typeof authorizeFirstOpenInstallReadback>>,
+  ack: { changeSetId: string; executedAt: number; targetSha256: string }) {
+  const { plan, scope, planSha256, runId } = a;
+  const shared = scope.staging?.sharedObservation, pin = scope.staging?.targets.shared, r = report?.result;
+  if (!shared || !pin || report.schema !== "techlong/fc41597f-install-shared-predecessor-observed/v1" || report.jobId !== s.jobId ||
+    report.planSha256 !== planSha256 || report.authorityScopeSha256 !== plan.authorityScopeSha256 || report.runId !== runId ||
+    report.attempt !== 1 || report.approvalSha256 !== plan.release.approvalSha256 || !r ||
+    r.schema !== report.schema || r.lane !== firstOpenInstallProvisionerLane || r.jobId !== s.jobId ||
+    r.releaseSha256 !== plan.releaseSha256 || r.approvalSha256 !== report.approvalSha256 || r.authorityScopeSha256 !== plan.authorityScopeSha256 ||
+    r.executionAuthorized !== false || r.exactOwnerStackArn !== scope.ownerStackArn || r.changeSetName !== shared.changeSetName ||
+    r.changeSetId !== ack.changeSetId || !isFirstOpenInstallProvisionerChangeSetId(ack.changeSetId, shared.changeSetName) ||
+    r.targetCanonicalSha256 !== pin.targetCanonicalSha256 || r.targetBytes !== pin.targetBytes || r.key !== pin.key || !hex.test(r.changesSha256) ||
+    ack.targetSha256 !== plan.targets.relock.templateSha256 || !Number.isSafeInteger(ack.executedAt) || !Number.isSafeInteger(r.checkedAt) ||
+    ack.executedAt < plan.staging!.scope.readBefore || r.checkedAt < Math.max(ack.executedAt, shared.at) || r.checkedAt >= shared.before) {
+    return fail("SHARED_EXECUTE_ACK");
+  }
+  return r;
+}
+
 export async function runFirstOpenInstallReadback(input: Parameters<typeof authorizeFirstOpenInstallReadback>[0] & { uploadEarly?: UploadEarly }) {
   const a = await authorizeFirstOpenInstallReadback(input);
   if (a.plan.staging && !input.uploadEarly) return fail("STAGE_ARTIFACT");
@@ -288,6 +325,24 @@ export async function runFirstOpenInstallReadback(input: Parameters<typeof autho
         bytes: Buffer.from(canonicalJson(evidence)), signal: early });
       early.throwIfAborted();
     } finally { client.destroy(); }
+  }
+  const shared = a.scope.staging?.sharedObservation;
+  if (staging && shared) {
+    const remaining = shared.before - Date.now();
+    if (remaining <= 0) return fail("SHARED_WINDOW");
+    const bounded = AbortSignal.any([signal, AbortSignal.timeout(remaining)]);
+    const wait = shared.at - Date.now();
+    if (wait > 0) await delay(wait, undefined, { signal: bounded });
+    const read = await bindFirstOpenInstallSharedPredecessorReadback({ release, releaseSha256, window,
+      approvedScopeSha256: authorityScopeSha256, credentials: observer.credentials, staging: staging.scope });
+    const result = await read(bounded);
+    bounded.throwIfAborted();
+    if (Date.now() >= shared.before) return fail("SHARED_WINDOW");
+    await input.uploadEarly!({ name: `fc41597f-${a.planSha256}-install-shared-predecessor-observed`, member: "handoff.json",
+      bytes: Buffer.from(canonicalJson({ schema: "techlong/fc41597f-install-shared-predecessor-observed/v1", jobId: s.jobId,
+        planSha256: a.planSha256, authorityScopeSha256, runId: a.runId, attempt: 1, approvalSha256: release.approvalSha256, result })),
+      signal: bounded });
+    bounded.throwIfAborted();
   }
   const read = await bindFirstOpenInstallProvisionerReadback({ release, releaseSha256, window,
     approvedScopeSha256: authorityScopeSha256, credentials: observer.credentials, staging: staging?.scope });
