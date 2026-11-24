@@ -70,6 +70,7 @@ interface RuntimeGrantProof {
 export function bindSandboxFirstOpenRunOnce(input: {
   approval: Approval;
   approvedSha256: string;
+  formalApprovalSha256?: string;
   sql: { review: SqlPort; claim: SqlPort; completion: SqlPort; inspection: SqlPort };
   aws: Pick<AwsSdkDeploymentAdapter, "region" | "getCallerIdentity" | "describeTenantStack" | "applySupervisedTenantStack">;
   ports: Omit<SandboxFirstOpenPorts, "readHeldJob" | "readFixedRelease" | "claimHeldJob" | "cloud" | "express"> & {
@@ -81,7 +82,7 @@ export function bindSandboxFirstOpenRunOnce(input: {
   verifyRuntimeGrant(expected: { approvalSha256: string; roleArn: string; grant: ReturnType<typeof sandboxFirstOpenPlannedSecretGrant> },
     signal: AbortSignal): Promise<RuntimeGrantProof>;
 }, now: () => number = Date.now) {
-  const { approval: original, approvedSha256, sql, aws, ports, runtimeGrantEvidenceSha256, verifyRuntimeGrant } = input;
+  const { approval: original, approvedSha256, formalApprovalSha256, sql, aws, ports, runtimeGrantEvidenceSha256, verifyRuntimeGrant } = input;
   if (new Set([sql.review, sql.claim, sql.completion, sql.inspection]).size !== 4 || !hex.test(runtimeGrantEvidenceSha256) ||
     !ports.cleanupReadiness.verifyBeforeClaim) throw Error("FIRST_OPEN_COMPOSITION_SCOPE");
   const approval = structuredClone(original);
@@ -139,7 +140,7 @@ export function bindSandboxFirstOpenRunOnce(input: {
       } },
     },
   }, now, input.reviewedTaskBinding);
-  return () => run(approval, approvedSha256);
+  return () => run(approval, approvedSha256, formalApprovalSha256);
 }
 
 type InjectedRun = Parameters<typeof bindSandboxFirstOpenRunOnce>[0];

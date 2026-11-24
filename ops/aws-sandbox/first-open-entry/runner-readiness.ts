@@ -10,6 +10,7 @@ import type { ReleaseMetadataApi } from "../../../lib/deployments/releases/sampl
 import type { FirstOpenInspectSeed } from "../first-open-inspect-input.ts";
 import { firstOpenCleanupPermissionEvidenceMatches, type FirstOpenCleanupPermissionObservation } from "../first-open-express-cleanup-review.ts";
 import { firstOpenExpressStorageProof } from "./express-encryption.mjs";
+import { verifyFirstOnboardingApprovalBinding } from "../../../lib/deployments/execution/first-onboarding-approval.ts";
 
 const hex = /^[a-f0-9]{64}$/;
 const source = `arn:aws:iam::${s.account}:user/techlong-sandbox-dev` as const;
@@ -153,8 +154,9 @@ export interface FirstOpenIndependentReadiness {
 }
 
 export async function bindFirstOpenRunOnceReadiness(input: { approval: FirstOnboardingExecutionApproval; approvalSha256: string;
-  seed: FirstOpenInspectSeed; versionId: string; evidence: FirstOpenIndependentReadiness; read: Read; now?: () => number }) {
-  const { approval, approvalSha256, seed, versionId } = input, now = input.now ?? Date.now;
+  formalApprovalSha256?: string; seed: FirstOpenInspectSeed; versionId: string; evidence: FirstOpenIndependentReadiness; read: Read; now?: () => number }) {
+  const { approval, approvalSha256, formalApprovalSha256, seed, versionId } = input, now = input.now ?? Date.now;
+  await verifyFirstOnboardingApprovalBinding(approval, approvalSha256, formalApprovalSha256).catch(() => fail("INDEPENDENT_EVIDENCE"));
   const e = structuredClone(input.evidence);
   const window = firstOpenExecutionWindow(approval.jobId, approval.writeBefore, approval.controlledWindow);
   const version = firstOpenVersion(approval.taskRelease);
@@ -176,7 +178,7 @@ export async function bindFirstOpenRunOnceReadiness(input: { approval: FirstOnbo
     appInstanceId !== s.instanceId || deploymentId !== s.deploymentId || environmentId !== s.environmentId ||
     artifactRef !== version.artifactRef ||
     (approval.taskRelease && (releaseId !== version.releaseId || !same(seed.release, approval.taskRelease))) ||
-    !hex.test(approvalSha256) || await sha256Hex(approval) !== approvalSha256 || !hex.test(e.restoredCellSha256) || !e.restoredCellCoordinates ||
+    !hex.test(e.restoredCellSha256) || !e.restoredCellCoordinates ||
     ![e.cleanupPermissions, e.grant].every(independent) ||
     [e.cleanupReview.jobId, e.cleanupPermissions.jobId, e.grant.jobId].some(v => v !== s.jobId) ||
     e.cleanupReview.scopeSha256 !== scopeSha256 || e.cleanupReview.workloadExpiresAt !== window.workloadExpiresAt ||

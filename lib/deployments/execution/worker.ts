@@ -10,6 +10,7 @@ import type { TenantWorkloadExecutionStrategy, WorkerTenantStack } from "./singl
 import { assertFirstOpenCleanupReadiness, createFirstOnboardingWorkloadStrategy, type SupervisedCleanupReadinessPort } from "./single-tenant-workload-strategy.ts";
 import { assertFirstOpenClaimTime, firstOpenExecutionWindow, type FirstOpenControlledWindow, type FirstOpenExecutionWindow } from "./first-onboarding-window.ts";
 import type { FirstOpenTaskRelease } from "./first-onboarding-version.ts";
+import { verifyFirstOnboardingApprovalBinding } from "./first-onboarding-approval.ts";
 import { reviewFirstOnboarding, SELECT_FIRST_ONBOARDING, CLAIM_FIRST_ONBOARDING, firstOnboardingClaimBindings,
   isFirstOnboardingScope, type FirstOnboardingReview, type FirstOnboardingReviewRow } from "../first-onboarding.ts";
 import { verifyFirstOnboardingRuntime, type FirstOnboardingIndependentHandoff, type FirstOnboardingRuntimeReader } from "./first-onboarding-inspection.ts";
@@ -1761,6 +1762,7 @@ async function handleReconcile(input: {
 }
 
 export interface FirstOnboardingExecutionApproval {
+  approvalBinding?: "deferred-cleanup-proof/v1";
   jobId: string;
   reviewSha256: string;
   capabilitySha256: string;
@@ -1783,6 +1785,7 @@ type FirstOnboardingDatabaseAdmission = { profile: "express_iam"; evidenceSha256
 export async function runReviewedFirstOnboarding(input: {
   approval: FirstOnboardingExecutionApproval;
   approvedSha256: string;
+  formalApprovalSha256?: string;
   config: DeploymentWorkerRuntimeConfig;
   dependencies: DeploymentWorkerDependencies;
   readJob: (sql: typeof SELECT_FIRST_ONBOARDING, bindings: [string]) => Promise<FirstOnboardingReviewRow | null>;
@@ -1807,7 +1810,9 @@ export async function runReviewedFirstOnboarding(input: {
     !input.verifyEmptyExpressCapability || a.writeBefore > now() + 60 * 60_000 ||
     !/^job_[a-f0-9]{24}$/.test(a.jobId) || ![a.reviewSha256, a.capabilitySha256, a.baselineDigest].every(hash => /^[a-f0-9]{64}$/.test(hash)) ||
     !/^[a-zA-Z0-9._-]{1,100}$/.test(a.databaseSchemaVersion) || !/^[a-z0-9][a-z0-9.-]{2,252}$/.test(a.dnsTarget) ||
-    await sha256Hex(a) !== input.approvedSha256) throw Error("FIRST_ONBOARDING_APPROVAL_MISMATCH");
+    !await verifyFirstOnboardingApprovalBinding(a, input.approvedSha256, input.formalApprovalSha256).catch(() => false)) {
+    throw Error("FIRST_ONBOARDING_APPROVAL_MISMATCH");
+  }
   const window = firstOpenExecutionWindow(a.jobId, a.writeBefore, a.controlledWindow);
   if (window) assertFirstOpenClaimTime(window, now());
   if (a.taskRelease && (!window || a.express?.target.managementUsername !== FIRST_OPEN_MANAGEMENT_SQL_USER ||

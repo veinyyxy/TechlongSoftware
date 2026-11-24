@@ -55,6 +55,20 @@ export function firstOpenLifecycleAuthoritySchedule(release: FirstOpenFrozenRele
   return Object.freeze({ grantNotBefore: schedule.grantNotBefore, relockNotBefore: schedule.relockNotBefore });
 }
 
+/** This value uses the same existing dispatcher pair input. In the split
+ * path pair the roles on the actual protected launch, not just the earlier
+ * intent: different accepted cleanup reports must not mix across jobs. */
+export async function firstOpenReleasePairSha256(release: FirstOpenFrozenRelease, trustedSha: string, approvedLaunchSha256?: string) {
+  if (approvedLaunchSha256 !== undefined && (!release.taskRelease || typeof approvedLaunchSha256 !== "string" ||
+    !digest.test(approvedLaunchSha256) || approvedLaunchSha256 === trustedSha)) return fail("PAIR_LAUNCH");
+  return sha256Hex({ domain: approvedLaunchSha256 === undefined ? contract.pairing.pairDomain : "techlong/sandbox-first-open-pair/approved-launch/v1",
+    jobId: release.jobId, approvalSha256: release.approvalSha256, callerCommitSha: release.callerCommit, runtimeCommitSha: release.runtimeCommit,
+    runOnceReusableRef: `${repo}/${runOncePath}@${release.runOnceReusableCommit}`,
+    inspectReusableRef: `${repo}/${inspectPath}@${release.inspectReusableCommit}`,
+    managementReusableRef: `${repo}/${firstOpenManagementReusablePath}@${release.managementReusableCommit}`,
+    pairNonce: release.nonce, approvedWindowSha256: trustedSha, ...(approvedLaunchSha256 !== undefined && { approvedLaunchSha256 }) });
+}
+
 /** The expected outer digest must come from the separately reviewed protected
  * entry, never from the same dispatcher input as the untrusted document. */
 export async function bindFirstOpenReleaseEntry(source: FirstOpenFrozenRelease, trustedSha: string, actual: {
@@ -62,6 +76,7 @@ export async function bindFirstOpenReleaseEntry(source: FirstOpenFrozenRelease, 
   attempt: number; repository: string; ref: string; workflowId: string; actorId: string;
   callerCommit: string; runtimeCommit: string; runtimeSourceSha256: string; reusableRef: string; pairSha256: string;
   inspectorSessionArnSha256: string;
+  approvedLaunchSha256?: string;
 }) {
   const p = structuredClone(source), t = p.phaseCutoffs;
   if (p.schema !== "techlong/sandbox-first-open-release/v1" || p.jobId !== contract.jobId || !digest.test(trustedSha) ||
@@ -80,10 +95,7 @@ export async function bindFirstOpenReleaseEntry(source: FirstOpenFrozenRelease, 
   firstOpenLifecycleAuthoritySchedule(p);
   const runOnceRef = `${repo}/${runOncePath}@${p.runOnceReusableCommit}`, inspectRef = `${repo}/${inspectPath}@${p.inspectReusableCommit}`;
   const managementRef = `${repo}/${firstOpenManagementReusablePath}@${p.managementReusableCommit}`;
-  const pairSha256 = await sha256Hex({ domain: contract.pairing.pairDomain, jobId: p.jobId, approvalSha256: p.approvalSha256,
-    callerCommitSha: p.callerCommit, runtimeCommitSha: p.runtimeCommit,
-    runOnceReusableRef: runOnceRef, inspectReusableRef: inspectRef, managementReusableRef: managementRef,
-    pairNonce: p.nonce, approvedWindowSha256: trustedSha });
+  const pairSha256 = await firstOpenReleasePairSha256(p, trustedSha, actual.approvedLaunchSha256);
   if (!["inspect", "runonce", "management"].includes(actual.role) || actual.repository !== repo || actual.ref !== "refs/heads/main" ||
     actual.attempt !== 1 || actual.workflowId !== p.workflowId || actual.actorId !== p.actorId ||
     actual.callerCommit !== p.callerCommit || actual.runtimeCommit !== p.runtimeCommit || actual.runtimeSourceSha256 !== p.runtimeSourceSha256 ||

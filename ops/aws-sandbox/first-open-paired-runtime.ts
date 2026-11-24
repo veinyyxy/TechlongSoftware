@@ -142,6 +142,7 @@ export function firstOpenRunOnceHandoff(wire: FirstOpenGitHubHandoff, approvedTa
  * The request body is not passed to these sources and cannot choose targets. */
 export function bindFirstOpenPairedInspect(input: {
   approval: Approval; approvalSha256: string; wire: FirstOpenGitHubHandoff;
+  formalApprovalSha256?: string;
   identify(signal: AbortSignal): Promise<FirstOpenCaller>;
   readOnly: Omit<FirstOnboardingReadOnlyPort, "caller" | "database">;
   database: { roleDirectorySql: string; session: FirstOpenReadSession };
@@ -150,6 +151,7 @@ export function bindFirstOpenPairedInspect(input: {
   versionAuthority?: FirstOpenInspectorAuthority;
 }, now: () => number = Date.now) {
   const approval = structuredClone(input.approval), seed = structuredClone(input.expectedSeed);
+  const { formalApprovalSha256 } = input;
   const taggedG1 = approval.taskRelease !== undefined;
   if (taggedG1 && approval.express?.g1StandaloneTagProof !== FIRST_OPEN_G1_TAG_PROOF_MODE) return fail("G1_TAG_PROOF_APPROVAL");
   const authority = input.versionAuthority, expectedFormalGrantAckSha256 = authority?.formalProvisionerGrantAckSha256;
@@ -162,7 +164,7 @@ export function bindFirstOpenPairedInspect(input: {
   return async (upstream: AbortSignal) => {
     if (used) return fail("INSPECT_ALREADY_USED");
     used = true;
-    await checkSandboxFirstOpenApproval(approval, input.approvalSha256, now());
+    await checkSandboxFirstOpenApproval(approval, input.approvalSha256, now(), formalApprovalSha256);
     const signal = AbortSignal.any([upstream, AbortSignal.timeout(approval.writeBefore - now())]);
     signal.throwIfAborted();
     const planned = await prepareFirstOpenInspectSeed(seed, input.expectedSeedSha256, approval, input.approvalSha256, signal);

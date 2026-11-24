@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
+import { FIRST_ONBOARDING_DEFERRED_CLEANUP_PROOF } from "../../lib/deployments/execution/first-onboarding-approval.ts";
 import { checkSandboxFirstOpenApproval } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
-import { bindFirstOpenReleaseEntry, firstOpenLifecycleAuthoritySchedule, firstOpenReleaseTransport,
+import { bindFirstOpenReleaseEntry, firstOpenLifecycleAuthoritySchedule, firstOpenReleasePairSha256, firstOpenReleaseTransport,
   type FirstOpenFrozenRelease } from "./first-open-release-entry.ts";
 import { bindFirstOpenExpressInspector, bindProtectedFirstOpenManagementClient, bindReviewedSandboxFirstOpenWithExpress,
   runProtectedFirstOpenManagement } from "./first-open-express-runtime.ts";
@@ -27,6 +28,8 @@ export interface FirstOpenLaunchRecord {
   schema: "techlong/sandbox-first-open-protected-launch/v1";
   release: FirstOpenFrozenRelease;
   approval: RuntimeApproval;
+  /** Full split approval SHA, read only from the authenticated launch record. */
+  formalApprovalSha256?: string;
   inspectorSeed: FirstOpenInspectSeed;
   hostSha256: Record<Mode, string>;
   /** Exact reviewed Inspector authority-read source; never a workflow input. */
@@ -41,7 +44,7 @@ export interface FirstOpenRolePorts {
   management(input: { signal: AbortSignal }): Promise<Managed<Pick<Management, "management" | "claimReader"> &
     Partial<Pick<Management, "controlledCfnPreclaimProof" | "versionAuthorityReader">>>>;
   runonce(input: { credentials: Writer["sources"]["provisionerCredentials"]; approvalSha256: string; signal: AbortSignal;
-    approval: RuntimeApproval; seed: FirstOpenInspectSeed; initialVersionId: string }):
+    approval: RuntimeApproval; formalApprovalSha256?: string; seed: FirstOpenInspectSeed; initialVersionId: string }):
     Promise<Managed<Pick<Writer, "sql" | "aws" | "middle" | "ports" | "runtimeGrantEvidenceSha256" | "verifyRuntimeGrant"> & {
       uploadOwn: HandoffUpload; loadTenantPaymentMaterial: Writer["sources"]["loadTenantPaymentMaterial"];
       controlMaterial: NonNullable<Writer["sources"]["controlMaterial"]>;
@@ -76,9 +79,9 @@ export async function authorizeFirstOpenLaunch(input: LocalLaunch, now = Date.no
     !hex.test(env.FIRST_OPEN_APPROVED_RELEASE_SHA256 ?? "") || env.FIRST_OPEN_APPROVED_RELEASE_SHA256 !== env.FIRST_OPEN_RELEASE ||
     !hex.test(env.FIRST_OPEN_APPROVED_LAUNCH_SHA256 ?? "") ||
     !(role === "inspect" ? env.FIRST_OPEN_INSPECT_RUN === "0" : id.test(env.FIRST_OPEN_INSPECT_RUN ?? ""))) return fail("GITHUB_CONTEXT");
-  const record = protectedJson(env.FIRST_OPEN_PROTECTED_RECORD);
+  const record = protectedJson(env.FIRST_OPEN_PROTECTED_RECORD), trustedLaunchSha256 = env.FIRST_OPEN_APPROVED_LAUNCH_SHA256!;
   if (record?.schema !== "techlong/sandbox-first-open-protected-launch/v1" ||
-    await sha256Hex(record) !== env.FIRST_OPEN_APPROVED_LAUNCH_SHA256 ||
+    await sha256Hex(record) !== trustedLaunchSha256 ||
     !same(Object.keys(record.hostSha256 ?? {}).sort(), ["inspect", "management", "runonce"]) ||
     !Object.values(record.hostSha256).every(s => hex.test(s))) return fail("PROTECTED_SEAL");
   const release = record.release, trustedReleaseSha256 = env.FIRST_OPEN_APPROVED_RELEASE_SHA256!;
@@ -87,7 +90,14 @@ export async function authorizeFirstOpenLaunch(input: LocalLaunch, now = Date.no
     release.runtimeCommit !== input.actualCheckout || release.runtimeCommit !== input.expectedCheckout ||
     !Number.isSafeInteger(release.startAt) || !Number.isSafeInteger(release.claimBefore) ||
     now < release.startAt || now >= release.claimBefore) return fail("CODE_OR_WINDOW");
-  const approval = await checkSandboxFirstOpenApproval(record.approval, release.approvalSha256, now);
+  const { formalApprovalSha256 } = record;
+  if (record.approval?.approvalBinding === FIRST_ONBOARDING_DEFERRED_CLEANUP_PROOF ? typeof formalApprovalSha256 !== "string" ||
+    !hex.test(formalApprovalSha256) || formalApprovalSha256 === release.approvalSha256 : formalApprovalSha256 !== undefined) {
+    return fail("FORMAL_APPROVAL_BINDING");
+  }
+  const approval = await checkSandboxFirstOpenApproval(record.approval, release.approvalSha256, now, formalApprovalSha256);
+  if (formalApprovalSha256 !== undefined && await firstOpenReleasePairSha256(release, trustedReleaseSha256,
+    trustedLaunchSha256) !== env.FIRST_OPEN_PAIR) return fail("FORMAL_APPROVAL_PAIR_BINDING");
   if (approval.writeBefore !== release.writeBefore || approval.controlledWindow?.startAt !== release.startAt ||
     approval.controlledWindow?.claimBefore !== release.claimBefore) return fail("APPROVAL_WINDOW");
   if (!same(release.taskRelease ?? null, approval.taskRelease ?? null)) return fail("TASK_RELEASE");
@@ -95,7 +105,7 @@ export async function authorizeFirstOpenLaunch(input: LocalLaunch, now = Date.no
   if (release.taskRelease ? typeof sourceSha !== "string" || !hex.test(sourceSha) || typeof grantAckSha !== "string" || !hex.test(grantAckSha)
     : sourceSha !== undefined || grantAckSha !== undefined) return fail("AUTHORITY_SOURCE_UNBOUND");
   firstOpenLifecycleAuthoritySchedule(release);
-  return { record, approval, trustedReleaseSha256 };
+  return { record, approval, trustedReleaseSha256, trustedLaunchSha256 };
 }
 
 /** The installer must independently review and supply the exact per-role
@@ -199,7 +209,8 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
   peerRunId: string;
   readHost?(role: Mode, sha: string): Promise<FirstOpenRolePorts>;
 }, upstream: AbortSignal, now = Date.now) {
-  const { env, role, peerRunId } = input, { record, approval, trustedReleaseSha256 } = await authorizeFirstOpenLaunch(input, now());
+  const { env, role, peerRunId } = input,
+    { record, approval, trustedReleaseSha256, trustedLaunchSha256 } = await authorizeFirstOpenLaunch(input, now());
   const release = record.release, ownRunId = env.GITHUB_RUN_ID!;
   if (!id.test(peerRunId) || peerRunId === ownRunId || (role !== "inspect" && peerRunId !== env.FIRST_OPEN_INSPECT_RUN)) return fail("PEER_RUN");
   const paths = { management: "management", runonce: "run-once", inspect: "inspect" };
@@ -210,10 +221,11 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
     callerCommit: env.GITHUB_SHA!, runtimeCommit: input.actualCheckout, runtimeSourceSha256: release.runtimeSourceSha256,
     reusableRef: `${repo}/.github/workflows/sandbox-first-open-${paths[role]}-job-v1.yml@${reuse[role]}`,
     pairSha256: env.FIRST_OPEN_PAIR!, inspectorSessionArnSha256: await sha256Hex(firstOpenSessionArn("inspector")),
+    ...(record.formalApprovalSha256 !== undefined && { approvedLaunchSha256: trustedLaunchSha256 }),
   };
   const { pair } = await bindFirstOpenReleaseEntry(release, trustedReleaseSha256, actual);
   const token = env.GH_TOKEN;
-  const sourceSha256 = record.versionAuthoritySourceSha256;
+  const { versionAuthoritySourceSha256: sourceSha256, formalApprovalSha256 } = record;
   const formalAckSha256 = record.formalProvisionerGrantAckSha256;
   if (!token) return fail("HANDOFF_TOKEN");
   const authorityArtifacts = (uploadOwn?: HandoffUpload) => sourceSha256 ? firstOpenGitHubAuthorityArtifacts({
@@ -228,7 +240,7 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
   signal.throwIfAborted();
   const getToken = firstOpenRunnerOidc(env);
   const hostInput = {
-    release, trustedReleaseSha256, actual, approval,
+    release, trustedReleaseSha256, actual, approval, formalApprovalSha256,
     scope: { approvalSha256: release.approvalSha256, releaseSha256: trustedReleaseSha256, runId: actual.runOnceId,
       writeBefore: release.writeBefore, applicationLoginBefore: release.applicationLoginBefore, express: approval.express!,
       fence: { fence: prepared.epoch.resourceFence, externalFence: prepared.epoch }, initialVersionId: prepared.versionId },
@@ -285,7 +297,7 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
       typeof versionAuthorityProof.verifyWithInspector !== "function" ||
       typeof versionAuthorityProof.verifyRelockWithInspector !== "function")) return fail("AUTHORITY_SOURCE_UNBOUND");
     const { wire } = await firstOpenReleaseTransport(release, trustedReleaseSha256, { ...actual, role }, { token, uploadOwn, now });
-    await bindFirstOpenExpressInspector({ approval, approvalSha256: release.approvalSha256, wire,
+    await bindFirstOpenExpressInspector({ approval, approvalSha256: release.approvalSha256, formalApprovalSha256, wire,
       expectedSeed: record.inspectorSeed, expectedSeedSha256: release.inspectorSeedSha256,
       inspectorCredentials: credentialSource, backendDirectory, readOnly,
       ...(artifacts && versionAuthorityProof && formalAckSha256 && { versionAuthority: { artifacts, runId: actual.runOnceId, submitBefore: release.phaseCutoffs[3],
@@ -295,7 +307,7 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
     return;
   }
   const { uploadOwn, loadTenantPaymentMaterial, controlMaterial, dispose, ...ports } = await host.runonce({ credentials: credentialSource,
-    approvalSha256: release.approvalSha256, approval, seed: record.inspectorSeed, initialVersionId: prepared.versionId, signal });
+    approvalSha256: release.approvalSha256, approval, formalApprovalSha256, seed: record.inspectorSeed, initialVersionId: prepared.versionId, signal });
   try {
     if (!controlMaterial) return fail("RUNONCE_CONTROL_UNBOUND");
     const { wire } = await firstOpenReleaseTransport(release, trustedReleaseSha256, { ...actual, role }, { token, uploadOwn, now });
@@ -306,7 +318,8 @@ export async function launchFirstOpenJob(input: LocalLaunch & {
     const aws = { region: ports.aws.region, getCallerIdentity: ports.aws.getCallerIdentity.bind(ports.aws),
       describeTenantStack: ports.aws.describeTenantStack.bind(ports.aws),
       applySupervisedTenantStack: (stack: Parameters<typeof submitStack>[0], x: { signal: AbortSignal }) => submitStack(stack, x.signal) };
-    await bindReviewedSandboxFirstOpenWithExpress({ ...ports, aws, approval, approvedSha256: release.approvalSha256, reviewedTaskBinding: prepared.binding,
+    await bindReviewedSandboxFirstOpenWithExpress({ ...ports, aws, approval, approvedSha256: release.approvalSha256, formalApprovalSha256,
+      reviewedTaskBinding: prepared.binding,
       applicationLoginBefore: release.applicationLoginBefore, formalProvisionerGrantAckSha256: formalAckSha256,
       sources: { provisionerCredentials: credentialSource, management, loadTenantPaymentMaterial, handoff: wire, controlMaterial } }, now)();
   } finally { await dispose?.(); }

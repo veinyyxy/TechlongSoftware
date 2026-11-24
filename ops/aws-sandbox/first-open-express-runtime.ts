@@ -294,6 +294,7 @@ export function bindFirstOpenFixedManagement(input: FixedManagementInput, now = 
 type ManagementHost = {
   release: FirstOpenFrozenRelease;
   trustedReleaseSha256: string;
+  formalApprovalSha256?: string;
   actual: Parameters<typeof bindFirstOpenReleaseEntry>[2];
   approval: Reviewed["approval"];
   scope: FirstOpenManagementScope;
@@ -338,7 +339,7 @@ async function checkManagementHost(input: ManagementHost, role: "management" | "
     canonicalJson(input.approval.taskRelease ?? null) !== canonicalJson(release.taskRelease ?? null) ||
     canonicalJson(scope.express) !== canonicalJson(input.approval.express)) return stopFirstOpen("MANAGEMENT_HOST_CHANGED");
   await bindFirstOpenReleaseEntry(release, input.trustedReleaseSha256, actual);
-  await checkSandboxFirstOpenApproval(input.approval, release.approvalSha256, now());
+  await checkSandboxFirstOpenApproval(input.approval, release.approvalSha256, now(), input.formalApprovalSha256);
 }
 
 /** Only the pinned management reusable may host the privileged provider.

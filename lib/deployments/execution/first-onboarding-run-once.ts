@@ -4,6 +4,7 @@ import { FIRST_OPEN_MANAGEMENT_SQL_USER, parseExpressManagementTargetV3 } from "
 import { awsSandboxTenantStackName } from "../cloudformation/tenant-stack.ts";
 import type { AwsDeploymentPort, DeploymentExecutionBinding, DeploymentExecutionRepository, DeploymentJobLeaseFence } from "./contracts.ts";
 import { FIRST_OPEN_BASELINE_BINDING, isFixedFirstOpenBaseline } from "./first-onboarding-baseline-versions.ts";
+import { verifyFirstOnboardingApprovalBinding } from "./first-onboarding-approval.ts";
 import { firstOpenBuyerBinding } from "./first-open-buyer-binding.ts";
 import { assertFirstOpenClaimTime, FIRST_OPEN_CELL_STACK, firstOpenExecutionWindow } from "./first-onboarding-window.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
@@ -79,9 +80,9 @@ const forbidden = async (): Promise<never> => { throw Error("FIRST_OPEN_RUN_OPER
 const correctStackArn = (id: string) => id.startsWith(stackArnPrefix) &&
   /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(id.slice(stackArnPrefix.length));
 
-export async function checkSandboxFirstOpenApproval(approval: Approval, sha: string, now: number) {
+export async function checkSandboxFirstOpenApproval(approval: Approval, sha: string, now: number, formalApprovalSha256?: string) {
   const a = structuredClone(approval), e = a.express, complete = a.completion;
-  requireScope(hex.test(sha) && await sha256Hex(a) === sha, "APPROVAL_SHA");
+  requireScope(await verifyFirstOnboardingApprovalBinding(a, sha, formalApprovalSha256).catch(() => false), "APPROVAL_SHA");
   requireScope(Number.isSafeInteger(a.writeBefore) && now < a.writeBefore && a.writeBefore - now <= 3600000, "WINDOW");
   requireScope(e && a.jobId === s.jobId && a.hostname === s.hostname && a.databaseSchemaVersion === s.schemaVersion &&
     hex.test(a.reviewSha256) && hex.test(a.capabilitySha256) &&
@@ -112,8 +113,8 @@ export async function checkSandboxFirstOpenApproval(approval: Approval, sha: str
 export function createSandboxFirstOpenRunOnce(ports: SandboxFirstOpenPorts, now: () => number = Date.now,
   reviewedTaskBinding?: DeploymentExecutionBinding) {
   let used = false;
-  return async (approval: Approval, approvedSha256: string) => {
-    const a = await checkSandboxFirstOpenApproval(approval, approvedSha256, now());
+  return async (approval: Approval, approvedSha256: string, formalApprovalSha256?: string) => {
+    const a = await checkSandboxFirstOpenApproval(approval, approvedSha256, now(), formalApprovalSha256);
     const version = firstOpenVersion(a.taskRelease), artifact = version.artifactRef;
     if (reviewedTaskBinding) requireScope(isFirstOpenTaskBinding(reviewedTaskBinding, approvedSha256), "TASK_BINDING_UNSEALED");
     requireScope(!used && ports.cloud.region === s.region, "ENTRY_ALREADY_USED_OR_REGION");
@@ -213,7 +214,7 @@ export function createSandboxFirstOpenRunOnce(ports: SandboxFirstOpenPorts, now:
       },
     };
     return runReviewedFirstOnboarding({
-      approval: a, approvedSha256, dependencies: d, cleanupReadiness: ports.cleanupReadiness, expressPorts: ports.express,
+      approval: a, approvedSha256, formalApprovalSha256, dependencies: d, cleanupReadiness: ports.cleanupReadiness, expressPorts: ports.express,
       config: { workerEnabled: false, applyEnabled: false, confirmation: "", expectedAccountId: s.account,
         expectedRegion: s.region, workerRoleArn: s.workerRole, environmentKey: "aws-sandbox-ca-central-1",
         leaseDurationMs: 120000, pollIntervalMs: 10000 },

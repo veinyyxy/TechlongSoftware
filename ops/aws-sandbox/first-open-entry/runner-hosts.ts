@@ -121,7 +121,7 @@ export const firstOpenHost = Object.freeze({ runonce: runOnceHost(JSON.parse(${d
 }
 
 export function runOnceHost(input: ReviewedRunOnceHostInputs): FirstOpenRolePorts["runonce"] {
-  return async ({ credentials, approvalSha256, approval, seed, initialVersionId, signal }) => {
+  return async ({ credentials, approvalSha256, formalApprovalSha256, approval, seed, initialVersionId, signal }) => {
     if (!hex.test(approvalSha256) || input.approvedSha256 !== approvalSha256 ||
       !input.control || !input.independentReadiness || !hex.test(initialVersionId)) return fail("RUNONCE_EVIDENCE");
     if (input.control.evidence.clientTrustStoreArn !== input.independentReadiness.restoredCellCoordinates?.controlTrustStoreArn) {
@@ -131,7 +131,7 @@ export function runOnceHost(input: ReviewedRunOnceHostInputs): FirstOpenRolePort
     const session = bindFirstOpenSession("provisioner", credentials, approval.writeBefore);
     const cfg = sdkConfig(() => session.credentials(signal));
     let readApi: Promise<ReturnType<typeof releaseMetadataApi>> | undefined;
-    const readiness = await bindFirstOpenRunOnceReadiness({ approval, approvalSha256, seed, versionId: initialVersionId,
+    const readiness = await bindFirstOpenRunOnceReadiness({ approval, approvalSha256, formalApprovalSha256, seed, versionId: initialVersionId,
       evidence: input.independentReadiness, read: { async read<T>(service: string, operation: string, args: Record<string, unknown>) {
         signal.throwIfAborted();
         readApi ??= (async () => {
