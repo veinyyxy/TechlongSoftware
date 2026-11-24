@@ -1,9 +1,9 @@
 name: Reviewed Sandbox first open
-run-name: ${{ inputs.mode == 'inspect' && format('first-open-fc41597f-inspect-{0}', inputs.pair_sha) || format('first-open-fc41597f-runonce-{0}-{1}', inputs.pair_sha, inputs.inspect_run) }}
+run-name: ${{ inputs.mode == 'cleanup-verify' && format('first-open-fc41597f-cleanup-verify-{0}', inputs.pair_sha) || inputs.mode == 'install-readback' && format('first-open-fc41597f-install-readback-{0}', inputs.pair_sha) || inputs.mode == 'inspect' && format('first-open-fc41597f-inspect-{0}', inputs.pair_sha) || format('first-open-fc41597f-runonce-{0}-{1}', inputs.pair_sha, inputs.inspect_run) }}
 on:
   workflow_dispatch:
     inputs:
-      mode: { type: choice, options: [inspect, runonce], required: true }
+      mode: { type: choice, options: [inspect, runonce, install-readback, cleanup-verify], required: true }
       pair_sha: { type: string, required: true }
       release_sha: { type: string, required: true }
       inspect_run: { type: string, default: '0', required: true }
@@ -13,23 +13,29 @@ permissions:
   id-token: write
 jobs:
   inspect:
-    if: inputs.mode == 'inspect' && inputs.inspect_run == '0' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && github.repository_owner_id == '14145707' && github.actor_id == '14145707'
-    uses: veinyyxy/TechlongSoftware/.github/workflows/sandbox-first-open-inspect-job-v1.yml@43cb1d81fcb64e15f465dcec07066bf8255f36bb
+    if: (inputs.mode == 'inspect' || inputs.mode == 'install-readback') && inputs.inspect_run == '0' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && github.repository_owner_id == '14145707' && github.actor_id == '14145707'
+    uses: veinyyxy/TechlongSoftware/.github/workflows/sandbox-first-open-inspect-job-v1.yml@81652eb637770f3369997759601a5b80b1dbc84d
     with:
       pair_sha: ${{ inputs.pair_sha }}
       release_sha: ${{ inputs.release_sha }}
-      inspect_run: ${{ inputs.inspect_run }}
+      inspect_run: ${{ inputs.mode == 'install-readback' && 'install-readback' || inputs.inspect_run }}
   runonce:
     if: inputs.mode == 'runonce' && inputs.inspect_run != '0' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && github.repository_owner_id == '14145707' && github.actor_id == '14145707'
-    uses: veinyyxy/TechlongSoftware/.github/workflows/sandbox-first-open-run-once-job-v1.yml@43cb1d81fcb64e15f465dcec07066bf8255f36bb
+    uses: veinyyxy/TechlongSoftware/.github/workflows/sandbox-first-open-run-once-job-v1.yml@81652eb637770f3369997759601a5b80b1dbc84d
     with:
       pair_sha: ${{ inputs.pair_sha }}
       release_sha: ${{ inputs.release_sha }}
       inspect_run: ${{ inputs.inspect_run }}
   management:
     if: inputs.mode == 'runonce' && inputs.inspect_run != '0' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && github.repository_owner_id == '14145707' && github.actor_id == '14145707'
-    uses: veinyyxy/TechlongSoftware/.github/workflows/sandbox-first-open-management-job-v1.yml@43cb1d81fcb64e15f465dcec07066bf8255f36bb
+    uses: veinyyxy/TechlongSoftware/.github/workflows/sandbox-first-open-management-job-v1.yml@81652eb637770f3369997759601a5b80b1dbc84d
     with:
       pair_sha: ${{ inputs.pair_sha }}
       release_sha: ${{ inputs.release_sha }}
       inspect_run: ${{ inputs.inspect_run }}
+  cleanup:
+    if: inputs.mode == 'cleanup-verify' && inputs.inspect_run == '0' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && github.repository_owner_id == '14145707' && github.actor_id == '14145707'
+    uses: veinyyxy/TechlongSoftware/.github/workflows/sandbox-first-open-cleanup-verify-v1.yml@81652eb637770f3369997759601a5b80b1dbc84d
+    with:
+      intent_sha: ${{ inputs.pair_sha }}
+      installation_sha: ${{ inputs.release_sha }}
