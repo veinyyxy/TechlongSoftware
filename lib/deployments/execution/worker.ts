@@ -1306,7 +1306,7 @@ async function handleApply(input: {
   workerId: string;
   aws: AwsDeploymentPort;
   stack?: WorkerTenantStack;
-  firstOnboarding?: { baselineDigest: string; window?: FirstOpenExecutionWindow };
+  firstOnboarding?: { baselineDigest: string; window?: FirstOpenExecutionWindow; onWorkloadStart?(): Promise<void> };
 }): Promise<{ stack: WorkerTenantStack; stackId: string } | void> {
   if (["planned", "retry_wait"].includes(input.context.deployment.status)) {
     await moveState({
@@ -1436,6 +1436,7 @@ async function handleApply(input: {
       false,
     );
   }
+  await input.firstOnboarding?.onWorkloadStart?.();
   await heartbeat({
     dependencies: input.dependencies,
     context: input.context,
@@ -1798,6 +1799,7 @@ export async function runFirstOnboardingManagement(input: {
   checkWindow(): void;
   baselineDigest: string;
   window?: FirstOpenExecutionWindow;
+  onWorkloadStart?(): Promise<void>;
 }) {
   const { dependencies, config, workerId, loadContext, checkWindow, baselineDigest, window } = input;
   const now = dependencies.now ?? Date.now;
@@ -1825,7 +1827,7 @@ export async function runFirstOnboardingManagement(input: {
   await ensureExecutionCleanup({ ...base, context, now: now() });
   checkWindow();
   const aws = await dependencies.awsFactory({ region: context.environment.region, workerRoleArn: context.binding!.workerRoleArn });
-  const applied = await handleApply({ ...base, context, aws, firstOnboarding: { baselineDigest, window } });
+  const applied = await handleApply({ ...base, context, aws, firstOnboarding: { baselineDigest, window, onWorkloadStart: input.onWorkloadStart } });
   if (!applied) throw Error("FIRST_ONBOARDING_CREATE_NOT_PROVED");
   await handleReconcile({ ...base, context: await reload(), aws, stack: applied.stack, firstOnboarding: { stackId: applied.stackId } });
   return { ...applied, context: await reload() };

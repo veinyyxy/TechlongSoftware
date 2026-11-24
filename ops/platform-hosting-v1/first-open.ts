@@ -4,6 +4,8 @@ import { promisify } from "node:util";
 import { isFirstOpenExecutionId, runEcsFirstOpen, type EcsFirstOpenPorts } from "../../lib/deployments/execution/ecs-first-open.ts";
 import { loadFirstOpenBackend } from "./first-open-backend.mjs";
 
+export { createEcsFirstOpenTaskPorts } from "../../lib/deployments/execution/ecs-first-open-runtime.ts";
+
 class FirstOpenEntryError extends Error {}
 
 const runTool = promisify(execFile);
@@ -28,7 +30,7 @@ export async function checkFirstOpenImageDependencies() {
 
 async function loadRuntime(): Promise<EcsFirstOpenPorts> {
   await checkFirstOpenImageDependencies();
-  // T1 uses injected resource ports. A deployed task remains closed until the approved runtime is wired.
+  // Offline composition supplies resource ports. A deployed task requires an approved runtime.
   throw new FirstOpenEntryError("ECS_FIRST_OPEN_RUNTIME_UNAVAILABLE");
 }
 

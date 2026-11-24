@@ -883,12 +883,25 @@ export const firstOpenExecutions = pgTable("first_open_executions", {
 	reviewSha256: text("review_sha256").notNull(),
 	approvedBy: text("approved_by").notNull().references(() => users.id, { onDelete: "restrict" }),
 	approvedAt: bigint("approved_at", { mode: "number" }).notNull(),
+	dispatchToken: text("dispatch_token"),
+	dispatchStartedAt: bigint("dispatch_started_at", { mode: "number" }),
+	dispatchTaskArn: text("dispatch_task_arn").unique("first_open_executions_dispatch_task_arn_key"),
+	dispatchOutcome: text("dispatch_outcome"),
 }, (table) => [
 	check("first_open_executions_id_check", sql`${table.id} ~ '^exec_[a-f0-9]{32}$'`),
 	check("first_open_executions_release_id_check", sql`${table.releaseId} ~ '^release_[a-f0-9]{32}$'`),
 	check("first_open_executions_artifact_ref_check", sql`${table.artifactRef} ~ '@sha256:[a-f0-9]{64}$'`),
 	check("first_open_executions_review_sha256_check", sql`${table.reviewSha256} ~ '^[a-f0-9]{64}$'`),
 	check("first_open_executions_approved_at_check", sql`${table.approvedAt} > 0`),
+	check("first_open_executions_dispatch_check", sql`(
+		(${table.dispatchStartedAt} IS NULL AND ${table.dispatchToken} IS NULL AND ${table.dispatchOutcome} IS NULL AND ${table.dispatchTaskArn} IS NULL)
+		OR (${table.dispatchStartedAt} >= ${table.approvedAt} AND ${table.dispatchToken} = ${table.id} AND (
+			(${table.dispatchOutcome} IS NULL AND ${table.dispatchTaskArn} IS NULL)
+			OR (${table.dispatchOutcome} IN ('failed', 'unknown') AND ${table.dispatchTaskArn} IS NULL)
+			OR (${table.dispatchOutcome} = 'acknowledged'
+				AND ${table.dispatchTaskArn} ~ '^arn:aws:ecs:[a-z0-9-]+:[0-9]{12}:task/[A-Za-z0-9_-]{1,255}/[0-9a-f]{32}$')
+		))
+	) IS TRUE`),
 ]);
 
 export const firstOpenExecutionEvents = pgTable("first_open_execution_events", {

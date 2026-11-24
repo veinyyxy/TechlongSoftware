@@ -6,6 +6,7 @@ import {
   type AuthenticatedUser,
 } from "./session";
 import { getDatabase } from "@/db";
+import { firstOpenVisibilityJoins, visibleFirstOpenStatus, withFirstOpenVisibility } from "@/lib/instances/first-open-visibility";
 import {
   canAccessWorkspace,
   type WorkspaceRole,
@@ -267,7 +268,7 @@ export async function getPlatformOverview() {
     failedPaymentsResult,
     appInstancesResult,
     activeAppInstancesResult,
-  ] = await db.batch([
+  ] = await withFirstOpenVisibility(enabled => db.batch([
     db.prepare("SELECT COUNT(*) AS count FROM users"),
     db.prepare("SELECT COUNT(*) AS count FROM workspaces"),
     db.prepare("SELECT COUNT(*) AS count FROM workspace_members"),
@@ -282,8 +283,10 @@ export async function getPlatformOverview() {
       "SELECT COUNT(*) AS count FROM payment_records WHERE status = 'failed'",
     ),
     db.prepare("SELECT COUNT(*) AS count FROM app_instances"),
-    db.prepare("SELECT COUNT(*) AS count FROM app_instances WHERE status = 'active'"),
-  ]);
+    db.prepare(enabled
+      ? `SELECT COUNT(*) AS count FROM app_instances ai ${firstOpenVisibilityJoins} WHERE (${visibleFirstOpenStatus}) = 'active'`
+      : "SELECT COUNT(*) AS count FROM app_instances WHERE status = 'active'"),
+  ]));
 
   const count = (result: DatabaseResult<unknown>) =>
     Number((result.results[0] as { count?: number } | undefined)?.count ?? 0);

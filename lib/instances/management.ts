@@ -10,6 +10,9 @@ import {
   parseTemplateConfiguration,
   type TemplateConfiguration,
 } from "@/lib/templates/validation";
+import {
+  firstOpenVisibilityJoins, visibleFirstOpenAccessUrl, visibleFirstOpenProvisionedAt, visibleFirstOpenStatus, withFirstOpenVisibility,
+} from "./first-open-visibility";
 import type {
   AppInstanceInput,
   AppInstanceStatus,
@@ -161,7 +164,7 @@ function toAppInstanceView(row: AppInstanceRow): AppInstanceView {
   };
 }
 
-const appInstanceSelect = `
+const appInstanceSelect = (firstOpenVisibility: boolean) => `
   SELECT
     ai.id, ai.workspace_id, w.name AS workspace_name,
     w.status AS workspace_status, ai.product_id, p.name AS product_name,
@@ -174,8 +177,10 @@ const appInstanceSelect = `
     template_version.version AS template_version,
     ai.configuration_snapshot,
     ai.name, ai.slug, ai.domain,
-    ai.access_url, ai.seller_apk_url, ai.tenant_key, ai.provisioning_source,
-    ai.status, ai.provisioned_at,
+    ${firstOpenVisibility ? visibleFirstOpenAccessUrl : "ai.access_url"} AS access_url,
+    ai.seller_apk_url, ai.tenant_key, ai.provisioning_source,
+    ${firstOpenVisibility ? visibleFirstOpenStatus : "ai.status"} AS status,
+    ${firstOpenVisibility ? visibleFirstOpenProvisionedAt : "ai.provisioned_at"} AS provisioned_at,
     ai.suspended_at, ai.created_by_user_id, u.name AS created_by_name,
     ai.created_at, ai.updated_at
   FROM app_instances ai
@@ -197,7 +202,8 @@ const appInstanceSelect = `
     ON template_version.id = ai.template_version_id
   LEFT JOIN app_instance_templates template
     ON template.id = template_version.template_id
-  INNER JOIN users u ON u.id = ai.created_by_user_id`;
+  INNER JOIN users u ON u.id = ai.created_by_user_id
+  ${firstOpenVisibility ? firstOpenVisibilityJoins : ""}`;
 
 export async function listProducts(input?: {
   status?: ProductStatus | "";
@@ -241,35 +247,33 @@ export async function listAppInstances(input?: {
     );
     bindings.push(pattern, pattern, pattern, pattern, pattern, pattern);
   }
-  if (status) {
-    clauses.push("ai.status = ?");
-    bindings.push(status);
-  }
   if (input?.workspaceId) {
     clauses.push("ai.workspace_id = ?");
     bindings.push(input.workspaceId);
   }
 
-  const statement = getDatabase().prepare(
-    `${appInstanceSelect}
-     ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
-     ORDER BY ai.created_at DESC
-     LIMIT 200`,
-  );
-  const result = await (bindings.length
-    ? statement.bind(...bindings)
-    : statement
-  ).all<AppInstanceRow>();
+  const result = await withFirstOpenVisibility(async enabled => {
+    const statusColumn = enabled ? visibleFirstOpenStatus : "ai.status";
+    const filters = status ? [...clauses, `(${statusColumn}) = ?`] : clauses;
+    const parameters = status ? [...bindings, status] : bindings;
+    const statement = getDatabase().prepare(
+      `${appInstanceSelect(enabled)}
+       ${filters.length ? `WHERE ${filters.join(" AND ")}` : ""}
+       ORDER BY ai.created_at DESC
+       LIMIT 200`,
+    );
+    return (parameters.length ? statement.bind(...parameters) : statement).all<AppInstanceRow>();
+  });
   return result.results.map(toAppInstanceView);
 }
 
 export async function getAppInstance(
   instanceId: string,
 ): Promise<AppInstanceView | null> {
-  const row = await getDatabase()
-    .prepare(`${appInstanceSelect} WHERE ai.id = ? LIMIT 1`)
+  const row = await withFirstOpenVisibility(enabled => getDatabase()
+    .prepare(`${appInstanceSelect(enabled)} WHERE ai.id = ? LIMIT 1`)
     .bind(instanceId)
-    .first<AppInstanceRow>();
+    .first<AppInstanceRow>());
   return row ? toAppInstanceView(row) : null;
 }
 

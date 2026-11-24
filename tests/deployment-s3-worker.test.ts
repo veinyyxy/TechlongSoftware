@@ -245,8 +245,14 @@ test("supervised SDK accepts only finalized immutable material and rechecks prov
   assert.throws(() => finalizeSupervisedTenantStack({ rendered, context, expectedRuntimeSecretName: tenantRuntimeSecretName }));
 });
 
-async function firstOpenFixture(expressPlan = false, fixedTask = false) {
+async function firstOpenFixture(expressPlan = false, fixedTask = false, postgresClock?: () => number) {
   const { context, readiness } = await supervisedFixture(), cycle = await cycleFixture();
+  const clock = postgresClock ?? (() => now);
+  if (postgresClock) {
+    const startedAt = postgresClock();
+    context.appInstance.templateVersionId = "tplver_restaurant_standard_v1";
+    Object.assign(readiness, { verifiedAt: startedAt, expiresAt: startedAt + 7200_000 });
+  }
   const calls: string[] = [], transitions: string[] = [];
   const release = structuredClone(cycle.planningInput.release);
   release.id = "release_" + "a".repeat(32);
@@ -320,7 +326,8 @@ async function firstOpenFixture(expressPlan = false, fixedTask = false) {
       assert.equal(request.hostname, approval.hostname);
       assert.equal(request.databaseName, resource.identity.databaseName);
       const facts = cycle.facts();
-      Object.assign(facts, { observedAt: now, checks: facts.checks.map(c => ({ ...c, checkedAt: now })), stackId, stackStatus: "CREATE_COMPLETE",
+      const observedAt = clock();
+      Object.assign(facts, { observedAt, checks: facts.checks.map(c => ({ ...c, checkedAt: observedAt })), stackId, stackStatus: "CREATE_COMPLETE",
         template: stack.template, tags: stack.tags, parameters: stack.parameters, roleArn: stack.cloudFormationRoleArn,
         persistentUploadsReady: false, artifact: { ...facts.artifact, repository: release.image.repository } });
       facts.resources = Object.fromEntries(stack.resourceInventory.map(({ logicalId, type }) => [logicalId,
@@ -361,7 +368,7 @@ async function firstOpenFixture(expressPlan = false, fixedTask = false) {
       controlClient: { waitUntilHealthy: async () => ({ ready: true, desiredConfigurationHash: null, imageRevision: null }),
         provision: async () => { calls.push("configure"); return { accepted: true }; },
         readConfiguration: async () => ({ ready: true, desiredConfigurationHash: scope.configurationHash, imageRevision: release.image.manifestDigest }) },
-      now: () => now,
+      now: clock,
     },
   };
   return { options, context, calls, transitions, row, release, readiness, stack: () => ({ applied: applied!, stackId }) };
@@ -420,6 +427,27 @@ test("ECS first open runs a single claim, real management and a fresh self-check
   assert.equal(context.deployment.status, "verifying");
   await assert.rejects(run(), /ECS_FIRST_OPEN_CLAIM_UNCONFIRMED/);
   assert.equal(calls.filter(call => call === "create").length, 1);
+});
+
+const firstOpenT3PgBin = process.env.FIRST_OPEN_T3_PG_BIN;
+test("T3 offline approval, simulated ECS, same-process opening and native PostgreSQL readback", {
+  skip: !firstOpenT3PgBin && "set FIRST_OPEN_T3_PG_BIN to the local PostgreSQL 16.14 binaries",
+  timeout: 120_000,
+}, async t => {
+  const { verifyFirstOpenT3 } = await import(new URL("./first-open-t3.fixture.mjs", import.meta.url).href);
+  const bundle = process.env.FIRST_OPEN_T3_COMPILED === "1"
+    ? await import(new URL("../dist/first-open/first-open.mjs", import.meta.url).href)
+    : null;
+  if (bundle) {
+    assert.equal(typeof bundle.runFirstOpenCommand, "function");
+    assert.equal(typeof bundle.createEcsFirstOpenTaskPorts, "function");
+  }
+  await verifyFirstOpenT3(t, firstOpenT3PgBin, {
+    createFixture: () => firstOpenFixture(true, false, Date.now),
+    tenantLifecycleOutput,
+    runFirstOpenCommand: bundle?.runFirstOpenCommand ?? runFirstOpenCommand,
+    createTaskPorts: bundle?.createEcsFirstOpenTaskPorts,
+  });
 });
 
 test("ECS first open stops before claim with no approval, a different instance, or missing dependencies", async () => {

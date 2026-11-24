@@ -122,7 +122,9 @@ const SUMMARY_COLUMNS = `instance.id AS "instanceId", (opened.id IS NULL AND ins
       CASE WHEN instance.status = 'active' AND bound_deployment.status = 'ready' AND bound_job.status = 'succeeded'
         THEN 'succeeded' ELSE 'unknown' END
     WHEN bound_job.status IS NULL OR bound_job.status NOT IN ('pending', 'running')
-      OR (bound_job.status = 'running' AND bound_job.lease_owner IS DISTINCT FROM opened.id) THEN 'unknown'
+      OR (bound_job.status = 'running' AND (bound_job.lease_owner IS DISTINCT FROM opened.id
+        OR bound_job.lease_expires_at IS NULL
+        OR bound_job.lease_expires_at <= (extract(epoch FROM clock_timestamp()) * 1000)::bigint)) THEN 'unknown'
     WHEN progress.step IN ('database_initialization', 'api_deployment', 'self_check', 'activation')
       OR (bound_job.status = 'running' AND bound_job.lease_owner = opened.id) THEN 'running'
     ELSE 'waiting'

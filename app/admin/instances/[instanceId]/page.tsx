@@ -55,6 +55,7 @@ export default async function InstanceDetailPage({ params, searchParams }: Insta
     ? (await listFirstOpenAdminSummaries(account.user, [instance.id]))[0]
     : null);
   const showFirstOpen = firstOpenSummary && (firstOpenSummary.execution || instance.status === "pending");
+  const activationUnconfirmed = firstOpenSummary?.execution && deployment?.status === "ready" && instance.provisionedAt === null;
   const state = { label: appInstanceStatusLabels[instance.status], tone: appInstanceStatusTone(instance.status) };
 
   const subscriptionIsActive = instance.subscriptionStatus === "active";
@@ -185,7 +186,7 @@ export default async function InstanceDetailPage({ params, searchParams }: Insta
         {deployment ? (
           <>
             <dl className="detail-list">
-              <div><dt>计划状态</dt><dd>{deployment.status}</dd></div>
+              <div><dt>计划状态</dt><dd>{activationUnconfirmed ? "激活结果未确认" : deployment.status}</dd></div>
               <div><dt>执行模式</dt><dd>{deployment.mode}{deployment.mode === 'plan_only' ? '（仅规划）' : '（受控执行；当前承载以验收回执为准）'}</dd></div>
               <div><dt>驱动与版本</dt><dd>{deployment.driver} · {deployment.workflowVersion}</dd></div>
               <div><dt>资源档位</dt><dd>{getDeploymentProfile(deployment.deploymentProfileKey).label}</dd></div>

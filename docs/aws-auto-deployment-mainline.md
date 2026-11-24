@@ -2,11 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前主线状态：SaaS 租户首开 T2 已完成（2026-11-24，温尼伯）
+## 当前主线状态：SaaS 租户首开 T3 已验收（2026-11-24，温尼伯）
 
-**当前唯一继续点是 T2 实例级审批、状态与日志。** 用户确认按 [SaaS 首开 ECS 迁移方案](saas-first-open-ecs-migration-plan.md)实施 T1–T3。本轮用 A、B 两条实例离线验证审批范围、并发、重复点击、越权和日志只读。进展和证据写回[方案第 6.1 节](saas-first-open-ecs-migration-plan.md#61-跟踪表每次推进更新哪一行)。T4 安装、T5 单实例真实验收分别另审，原云环境继续停费。
+**当前唯一继续点已在 T3 验收收尾，等待用户确认后续阶段。** 按原方案完成模拟 ECS 单次启动、同进程自检、原子激活、页面回读及故障验证。T4 安装、T5 单实例真实验收分别另审，原云环境继续停费。[方案第 6.1 节](saas-first-open-ecs-migration-plan.md#61-跟踪表每次推进更新哪一行)
 
-T1 的同镜像双入口断网验收与 T2 的 A/B 实例审批和只读日志验收均已通过，本轮在 T2 收尾。[T1 完成记录](saas-first-open-ecs-migration-plan.md#t1-完成记录2026-11-24-164542温尼伯) · [T2 完成记录](saas-first-open-ecs-migration-plan.md#t2-完成记录2026-11-24温尼伯)
+T1 同镜像双入口、T2 实例级审批和 T3 模拟 ECS 串联的离线验收均已通过。[T1 完成记录](saas-first-open-ecs-migration-plan.md#t1-完成记录2026-11-24-164542温尼伯) · [T2 完成记录](saas-first-open-ecs-migration-plan.md#t2-完成记录2026-11-24温尼伯) · [T3 完成记录](saas-first-open-ecs-migration-plan.md#t3-完成记录2026-11-24温尼伯)
 
 ## 历史：D2 六阶段已完成（2026-11-17，温尼伯）
 
