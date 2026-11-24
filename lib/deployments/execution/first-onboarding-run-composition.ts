@@ -159,7 +159,8 @@ export function bindReviewedSandboxFirstOpenRunOnce(input: Omit<InjectedRun, "po
   }
   const { planHash, configurationHash } = middle;
   const bound = bindSandboxFirstOpenMiddle({ scope: { approvalSha256: approvedSha256, planHash,
-    configurationHash, writeBefore: approval.writeBefore, window: approval.controlledWindow, taskRelease: approval.taskRelease },
+    configurationHash, writeBefore: approval.writeBefore, window: approval.controlledWindow, taskRelease: approval.taskRelease,
+    secondSlot: approval.express?.secondSlot },
     sql: middle.sql, dynamo: middle.dynamo, cloud: aws, now });
   return bindSandboxFirstOpenRunOnce({ ...input, validateHeldBeforeClaim(held) {
     if (held.deployment.planHash !== planHash || held.deployment.configurationHash !== configurationHash) throw Error("FIRST_OPEN_MIDDLE_HELD_CHANGED");

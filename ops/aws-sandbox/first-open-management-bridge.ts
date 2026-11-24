@@ -4,6 +4,8 @@ import { compileExpressBootstrapCandidateV3 } from "../../lib/deployments/execut
 import { firstOnboardingInitialSecretVersion, type FirstOnboardingDatabaseIdentity, type FirstOnboardingExpressApproval,
   type FirstOnboardingExpressPorts } from "../../lib/deployments/execution/first-onboarding-express.ts";
 import { FIRST_OPEN_BASELINE_BINDING, validFirstOpenVersionId } from "../../lib/deployments/execution/first-onboarding-baseline-versions.ts";
+import { firstOpenMiddleOperationHash } from "../../lib/deployments/execution/first-onboarding-middle.ts";
+import { verifyFirstOpenTaskRelease, type FirstOpenTaskRelease } from "../../lib/deployments/execution/first-onboarding-version.ts";
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
 import { SANDBOX_FIRST_OPEN as s, SANDBOX_FIRST_OPEN_STACK } from "../../lib/deployments/execution/first-onboarding-run-once.ts";
 import type { FirstOpenFixedManagement } from "./first-open-express-runtime.ts";
@@ -109,6 +111,18 @@ export function firstOpenManagementMailbox(aws: Pick<S3Client, "send">, side: Si
 
 export type FirstOpenManagementScope = { approvalSha256: string; releaseSha256: string; runId: string; writeBefore: number; applicationLoginBefore: number;
   express: FirstOnboardingExpressApproval; fence: Omit<FirstOpenFenceInput, "signal">; initialVersionId: string };
+type ManagementBridgeInput = FirstOpenManagementScope & { taskRelease?: FirstOpenTaskRelease };
+
+/** Match the same fixed plan and configuration as Neon claim/middle. The
+ * historical digest remains valid only for the original no-task-release path. */
+export async function firstOpenManagementOperationSha256(taskRelease?: FirstOpenTaskRelease) {
+  if (taskRelease === undefined) return prepared.scope.expectedProvisionOperationSha256;
+  const release = structuredClone(taskRelease);
+  await verifyFirstOpenTaskRelease(release);
+  return firstOpenMiddleOperationHash({ planHash: prepared.scope.planSha256, configurationHash: prepared.scope.configurationSha256,
+    taskRelease: release });
+}
+
 type Result = Awaited<ReturnType<FirstOnboardingExpressPorts["database"][Step]>>;
 type Reply = { scope: string; slot: number; requestSha256: string | null; result: Result | null };
 type Request = { scope: string; slot: number; step: Step; previousReplySha256: string; runtimeSecretArn: string | null };
@@ -117,13 +131,13 @@ const usableArn = (arn: unknown): arn is string => typeof arn === "string" && ar
 const record = (raw: unknown, names: string[]) => {
   if (!raw || typeof raw !== "object" || !same(Object.keys(raw).sort(), names)) return fail("MESSAGE_SHAPE");
 };
-async function setup(input: FirstOpenManagementScope) {
+async function setup(input: ManagementBridgeInput) {
   const scope = structuredClone(input), { approvalSha256, releaseSha256, runId, writeBefore, applicationLoginBefore, fence, express, initialVersionId } = scope;
   if (![approvalSha256, releaseSha256, initialVersionId].every(x => hex.test(x)) || !/^[1-9][0-9]{0,19}$/.test(runId) ||
     ![writeBefore, applicationLoginBefore].every(Number.isSafeInteger) || applicationLoginBefore > writeBefore ||
-    fence.externalFence.operationHash !== prepared.scope.expectedProvisionOperationSha256 ||
     await sha256Hex(fence.fence.identity.workspaceId) !== s.workspaceSha256) return fail("RELEASE_SCOPE");
   sameFirstOpenFence({ ...fence, signal: new AbortController().signal });
+  if (fence.externalFence.operationHash !== await firstOpenManagementOperationSha256(scope.taskRelease)) return fail("RELEASE_SCOPE");
   if (initialVersionId !== await firstOnboardingInitialSecretVersion({ approvalSha256, name: s.secretName, jobId: s.jobId,
     epoch: fence.externalFence, baselineDigest: FIRST_OPEN_BASELINE_BINDING.objects.archive.sha256 })) return fail("VERSION_CHANGED");
   const identity = fence.fence.identity;
@@ -143,7 +157,7 @@ function within(signal: AbortSignal, deadline: number, now: () => number) {
 
 /** RunOnce receives this port, never a lifecycle signer/session/driver.
  * All stage parameters that can affect SQL are frozen on the other side. */
-export async function firstOpenManagementClient(input: FirstOpenManagementScope, wire: Mailbox, now = Date.now,
+export async function firstOpenManagementClient(input: ManagementBridgeInput, wire: Mailbox, now = Date.now,
   author?: (stack: Parameters<NonNullable<FirstOpenFixedManagement["submitStack"]>>[0], signal: AbortSignal) =>
     Promise<{ requestSha256: string; versionId: string; putAcknowledgedAt: number }>): Promise<FirstOpenFixedManagement> {
   const { scope, scopeHash, program } = await setup(input);
@@ -228,7 +242,7 @@ export async function firstOpenManagementClient(input: FirstOpenManagementScope,
 /** Protected job owns this loop and its local fixed port. The only inbound
  * content is an operation index, preceding receipt hash, and g1 ARN metadata.
  * The claim/fence gate is independently read, not a boolean from RunOnce. */
-export async function serveFirstOpenManagement(input: FirstOpenManagementScope, wire: Mailbox, management: FirstOpenFixedManagement,
+export async function serveFirstOpenManagement(input: ManagementBridgeInput, wire: Mailbox, management: FirstOpenFixedManagement,
   verifyClaim: (signal: AbortSignal) => Promise<void>, upstream: AbortSignal, now = Date.now,
   submit?: (request: { arn: string; identity: FirstOnboardingDatabaseIdentity; requestSha256: string; versionId: string;
     putAcknowledgedAt: number; signal: AbortSignal }) => Promise<{ stackId: string }>) {

@@ -4,6 +4,7 @@ import { AuthorityBackedTenantExternalOwnershipProvider, type AtomicTenantExtern
 import { RepositoryTenantExternalOwnershipCoordinator, tenantExternalOperationHash } from "./external-ownership-coordinator.ts";
 import { SANDBOX_FIRST_OPEN as s, SANDBOX_FIRST_OPEN_STACK, type SandboxFirstOpenPorts } from "./first-onboarding-run-once.ts";
 import { firstOpenExecutionWindow, type FirstOpenControlledWindow } from "./first-onboarding-window.ts";
+import { assertFirstOpenSecondSlot, type FirstOpenSecondSlotApproval } from "./first-open-second-slot.ts";
 import type { DeploymentJobLeaseFence, TenantExternalOperationFence } from "./contracts.ts";
 import { NeonDeploymentExecutionRepository } from "./neon-repository.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
@@ -47,6 +48,7 @@ export interface FirstOpenMiddleScope {
   writeBefore: number;
   window: FirstOpenControlledWindow;
   taskRelease?: FirstOpenTaskRelease;
+  secondSlot?: FirstOpenSecondSlotApproval;
 }
 
 export interface FirstOpenMiddleSql {
@@ -62,6 +64,10 @@ export function firstOpenMiddleScope(input: FirstOpenMiddleScope) {
   const x = structuredClone(input);
   requireScope([x.approvalSha256, x.planHash, x.configurationHash].every(h => /^[a-f0-9]{64}$/.test(h)), "FIRST_OPEN_MIDDLE_SCOPE");
   firstOpenVersion(x.taskRelease);
+  if (x.secondSlot !== undefined) {
+    requireScope(x.taskRelease !== undefined, "FIRST_OPEN_MIDDLE_SECOND_SLOT_SCOPE");
+    assertFirstOpenSecondSlot(x.secondSlot);
+  }
   return Object.freeze({ ...x, window: firstOpenExecutionWindow(s.jobId, x.writeBefore, x.window)! });
 }
 

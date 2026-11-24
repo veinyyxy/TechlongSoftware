@@ -9,6 +9,8 @@ import { FIRST_OPEN_BASELINE_BINDING } from "./first-onboarding-baseline-version
 import { assertFirstOpenBuyerParameters } from "./first-open-buyer-binding.ts";
 import { freezeFirstOpenTemplate } from "./first-open-frozen-template.ts";
 import { FIRST_OPEN_CELL_STACK, FIRST_OPEN_CLEANUP_RESERVE_MS, FIRST_OPEN_TTL_SECONDS, type FirstOpenExecutionWindow } from "./first-onboarding-window.ts";
+import { assertFirstOpenSecondSlot, FIRST_OPEN_SECOND_SLOT, matchesFirstOpenSecondSlotEnvironment,
+  type FirstOpenSecondSlotApproval } from "./first-open-second-slot.ts";
 
 type Rendered = Awaited<ReturnType<typeof renderSingleTenantAcceptanceWorkload>>;
 export interface SupervisedTenantStack extends Omit<Rendered, "safety"> {
@@ -245,14 +247,26 @@ export function createSingleTenantWorkloadStrategy(input: {
 export function createFirstOnboardingWorkloadStrategy(input: {
   scope: SingleDeploymentClaimScope; cleanupReadiness: SupervisedCleanupReadinessPort;
   express?: FirstOnboardingExpressComposition; window?: FirstOpenExecutionWindow;
+  secondSlot?: FirstOpenSecondSlotApproval;
 }): TenantWorkloadExecutionStrategy {
-  return createSupervisedStrategy(Object.freeze(structuredClone(input.scope)), input.cleanupReadiness, true, input.express, input.window);
+  return createSupervisedStrategy(Object.freeze(structuredClone(input.scope)), input.cleanupReadiness, true, input.express, input.window,
+    input.secondSlot === undefined ? undefined : structuredClone(input.secondSlot));
 }
 
 function createSupervisedStrategy(scope: Readonly<SingleDeploymentClaimScope>, cleanup: SupervisedCleanupReadinessPort,
-  firstOnboarding: boolean, express?: FirstOnboardingExpressComposition, window?: FirstOpenExecutionWindow): TenantWorkloadExecutionStrategy {
+  firstOnboarding: boolean, express?: FirstOnboardingExpressComposition, window?: FirstOpenExecutionWindow,
+  secondSlot?: FirstOpenSecondSlotApproval): TenantWorkloadExecutionStrategy {
   if (!cleanup || typeof cleanup.verify !== "function") fail("SUPERVISED_CLEANUP_VERIFIER_MISSING");
+  if (secondSlot !== undefined) {
+    assertFirstOpenSecondSlot(secondSlot);
+    if (!firstOnboarding || !express || !window || scope.appInstanceId !== FIRST_OPEN_SECOND_SLOT.instanceId ||
+      scope.deploymentId !== FIRST_OPEN_SECOND_SLOT.deploymentId || scope.environmentId !== FIRST_OPEN_SECOND_SLOT.environmentId) {
+      fail("FIRST_OPEN_SECOND_SLOT_STRATEGY_SCOPE");
+    }
+  }
   const assertScope = (context: DeploymentExecutionContext) => {
+    if (secondSlot && (context.job.id !== FIRST_OPEN_SECOND_SLOT.jobId || context.activeCellCount !== 1 || context.activeTenantCount !== 1 ||
+      !matchesFirstOpenSecondSlotEnvironment(secondSlot, context.environment))) fail("FIRST_OPEN_SECOND_SLOT_CONTEXT_CHANGED");
     if (firstOnboarding && ((context.job.id === FIRST_OPEN_BASELINE_BINDING.jobId) !== Boolean(window) ||
       (window && context.environment.policy.ttlSeconds !== FIRST_OPEN_TTL_SECONDS))) fail("FIRST_ONBOARDING_WINDOW_SCOPE_CHANGED");
     if (context.deployment.id !== scope.deploymentId || context.deployment.appInstanceId !== scope.appInstanceId ||
@@ -298,7 +312,8 @@ function createSupervisedStrategy(scope: Readonly<SingleDeploymentClaimScope>, c
         stackInput.externalOperation.epoch !== context.tenantExternalOperation?.epoch ||
         stackInput.externalOperation.marker !== context.tenantExternalOperation?.marker ||
         stackInput.externalOperation.operationHash !== context.tenantExternalOperation?.operationHash) fail("SUPERVISED_RENDER_CONTEXT_MISMATCH");
-      if (firstOnboarding) return renderFirstOnboardingStack(stackInput, context, scope.artifactRef,
+      const reviewedStackInput = secondSlot ? { ...stackInput, listenerPriority: secondSlot.listenerPriority } : stackInput;
+      if (firstOnboarding) return renderFirstOnboardingStack(reviewedStackInput, context, scope.artifactRef,
         express && { controlRef: express.controlRef, applicationRoleArn: express.applicationRoleArn,
           render: x => express.render(x, context) }, window);
       return finalizeSupervisedTenantStack({ rendered: await renderSingleTenantAcceptanceWorkload(stackInput), context,

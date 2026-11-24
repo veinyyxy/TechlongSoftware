@@ -1,4 +1,5 @@
 import type { DeploymentProfileKey } from "./profiles.ts";
+import type { FirstOpenSecondSlotApproval } from "./execution/first-open-second-slot.ts";
 import {
   validateDeploymentEnvironment,
   type DeploymentEnvironment,
@@ -32,8 +33,9 @@ function check(key: string, passed: boolean, message: string): DeploymentPreflig
 
 export function evaluateAwsSandboxPreflight(
   input: AwsSandboxPreflightInput,
+  secondSlot?: FirstOpenSecondSlotApproval,
 ): DeploymentPreflightResult {
-  const configurationErrors = validateDeploymentEnvironment(input.environment);
+  const configurationErrors = validateDeploymentEnvironment(input.environment, secondSlot);
   const checks: DeploymentPreflightCheck[] = [
     check(
       "environment_kind",
@@ -84,6 +86,13 @@ export function evaluateAwsSandboxPreflight(
     ),
   ];
 
+  if (secondSlot !== undefined) {
+    checks.push(check("first_open_second_slot",
+      input.operation === "render" && input.cellOperation === "reuse" && input.deploymentProfileKey === "standard-v1" &&
+        input.activeCellCount === 1 && input.activeTenantCount === 1,
+      "The first-open second slot requires exactly one verified Cell and one incumbent tenant."));
+  }
+
   if (input.observedAccountId !== undefined) {
     checks.push(
       check(
@@ -132,8 +141,9 @@ export class DeploymentPreflightError extends Error {
 
 export function assertAwsSandboxPreflight(
   input: AwsSandboxPreflightInput,
+  secondSlot?: FirstOpenSecondSlotApproval,
 ): DeploymentPreflightResult {
-  const result = evaluateAwsSandboxPreflight(input);
+  const result = evaluateAwsSandboxPreflight(input, secondSlot);
   if (!result.ok) throw new DeploymentPreflightError(result);
   return result;
 }

@@ -10,7 +10,9 @@ import type { TenantWorkloadExecutionStrategy, WorkerTenantStack } from "./singl
 import { assertFirstOpenCleanupReadiness, createFirstOnboardingWorkloadStrategy, type SupervisedCleanupReadinessPort } from "./single-tenant-workload-strategy.ts";
 import { assertFirstOpenClaimTime, firstOpenExecutionWindow, type FirstOpenControlledWindow, type FirstOpenExecutionWindow } from "./first-onboarding-window.ts";
 import type { FirstOpenTaskRelease } from "./first-onboarding-version.ts";
-import { verifyFirstOnboardingApprovalBinding } from "./first-onboarding-approval.ts";
+import { FIRST_ONBOARDING_DEFERRED_CLEANUP_PROOF, verifyFirstOnboardingApprovalBinding } from "./first-onboarding-approval.ts";
+import { assertFirstOpenSecondSlot, FIRST_OPEN_SECOND_SLOT, matchesFirstOpenSecondSlotEnvironment,
+  type FirstOpenSecondSlotApproval } from "./first-open-second-slot.ts";
 import { reviewFirstOnboarding, SELECT_FIRST_ONBOARDING, CLAIM_FIRST_ONBOARDING, firstOnboardingClaimBindings,
   isFirstOnboardingScope, type FirstOnboardingReview, type FirstOnboardingReviewRow } from "../first-onboarding.ts";
 import { verifyFirstOnboardingRuntime, type FirstOnboardingIndependentHandoff, type FirstOnboardingRuntimeReader } from "./first-onboarding-inspection.ts";
@@ -147,10 +149,15 @@ class DeploymentExecutionError extends Error {
   }
 }
 
-type ReviewedLeaseConfig = DeploymentWorkerRuntimeConfig & { firstOnboardingDeadline?: number; firstOnboardingHostname?: string };
+type ReviewedLeaseConfig = DeploymentWorkerRuntimeConfig & { firstOnboardingDeadline?: number; firstOnboardingHostname?: string;
+  firstOnboardingSecondSlot?: FirstOpenSecondSlotApproval };
 
-function assertFirstOnboardingGate(config: DeploymentWorkerRuntimeConfig, context: DeploymentExecutionContext) {
-  const gate = evaluatePersistedExecutionGate({ config, environment: context.environment, binding: context.binding });
+function assertFirstOnboardingGate(config: ReviewedLeaseConfig, context: DeploymentExecutionContext) {
+  const secondSlot = config.firstOnboardingSecondSlot;
+  if (secondSlot && (context.job.id !== FIRST_OPEN_SECOND_SLOT.jobId || context.appInstance.id !== FIRST_OPEN_SECOND_SLOT.instanceId ||
+    context.deployment.id !== FIRST_OPEN_SECOND_SLOT.deploymentId || context.activeCellCount !== 1 || context.activeTenantCount !== 1 ||
+    !matchesFirstOpenSecondSlotEnvironment(secondSlot, context.environment))) throw Error("FIRST_OPEN_SECOND_SLOT_CONTEXT_CHANGED");
+  const gate = evaluatePersistedExecutionGate({ config, environment: context.environment, binding: context.binding, firstOpenSecondSlot: secondSlot });
   const intentionallyClosed = ["worker_disabled", "aws_apply_disabled", "database_apply_disabled", "execution_confirmation_missing"];
   if (config.workerEnabled || config.applyEnabled || context.environment.applyEnabled ||
     !isFirstOnboardingScope(context.environment, context.appInstance.productId, context.deployment.desiredPlan.deploymentProfileKey)) {
@@ -1817,6 +1824,12 @@ export async function runReviewedFirstOnboarding(input: {
   if (window) assertFirstOpenClaimTime(window, now());
   if (a.taskRelease && (!window || a.express?.target.managementUsername !== FIRST_OPEN_MANAGEMENT_SQL_USER ||
     a.taskRelease.firstOpenScope?.jobId !== a.jobId)) throw Error("FIRST_ONBOARDING_TASK_RELEASE_SCOPE");
+  const secondSlot = a.express?.secondSlot;
+  if (secondSlot !== undefined) {
+    assertFirstOpenSecondSlot(secondSlot);
+    if (a.jobId !== FIRST_OPEN_SECOND_SLOT.jobId || !a.taskRelease || !window || !input.expressPorts?.handoff ||
+      a.approvalBinding !== FIRST_ONBOARDING_DEFERRED_CLEANUP_PROOF) throw Error("FIRST_OPEN_SECOND_SLOT_SCOPE_REQUIRED");
+  }
   const derived = a.completion && "deriveG1Secret" in a.completion ? a.completion : undefined;
   const fixed = a.completion && "samplingSha256" in a.completion ? a.completion : undefined;
   // Catalog A uses the versioned digest form. Keep legacy plain names and
@@ -1895,11 +1908,12 @@ export async function runReviewedFirstOnboarding(input: {
     deploymentId: scope.deploymentId, appInstanceId: scope.appInstanceId, environmentId: scope.environmentId,
     planHash: scope.planHash, configurationHash: scope.configurationHash, artifactRef: scope.artifactRef,
   });
-  const strategy = createFirstOnboardingWorkloadStrategy({ cleanupReadiness: input.cleanupReadiness, express, scope: workloadScope, window });
+  const strategy = createFirstOnboardingWorkloadStrategy({ cleanupReadiness: input.cleanupReadiness, express, scope: workloadScope, window, secondSlot });
   const dependencies = { ...input.dependencies, tenantWorkloadStrategy: strategy,
     ...(express ? { tenantDatabase: express.database } : {}) }, repository = dependencies.repository;
   const workerId = `first-onboarding:${a.jobId}`, leaseToken = `lease_${randomUUID().replaceAll("-", "")}`;
-  const config = { ...input.config, firstOnboardingDeadline: a.writeBefore, firstOnboardingHostname: a.hostname };
+  const config = { ...input.config, firstOnboardingDeadline: a.writeBefore, firstOnboardingHostname: a.hostname,
+    firstOnboardingSecondSlot: secondSlot };
   checkWindow();
   if (window) {
     const current = now();

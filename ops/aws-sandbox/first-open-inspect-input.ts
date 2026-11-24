@@ -1,6 +1,7 @@
 import type { AwsSandboxTenantStackInput } from "../../lib/deployments/cloudformation/tenant-stack.ts";
 import type { DeploymentExecutionContext, TenantExternalOperationFence } from "../../lib/deployments/execution/contracts.ts";
 import { firstOnboardingInitialSecretVersion, renderFirstOpenExpressTemplate, type FirstOnboardingDatabaseIdentity } from "../../lib/deployments/execution/first-onboarding-express.ts";
+import { assertFirstOpenSecondSlot, matchesFirstOpenSecondSlotEnvironment, type FirstOpenSecondSlotApproval } from "../../lib/deployments/execution/first-open-second-slot.ts";
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
 import { firstOpenVersion } from "../../lib/deployments/execution/first-onboarding-version.ts";
 import { renderFirstOnboardingExpectation, sealFirstOpenTaskBinding } from "../../lib/deployments/execution/single-tenant-workload-strategy.ts";
@@ -14,6 +15,8 @@ type Approval = Awaited<ReturnType<typeof checkSandboxFirstOpenApproval>>;
 export type FirstOpenInspectSeed = Pick<AwsSandboxTenantStackInput, "plan" | "environment" | "requestedAt" | "activeCellCount" | "activeTenantCount"> & {
   binding: NonNullable<DeploymentExecutionContext["binding"]>; review: FirstOnboardingReview; release: SoftwareRelease;
   epoch: TenantExternalOperationFence;
+  /** Independent inputs for the opt-in second slot, covered by the seed hash. */
+  secondSlot?: Pick<FirstOpenSecondSlotApproval, "admissionEpoch" | "listenerPriority">;
 };
 const fail = (code: string): never => { throw Error("FIRST_OPEN_INSPECT_INPUT_" + code); };
 const arnPrefix = `arn:aws:cloudformation:${S.region}:${S.account}:stack/${SANDBOX_FIRST_OPEN_STACK}/`;
@@ -25,7 +28,8 @@ export async function prepareFirstOpenInspectSeed(source: FirstOpenInspectSeed, 
   signal.throwIfAborted();
   const seed = structuredClone(source), { review, release, epoch } = seed, scope = review.payload.scope;
   const version = firstOpenVersion(approval.taskRelease), { artifactRef } = version;
-  const a = approval.express, window = firstOpenExecutionWindow(approval.jobId, approval.writeBefore, approval.controlledWindow);
+  const a = approval.express && structuredClone(approval.express);
+  const window = firstOpenExecutionWindow(approval.jobId, approval.writeBefore, approval.controlledWindow);
   const runtimeArn = `arn:aws:secretsmanager:${S.region}:${S.account}:secret:${S.secretName}-`;
   if (!a || !window || sealedSha !== await sha256Hex(seed) || review.reviewSha256 !== approval.reviewSha256 ||
     review.jobId !== S.jobId || scope.appInstanceId !== S.instanceId || scope.deploymentId !== S.deploymentId ||
@@ -37,6 +41,17 @@ export async function prepareFirstOpenInspectSeed(source: FirstOpenInspectSeed, 
     seed.environment.id !== S.environmentId || seed.environment.expectedAccountId !== S.account ||
     seed.environment.region !== S.region || seed.environment.applyEnabled !== false) {
     return fail("SEED");
+  }
+  const secondSlot = a.secondSlot;
+  if (secondSlot !== undefined) {
+    assertFirstOpenSecondSlot(secondSlot);
+    if (!approval.taskRelease || scope.environmentId !== S.environmentId || a.sampling.apiHostname !== S.hostname ||
+      !matchesFirstOpenSecondSlotEnvironment(secondSlot, seed.environment) ||
+      seed.activeCellCount !== 1 || seed.activeTenantCount !== 1 || !seed.secondSlot ||
+      canonicalJson(seed.secondSlot) !== canonicalJson({ admissionEpoch: secondSlot.admissionEpoch,
+        listenerPriority: secondSlot.listenerPriority })) return fail("SECOND_SLOT");
+  } else if (seed.secondSlot !== undefined || seed.environment.policy.maxTenants === 2) {
+    return fail("SECOND_SLOT");
   }
   const control = a.sampling.secrets[0];
   if (!control || control.arn !== S.controlArn || control.versionId !== S.controlVersion || a.applicationRoleArn !== S.applicationRole) return fail("BINDING");
@@ -70,7 +85,7 @@ export async function prepareFirstOpenInspectSeed(source: FirstOpenInspectSeed, 
       deploymentId: S.deploymentId, resourceGeneration: 1, runtimeSecretRef: arn, runtimeSecretName: S.secretName,
       externalOperation: { epoch: 1, intent: "provision", state: "active", ownerDeploymentId: S.deploymentId,
         marker: epoch.marker, operationHash: epoch.operationHash },
-      imageUri: artifactRef, tenantHostname: S.hostname, listenerPriority: 100,
+      imageUri: artifactRef, tenantHostname: S.hostname, listenerPriority: secondSlot?.listenerPriority ?? 100,
     };
     const stack = await renderFirstOnboardingExpectation(workload, context, artifactRef, { ...express,
       render: x => renderFirstOpenExpressTemplate(x, a, material, scope.configurationHash) }, window);

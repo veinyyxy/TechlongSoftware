@@ -1,8 +1,11 @@
-import { CLAIM_FIRST_ONBOARDING, SELECT_FIRST_ONBOARDING } from "../first-onboarding.ts";
+import { CLAIM_FIRST_ONBOARDING, FIRST_ONBOARDING_HOLD_AT, SELECT_FIRST_ONBOARDING } from "../first-onboarding.ts";
+import { createHash } from "node:crypto";
+import { assertFirstOpenSecondSlot, FIRST_OPEN_SECOND_SLOT, type FirstOpenSecondSlotApproval } from "./first-open-second-slot.ts";
 import { SANDBOX_FIRST_OPEN as s, type SandboxFirstOpenPorts } from "./first-onboarding-run-once.ts";
 import { firstOpenSqlJson } from "./first-onboarding-sql-value.ts";
 import { firstOpenVersion, type FirstOpenTaskRelease } from "./first-onboarding-version.ts";
 import { FIRST_OPEN_TTL_SECONDS, firstOpenExecutionWindow, type FirstOpenControlledWindow } from "./first-onboarding-window.ts";
+import { canonicalJson } from "./hash.ts";
 
 const schema = "techlong_first_onboarding_claim";
 export const FIRST_OPEN_MANAGEMENT_CLAIM_READ = `SELECT ${schema}.management_ready($1::text) AS ready`;
@@ -32,10 +35,36 @@ const staticPredicate = ` AND d.id=${literal(s.deploymentId)} AND a.id=${literal
   AND e.id=${literal(s.environmentId)} AND ${workspacePredicate("a.workspace_id")}
   AND NOT EXISTS (SELECT 1 FROM deployment_release.instance_state st WHERE st.instance_id=a.id)
   AND NOT EXISTS (SELECT 1 FROM public.deployment_tenant_external_operations x WHERE x.app_instance_id=a.id)`;
+
+/** The extra read privileges stay with the existing NOLOGIN definer, never
+ * the review/claim logins. The exact ready incumbent counts against slot 1
+ * without a reservation row; reject drift rather than repairing the ledger. */
+export function firstOpenSecondSlotSqlFence(approval: FirstOpenSecondSlotApproval, reservation: "vacant" | "owned-slot-2" = "vacant") {
+  assertFirstOpenSecondSlot(approval);
+  const { environmentId, incumbentInstanceId, incumbentDeploymentId, deploymentId } = FIRST_OPEN_SECOND_SLOT;
+  const target = `r.environment_id=e.id AND r.deployment_id=${literal(deploymentId)} AND r.slot=2`;
+  const reservations = "public.deployment_environment_capacity_reservations";
+  return `e.id=${literal(environmentId)} AND e.kind='aws_sandbox' AND e.status='active' AND e.apply_enabled=0
+    AND e.key='aws-sandbox-ca-central-1' AND e.driver='aws_ecs_cell' AND e.base_domain='sandbox.techlong.cloud'
+    AND e.expected_account_id=${literal(s.account)} AND e.region=${literal(s.region)} AND e.cell_key='cell-sandbox-1'
+    AND e.admission_state='open' AND e.admission_epoch=${approval.admissionEpoch} AND e.policy::jsonb=${firstOpenSqlJson(approval.environmentPolicy)}
+    AND EXISTS (SELECT 1 FROM public.app_instance_deployments incumbent
+      JOIN public.app_instances ia ON ia.id=incumbent.app_instance_id
+      WHERE incumbent.id=${literal(incumbentDeploymentId)} AND incumbent.app_instance_id=${literal(incumbentInstanceId)}
+        AND incumbent.environment_id=e.id AND incumbent.status='ready' AND ia.status='active')
+    AND NOT EXISTS (SELECT 1 FROM public.app_instance_deployments other
+      WHERE other.environment_id=e.id AND other.id NOT IN (${literal(incumbentDeploymentId)},${literal(deploymentId)})
+        AND other.status IN ('queued','preflight','database_preparing','migrating','infrastructure_provisioning','waiting_healthy','configuring','verifying','ready'))
+    AND NOT EXISTS (SELECT 1 FROM ${reservations} r WHERE
+      (r.environment_id=e.id OR r.deployment_id IN (${literal(incumbentDeploymentId)},${literal(deploymentId)}))${reservation === "owned-slot-2" ?
+    `\n      AND NOT (${target}))\n    AND EXISTS (SELECT 1 FROM ${reservations} r WHERE ${target})` : ")"}`;
+}
+
 /** Candidate SQL, never installed by this module. Claim and review logins
  * get only EXECUTE. Bind to the final review, not the historical draft. */
 export function sandboxFirstOpenClaimDdl(input: { approvalSha256: string; planHash: string; configurationHash: string;
-  writeBefore: number; window: FirstOpenControlledWindow; managementOperationSha256?: string; taskRelease?: FirstOpenTaskRelease }) {
+  writeBefore: number; window: FirstOpenControlledWindow; managementOperationSha256?: string; taskRelease?: FirstOpenTaskRelease;
+  secondSlot?: FirstOpenSecondSlotApproval }) {
   const { approvalSha256, planHash, configurationHash, writeBefore } = input;
   const window = firstOpenExecutionWindow(s.jobId, writeBefore, input.window)!;
   if (![approvalSha256, planHash, configurationHash].every(v => hex.test(v)) ||
@@ -43,6 +72,9 @@ export function sandboxFirstOpenClaimDdl(input: { approvalSha256: string; planHa
     (input.managementOperationSha256 !== undefined && !hex.test(input.managementOperationSha256))) throw Error("FIRST_OPEN_CLAIM_DDL_SCOPE");
   const { definer, reader, writer } = FIRST_OPEN_CLAIM_ROLES;
   const version = firstOpenVersion(input.taskRelease);
+  const secondSlot = input.secondSlot === undefined ? "" : firstOpenSecondSlotSqlFence(input.secondSlot);
+  if (secondSlot && (!input.taskRelease || createHash("sha256").update(canonicalJson(input.taskRelease.firstOpenScope.publication)).digest("hex") !==
+    input.taskRelease.image.verificationSha256)) throw Error("FIRST_OPEN_CLAIM_DDL_SECOND_SLOT_RELEASE");
   const heldVersion = input.taskRelease === undefined ? "" : `
     AND j.payload::jsonb#>>'{scope,releaseId}'=${literal(version.releaseId)}
     AND j.payload::jsonb#>>'{scope,artifactRef}'=${literal(version.artifactRef)}`;
@@ -55,7 +87,24 @@ export function sandboxFirstOpenClaimDdl(input: { approvalSha256: string; planHa
     ` AND l.document=${firstOpenSqlJson(input.taskRelease)}`}`;
   const predicate = staticPredicate + ` AND d.plan_hash=${literal(planHash)} AND d.configuration_hash=${literal(configurationHash)}
     AND e.policy::jsonb->'ttlSeconds'='${FIRST_OPEN_TTL_SECONDS}'::jsonb
-    AND d.artifact_ref=${literal(version.artifactRef)} AND EXISTS (${fixedRelease})${heldVersion}`;
+    AND d.artifact_ref=${literal(version.artifactRef)} AND EXISTS (${fixedRelease})${heldVersion}${secondSlot ? `
+    AND d.status='planned' AND j.job_type='apply' AND j.status='pending' AND j.attempts=0 AND j.max_attempts=1
+    AND j.available_at=${FIRST_ONBOARDING_HOLD_AT} AND j.lease_owner IS NULL AND j.lease_token IS NULL
+    AND j.lease_expires_at IS NULL AND j.completed_at IS NULL AND (${secondSlot})` : ""}`;
+  // A separate command after both locks gets a fresh READ COMMITTED snapshot.
+  // Running the occupancy predicate in the locking SELECT alone can see the
+  // pre-wait reservation snapshot even if the environment row was locked.
+  const secondSlotLock = secondSlot ? `
+  IF current_setting('transaction_isolation')<>'read committed' THEN RETURN; END IF;
+  PERFORM 1 FROM public.deployment_jobs j JOIN public.app_instance_deployments d ON d.id=j.deployment_id
+    WHERE j.id=${job} AND d.id=${literal(s.deploymentId)} AND d.environment_id=${literal(s.environmentId)}
+      AND j.status='pending' AND j.attempts=0 AND j.max_attempts=1 AND d.status='planned' FOR UPDATE OF j,d;
+  IF NOT FOUND THEN RETURN; END IF;
+  PERFORM 1 FROM public.deployment_environments e WHERE e.id=${literal(s.environmentId)} FOR UPDATE OF e;
+  IF NOT FOUND THEN RETURN; END IF;` : "";
+  const secondSlotGrants = secondSlot ? `
+GRANT SELECT (admission_state,admission_epoch,driver,base_domain) ON public.deployment_environments TO ${definer};
+GRANT SELECT (deployment_id,environment_id,slot) ON public.deployment_environment_capacity_reservations TO ${definer};` : "";
   const args = [job, literal("first-onboarding:" + s.jobId), "(p->>0)", String(writeBefore), literal(s.deploymentId),
     "(p->1)", "(p->2)", "(p->3)", "(p->4)", literal(s.instanceId), "(p->>5)", literal(s.subscriptionId),
     literal("pending_" + s.instanceId), literal(s.environmentId), literal(s.account), "(p->>6)", "(p->>7)", literal(s.hostname.split(".")[0])];
@@ -110,7 +159,7 @@ CREATE SCHEMA ${schema} AUTHORIZATION ${definer};
 REVOKE ALL ON SCHEMA ${schema} FROM PUBLIC;
 GRANT USAGE ON SCHEMA ${schema} TO ${reader},${writer};
 GRANT USAGE ON SCHEMA public,deployment_release TO ${definer};
-${Object.entries(projections).map(([table, cols]) => `GRANT SELECT (${cols}) ON public.${table} TO ${definer};`).join("\n")}
+${Object.entries(projections).map(([table, cols]) => `GRANT SELECT (${cols}) ON public.${table} TO ${definer};`).join("\n")}${secondSlotGrants}
 ${lockTables.map(table => `GRANT UPDATE (id) ON public.${table} TO ${definer};`).join("\n")}
 GRANT UPDATE (status,attempts,lease_owner,lease_token,lease_expires_at,updated_at) ON public.deployment_jobs TO ${definer};
 GRANT SELECT (id,product_id,component,status,document) ON deployment_release.releases TO ${definer};
@@ -129,7 +178,7 @@ BEGIN
   IF (jsonb_array_length(p)=8 AND p->>0 ~ '^lease_[a-f0-9]{32}$' AND ${workspacePredicate("(p->>5)")}
     AND p#>>'{3,planHash}'=${literal(planHash)} AND p#>>'{3,configurationHash}'=${literal(configurationHash)}
     AND floor(extract(epoch FROM clock_timestamp())*1000) BETWEEN ${window.startAt} AND ${window.claimBefore - 1}) IS NOT TRUE
-  THEN RETURN; END IF;
+  THEN RETURN; END IF;${secondSlotLock}
   RETURN QUERY ${sql};
 END $claim$;
 ${[["review()", reader], ["release()", reader], ["claim(text,jsonb)", writer]].map(([sig, role]) =>

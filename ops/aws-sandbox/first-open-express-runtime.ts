@@ -22,7 +22,8 @@ import { verifyFirstOpenCatalog } from "./first-open-express-catalog.ts";
 import { bindFirstOpenPairedInspect, firstOpenRunOnceHandoff, pairFirstOpenApproval } from "./first-open-paired-runtime.ts";
 import type { FirstOpenGitHubHandoff, firstOpenGitHubAuthorityArtifacts } from "./first-open-github-handoff.ts";
 import { bindFirstOpenSession, firstOpenGitHubIssuedSession, firstOpenManagerProbeSource, type FirstOpenCredentialSource as CredentialSource } from "./first-open-sessions.ts";
-import { firstOpenManagementClient, firstOpenManagementMailbox, serveFirstOpenManagement, type FirstOpenManagementScope } from "./first-open-management-bridge.ts";
+import { firstOpenManagementClient, firstOpenManagementMailbox, firstOpenManagementOperationSha256, serveFirstOpenManagement,
+  type FirstOpenManagementScope } from "./first-open-management-bridge.ts";
 import { bindFirstOpenReleaseEntry, type FirstOpenFrozenRelease } from "./first-open-release-entry.ts";
 import { firstOpenManagementClaimProof } from "../../lib/deployments/execution/first-onboarding-claim-entry.ts";
 import type { SupervisedTenantStack } from "../../lib/deployments/execution/single-tenant-workload-strategy.ts";
@@ -232,7 +233,7 @@ type FixedManagementInput = FirstOpenManagementSources & {
   issueBefore: number;
 };
 
-function buildFirstOpenFixedManagement(input: FixedManagementInput, now: () => number) {
+function buildFirstOpenFixedManagement(input: FixedManagementInput, now: () => number, expectedOperationSha256: string) {
   const target = exactTarget(input.approval.target);
   const { writeBefore, approvedSha256, applicationLoginBefore } = input;
   if (!Number.isSafeInteger(applicationLoginBefore) || !Number.isSafeInteger(writeBefore) ||
@@ -259,7 +260,7 @@ function buildFirstOpenFixedManagement(input: FixedManagementInput, now: () => n
     return operation();
   };
   const database = firstOpenExpressDatabase({ approval: input.approval, approvalSha256: approvedSha256,
-    expectedOperationSha256: prepared.scope.expectedProvisionOperationSha256, deadline: writeBefore, now, journal: input.journal, backend,
+    expectedOperationSha256, deadline: writeBefore, now, journal: input.journal, backend,
     applicationRead: (signal, run) => {
       const remaining = applicationLoginBefore - now();
       if (remaining <= 0 || remaining > 900_000) return stopFirstOpen("APPLICATION_LOGIN_WINDOW_CHANGED");
@@ -288,7 +289,8 @@ function buildFirstOpenFixedManagement(input: FixedManagementInput, now: () => n
 }
 
 export function bindFirstOpenFixedManagement(input: FixedManagementInput, now = Date.now): FirstOpenFixedManagement {
-  return buildFirstOpenFixedManagement(input, now).port;
+  // The legacy standalone binder has no protected task-release input.
+  return buildFirstOpenFixedManagement(input, now, prepared.scope.expectedProvisionOperationSha256).port;
 }
 
 type ManagementHost = {
@@ -340,6 +342,10 @@ async function checkManagementHost(input: ManagementHost, role: "management" | "
     canonicalJson(scope.express) !== canonicalJson(input.approval.express)) return stopFirstOpen("MANAGEMENT_HOST_CHANGED");
   await bindFirstOpenReleaseEntry(release, input.trustedReleaseSha256, actual);
   await checkSandboxFirstOpenApproval(input.approval, release.approvalSha256, now(), input.formalApprovalSha256);
+  const taskRelease = release.taskRelease;
+  const expectedOperationSha256 = await firstOpenManagementOperationSha256(taskRelease);
+  if (scope.fence.externalFence.operationHash !== expectedOperationSha256) return stopFirstOpen("MANAGEMENT_HOST_CHANGED");
+  return { taskRelease, expectedOperationSha256 };
 }
 
 /** Only the pinned management reusable may host the privileged provider.
@@ -352,7 +358,7 @@ export async function runProtectedFirstOpenManagement(input: ManagementHost & {
   versionAuthorityReader: FirstOpenVersionAuthorityReader | undefined;
   renderStack: Awaited<ReturnType<typeof prepareFirstOpenInspectSeed>>["renderStack"];
 }, signal: AbortSignal, now = Date.now) {
-  await checkManagementHost(input, "management", now);
+  const { taskRelease, expectedOperationSha256 } = await checkManagementHost(input, "management", now);
   const { scope } = input;
   const cfnProof = requireFirstOpenControlledCfnPreclaimProof(input.controlledCfnPreclaimProof, input.release, now());
   const { versionAuthorityReader } = input;
@@ -361,7 +367,7 @@ export async function runProtectedFirstOpenManagement(input: ManagementHost & {
   const { port, lifecycleCredentials } = buildFirstOpenFixedManagement({ ...input.management,
     lifecycleCredentials: firstOpenGitHubIssuedSession(input, now), issueBefore: input.release.claimBefore,
     approval: scope.express, approvedSha256: scope.approvalSha256, writeBefore: scope.writeBefore,
-    applicationLoginBefore: scope.applicationLoginBefore }, now);
+    applicationLoginBefore: scope.applicationLoginBefore }, now, expectedOperationSha256);
   const config = sdkConfig(lifecycleCredentials), s3 = new S3Client(config), cloudFormation = new CloudFormationClient(config);
   const secrets = new SecretsManagerClient(config);
   const verifyClaim = firstOpenManagementClaimProof(input.claimReader, scope.approvalSha256);
@@ -371,7 +377,7 @@ export async function runProtectedFirstOpenManagement(input: ManagementHost & {
     authorityReader: versionAuthorityReader, verifyClaim, s3, cloudFormation,
   }, now);
   try {
-    await serveFirstOpenManagement(scope, firstOpenManagementMailbox(s3, "management", scope.approvalSha256, true), port,
+    await serveFirstOpenManagement({ ...scope, taskRelease }, firstOpenManagementMailbox(s3, "management", scope.approvalSha256, true), port,
       verifyClaim, signal, now, async request => {
         const live = await secrets.send(new DescribeSecretCommand({ SecretId: request.arn }), { abortSignal: request.signal });
         assertInitialSecretVersion(live, request.arn, scope.initialVersionId);
@@ -395,12 +401,12 @@ export async function runProtectedFirstOpenManagement(input: ManagementHost & {
  * No lifecycle input is available to the writer. */
 export async function bindProtectedFirstOpenManagementClient(input: ManagementHost & { provisionerCredentials: CredentialSource;
   authorityArtifacts?: Pick<ReturnType<typeof firstOpenGitHubAuthorityArtifacts>, "sourceSha256" | "publishIntent"> }, now = Date.now) {
-  await checkManagementHost(input, "runonce", now);
+  const { taskRelease } = await checkManagementHost(input, "runonce", now);
   const { scope } = input;
   const verified = bindFirstOpenSession("provisioner", input.provisionerCredentials, scope.writeBefore, now);
   const s3 = new S3Client(sdkConfig(() => verified.credentials(AbortSignal.timeout(15_000))));
   const author = createFirstOpenControlledCfnAuthor({ approvalSha256: scope.approvalSha256, writeBefore: scope.writeBefore, s3 }, now);
-  return firstOpenManagementClient(scope, firstOpenManagementMailbox(s3, "runonce", scope.approvalSha256, true), now, async (stack, signal) => {
+  return firstOpenManagementClient({ ...scope, taskRelease }, firstOpenManagementMailbox(s3, "runonce", scope.approvalSha256, true), now, async (stack, signal) => {
     const ack = await author(stack, signal);
     const artifacts = input.authorityArtifacts;
     if (artifacts) {

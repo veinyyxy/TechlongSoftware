@@ -6,6 +6,7 @@ import type {
   AwsCallerIdentity,
   DeploymentExecutionBinding,
 } from "./contracts.ts";
+import type { FirstOpenSecondSlotApproval } from "./first-open-second-slot.ts";
 
 export const AWS_SANDBOX_CONFIRMATION_PHRASE =
   "I_ACKNOWLEDGE_AWS_SANDBOX_COST_AND_TTL";
@@ -113,10 +114,11 @@ export function evaluatePersistedExecutionGate(input: {
   config: DeploymentWorkerRuntimeConfig;
   environment: DeploymentEnvironment;
   binding: DeploymentExecutionBinding | null;
+  firstOpenSecondSlot?: FirstOpenSecondSlotApproval;
 }): ExecutionGateResult {
   const failures = [...evaluateStaticExecutionGate(input.config).failures];
   const { environment, binding, config } = input;
-  const environmentErrors = validateDeploymentEnvironment(environment);
+  const environmentErrors = validateDeploymentEnvironment(environment, input.firstOpenSecondSlot);
   if (environmentErrors.length > 0) {
     failures.push(...environmentErrors.map((error) => `environment_${error}`));
   }

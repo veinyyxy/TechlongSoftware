@@ -1,4 +1,6 @@
 import type { DeploymentEnvironment } from "../environment.ts";
+import { assertFirstOpenSecondSlot, FIRST_OPEN_SECOND_SLOT, matchesFirstOpenSecondSlotEnvironment,
+  type FirstOpenSecondSlotApproval } from "../execution/first-open-second-slot.ts";
 import { assertAwsSandboxPreflight } from "../preflight.ts";
 import type { AwsEcsCellDeploymentPlan } from "../types.ts";
 
@@ -140,6 +142,30 @@ export function awsSandboxTenantStackName(appInstanceId: string): string {
   return `techlong-sandbox-${resourceToken(appInstanceId)}`.slice(0, 128);
 }
 
+const firstOpenSecondSlotRenders = new WeakMap<AwsSandboxTenantStackInput, FirstOpenSecondSlotApproval>();
+
+function assertFirstOpenSecondSlotRender(input: AwsSandboxTenantStackInput, approval: FirstOpenSecondSlotApproval) {
+  const scope = FIRST_OPEN_SECOND_SLOT;
+  if (!matchesFirstOpenSecondSlotEnvironment(approval, input.environment) ||
+    input.deploymentId !== scope.deploymentId || input.plan?.resources?.tenant?.costTags?.AppInstanceId !== scope.instanceId ||
+    input.tenantHostname !== scope.hostname || input.listenerPriority !== approval.listenerPriority ||
+    input.resourceGeneration !== 1 || input.externalOperation?.epoch !== 1 ||
+    input.activeCellCount !== 1 || input.activeTenantCount !== 1) {
+    throw Error("FIRST_OPEN_SECOND_SLOT_RENDER_SCOPE");
+  }
+}
+
+/** Only the first-open Express renderer passes this scoped copy through the
+ * existing data-only rendering pipeline. An ordinary input cannot opt in. */
+export function prepareFirstOpenSecondSlotRenderInput(input: AwsSandboxTenantStackInput,
+  approval: FirstOpenSecondSlotApproval): AwsSandboxTenantStackInput {
+  const scoped = structuredClone(input), approved = structuredClone(approval);
+  assertFirstOpenSecondSlot(approved);
+  assertFirstOpenSecondSlotRender(scoped, approved);
+  firstOpenSecondSlotRenders.set(scoped, approved);
+  return scoped;
+}
+
 function assertRenderInput(input: AwsSandboxTenantStackInput): void {
   if (!/^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/.test(input.deploymentId)) {
     throw new Error("Deployment id is invalid.");
@@ -184,6 +210,8 @@ function assertRenderInput(input: AwsSandboxTenantStackInput): void {
   if (input.plan.mode !== "aws_sandbox") {
     throw new Error("Tenant stack renderer only accepts aws_sandbox plans.");
   }
+  const secondSlot = firstOpenSecondSlotRenders.get(input);
+  if (secondSlot) assertFirstOpenSecondSlotRender(input, secondSlot);
   assertAwsSandboxPreflight({
     environment: input.environment,
     operation: "render",
@@ -193,7 +221,7 @@ function assertRenderInput(input: AwsSandboxTenantStackInput): void {
     activeCellCount: input.activeCellCount,
     activeTenantCount: input.activeTenantCount,
     cellOperation: "reuse",
-  });
+  }, secondSlot);
   if (input.plan.cellKey !== input.environment.cellKey) {
     throw new Error("Deployment plan cell does not match the sandbox environment.");
   }

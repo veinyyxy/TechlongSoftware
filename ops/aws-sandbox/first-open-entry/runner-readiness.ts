@@ -11,6 +11,7 @@ import type { FirstOpenInspectSeed } from "../first-open-inspect-input.ts";
 import { firstOpenCleanupPermissionEvidenceMatches, type FirstOpenCleanupPermissionObservation } from "../first-open-express-cleanup-review.ts";
 import { firstOpenExpressStorageProof } from "./express-encryption.mjs";
 import { verifyFirstOnboardingApprovalBinding } from "../../../lib/deployments/execution/first-onboarding-approval.ts";
+import { matchesFirstOpenSecondSlotEnvironment } from "../../../lib/deployments/execution/first-open-second-slot.ts";
 
 const hex = /^[a-f0-9]{64}$/;
 const source = `arn:aws:iam::${s.account}:user/techlong-sandbox-dev` as const;
@@ -27,6 +28,88 @@ type CellCoordinates = { businessDenyRuleArn: string; controlTrustStoreArn: stri
 type Listener = { ListenerArn: string; LoadBalancerArn: string; Protocol: string; Port: number; SslPolicy?: string;
   Certificates?: { CertificateArn: string }[]; MutualAuthentication?: { Mode: string; TrustStoreArn?: string; IgnoreClientCertificateExpiry?: boolean };
   DefaultActions?: unknown[] };
+type RuleCondition = { Field: string; Values?: string[]; RegexValues?: string[];
+  HostHeaderConfig?: { Values?: string[]; RegexValues?: string[] }; PathPatternConfig?: { Values: string[] } };
+type Rule = { RuleArn: string; Priority: string; IsDefault: boolean; Conditions?: RuleCondition[];
+  Actions: { Type: string; FixedResponseConfig?: { StatusCode: string } }[]; Transforms?: unknown[] };
+const routeActionTypes = new Set(["forward", "fixed-response", "redirect", "authenticate-cognito", "authenticate-oidc", "jwt-validation"]);
+const routeConditionFields = new Set(["host-header", "http-header", "http-request-method", "path-pattern", "query-string", "source-ip"]);
+
+function matchesHostPattern(pattern: string, hostname: string) {
+  // ALB host matches are case-insensitive. Treat * as matching across labels;
+  // this errs on the side of flagging a pre-existing wildcard as a conflict.
+  let hostAt = 0, patternAt = 0, star = -1, starHostAt = 0;
+  while (hostAt < hostname.length) {
+    if (pattern[patternAt] === hostname[hostAt] || pattern[patternAt] === "?") { hostAt++; patternAt++; }
+    else if (pattern[patternAt] === "*") { star = patternAt++; starHostAt = hostAt; }
+    else if (star >= 0) { patternAt = star + 1; hostAt = ++starHostAt; }
+    else return false;
+  }
+  while (pattern[patternAt] === "*") patternAt++;
+  return patternAt === pattern.length;
+}
+
+function hostPatterns(condition: RuleCondition) {
+  const config = condition.HostHeaderConfig;
+  if ((config !== undefined && (!config || typeof config !== "object" || Array.isArray(config))) ||
+    [condition.RegexValues, config?.RegexValues].some(values => values !== undefined && (!Array.isArray(values) || values.length !== 0))) {
+    return fail("CELL_ROUTE_HOST_UNPROVED");
+  }
+  const parsed = [condition.Values, config?.Values].filter(values => values !== undefined).map(values => {
+    if (!Array.isArray(values) || values.length === 0 || values.some(v => typeof v !== "string" || !/^[a-z0-9*?.-]{1,128}$/i.test(v))) {
+      return fail("CELL_ROUTE_RULES");
+    }
+    return values.map(v => v.toLowerCase().replace(/\.$/, "")).sort();
+  });
+  if (parsed.length === 0 || (parsed.length === 2 && !same(parsed[0], parsed[1]))) return fail("CELL_ROUTE_RULES");
+  return parsed[0];
+}
+
+async function sampleSecondSlotListener(input: { read: Read; signal: AbortSignal; listenerArn: string;
+  hostname: string; priorities: number[]; sharedDeny?: Rule }) {
+  const { read, signal, listenerArn, hostname, priorities, sharedDeny } = input;
+  after(signal);
+  const result = await read.read<{ Rules: Rule[]; NextMarker?: string }>("elbv2", "describe-rules", { ListenerArn: listenerArn });
+  after(signal);
+  if (result?.NextMarker !== undefined || !Array.isArray(result?.Rules) || !result.Rules.length) return fail("CELL_ROUTE_RULES");
+  const arns = new Set<string>(), observedPriorities = new Set<number>();
+  const rulePrefix = listenerArn.replace(":listener/", ":listener-rule/") + "/";
+  let defaults = 0, shared = false;
+  for (const r of result.Rules) {
+    if (!r || typeof r.RuleArn !== "string" || !r.RuleArn.startsWith(rulePrefix) ||
+      !/^[a-f0-9]+$/.test(r.RuleArn.slice(rulePrefix.length)) || arns.has(r.RuleArn) || typeof r.IsDefault !== "boolean" ||
+      !Array.isArray(r.Actions) || !r.Actions.length || r.Actions.some(a => !a || !routeActionTypes.has(a.Type)) ||
+      (r.Transforms !== undefined && !Array.isArray(r.Transforms))) return fail("CELL_ROUTE_RULES");
+    arns.add(r.RuleArn);
+    if (r.IsDefault) {
+      if (++defaults !== 1 || r.Priority !== "default" ||
+        (r.Conditions !== undefined && (!Array.isArray(r.Conditions) || r.Conditions.length !== 0)) || r.Transforms?.length ||
+        r.Actions.length !== 1 || r.Actions[0].Type !== "fixed-response" || r.Actions[0].FixedResponseConfig?.StatusCode !== "404") {
+        return fail("CELL_ROUTE_DEFAULT_DENY");
+      }
+      continue;
+    }
+    if (typeof r.Priority !== "string" || !/^[1-9][0-9]{0,4}$/.test(r.Priority)) return fail("CELL_ROUTE_RULES");
+    const priority = Number(r.Priority);
+    if (priority > 50_000 || observedPriorities.has(priority) || !Array.isArray(r.Conditions) || !r.Conditions.length ||
+      r.Conditions.some(c => !c || !routeConditionFields.has(c.Field))) return fail("CELL_ROUTE_RULES");
+    observedPriorities.add(priority);
+    if (priorities.includes(priority)) return fail("CELL_ROUTE_PRIORITY");
+    // The exact Cell-wide /api/saas denial is already independently bound.
+    // It is the only accepted non-default rule that need not carry a host.
+    if (sharedDeny && r.RuleArn === sharedDeny.RuleArn) {
+      if (!same(r, sharedDeny)) return fail("CELL_ROUTE_SHARED_DENY");
+      shared = true;
+      continue;
+    }
+    const hosts = r.Conditions.filter(c => c.Field === "host-header");
+    if (hosts.length !== 1) return fail("CELL_ROUTE_HOST_UNPROVED");
+    if (hostPatterns(hosts[0]).some(pattern => matchesHostPattern(pattern, hostname))) return fail("CELL_ROUTE_HOST_OCCUPIED");
+  }
+  if (defaults !== 1 || (sharedDeny && !shared)) return fail("CELL_ROUTE_RULES");
+  return { listenerArn, vacantPriorities: priorities,
+    observedRuleSetSha256: await sha256Hex([...result.Rules].sort((a, b) => a.RuleArn.localeCompare(b.RuleArn))) };
+}
 
 /** Sample only the restored originals. The expectation is prepared by an
  * independent reader, never learned from these writer-side observations. */
@@ -34,6 +117,10 @@ export async function sampleFirstOpenRestoredCell(input: { approval: FirstOnboar
   seed: FirstOpenInspectSeed; exact: CellCoordinates; read: Read; signal: AbortSignal }) {
   const { approval, seed, read, signal } = input, target = approval.express?.target;
   const b = seed.binding.tenantStackParameters, httpsArn = b.HttpsListenerArn, controlArn = b.ControlListenerArn;
+  const secondSlot = approval.express?.secondSlot;
+  if (secondSlot !== undefined && (!matchesFirstOpenSecondSlotEnvironment(secondSlot, seed.environment) || approval.hostname !== s.hostname)) {
+    return fail("CELL_ROUTE_APPROVAL");
+  }
   const listener = (v: string) => typeof v === "string" && v.startsWith(prefix + "listener/app/") &&
     /^[-a-zA-Z0-9]+\/[a-f0-9]+\/[a-f0-9]+$/.test(v.slice((prefix + "listener/app/").length));
   if (!target || approval.jobId !== s.jobId || target.clusterArn !== s.clusterArn ||
@@ -64,9 +151,7 @@ export async function sampleFirstOpenRestoredCell(input: { approval: FirstOnboar
     ![undefined, "off"].includes(https.MutualAuthentication?.Mode) ||
     control.MutualAuthentication?.Mode !== "verify" || control.MutualAuthentication.IgnoreClientCertificateExpiry === true ||
     trust !== controlTrustStoreArn) return fail("CELL_LISTENERS");
-  const rules = await read.read<{ Rules: { RuleArn: string; Priority: string; IsDefault: boolean;
-    Conditions: { Field: string; PathPatternConfig?: { Values: string[] } }[];
-    Actions: { Type: string; FixedResponseConfig?: { StatusCode: string } }[] }[]; NextMarker?: string }>(
+  const rules = await read.read<{ Rules: Rule[]; NextMarker?: string }>(
     "elbv2", "describe-rules", { RuleArns: [businessDenyRuleArn] });
   after(signal);
   const deny = rules.Rules?.[0];
@@ -108,6 +193,11 @@ export async function sampleFirstOpenRestoredCell(input: { approval: FirstOnboar
     !Array.isArray(db.VpcSecurityGroups) || db.VpcSecurityGroups.length !== 0) return fail("EXPRESS_NETWORK_MODE");
   const storageEncryptionType = firstOpenExpressStorageProof(db);
   if (!storageEncryptionType) return fail("EXPRESS_STORAGE_ENCRYPTION");
+  const secondSlotRoutes = secondSlot === undefined ? undefined : { hostname: s.hostname,
+    business: await sampleSecondSlotListener({ read, signal, listenerArn: httpsArn, hostname: s.hostname,
+      priorities: [secondSlot.listenerPriority, secondSlot.listenerPriority + 1], sharedDeny: deny }),
+    control: await sampleSecondSlotListener({ read, signal, listenerArn: controlArn, hostname: s.hostname,
+      priorities: [secondSlot.listenerPriority] }) };
   return {
     cellStackId: s.cellStack, outputs: Object.fromEntries(outputs.map(k => [k, b[k]])),
     businessDenyRule: deny, trustStore,
@@ -118,6 +208,7 @@ export async function sampleFirstOpenRestoredCell(input: { approval: FirstOnboar
     express: { arn: db.DBClusterArn, resourceId: db.DbClusterResourceId, endpoint: db.Endpoint, version: db.EngineVersion,
       writer: writers[0].DBInstanceIdentifier, storageEncryptionType, internetAccessGatewayEnabled: true as const,
       vpcNetworkingEnabled: false as const, securityGroups: [] as string[] },
+    ...(secondSlotRoutes === undefined ? {} : { secondSlotRoutes }),
   };
 }
 

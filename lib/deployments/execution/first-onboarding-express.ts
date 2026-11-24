@@ -2,12 +2,14 @@ import { firstOnboardingExpressNames, type FirstOnboardingReview } from "../firs
 import type { FirstOpenBuyerSignerPin } from "../../buyer-forward/signer-binding.ts";
 import type { ReleaseSamplingBinding } from "../releases/sampling.ts";
 import type { AwsEcsCellDeploymentPlan } from "../types.ts";
-import type { AwsSandboxTenantStackInput } from "../cloudformation/tenant-stack.ts";
+import { prepareFirstOpenSecondSlotRenderInput, type AwsSandboxTenantStackInput } from "../cloudformation/tenant-stack.ts";
 import { renderExpressSingleTenantWorkloadV1 } from "../cloudformation/express-single-tenant-workload-v1.ts";
 import { compileExpressBootstrapCandidateV3, type ExpressManagementTargetV3 } from "./aurora-express-bootstrap-v3.ts";
 import { parseDatabaseBindingV2 } from "./aurora-database-v2.ts";
 import type { DeploymentExecutionContext, TenantApprovedBaseline, TenantDatabaseLifecyclePort, TenantDatabaseMutationReceipt,
   TenantExternalOperationFence, TenantSecretInspection, TenantSecretStorePort } from "./contracts.ts";
+import { assertFirstOpenSecondSlot, FIRST_OPEN_SECOND_SLOT, matchesFirstOpenSecondSlotEnvironment,
+  type FirstOpenSecondSlotApproval } from "./first-open-second-slot.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
 import { assertTenantApplicationAccessProof } from "./tenant-application-access-proof.ts";
 import { deriveTenantRuntimeSecretName, GuardedTenantDatabasePort, validateApprovedBaseline } from "./tenant-database.ts";
@@ -29,6 +31,8 @@ export interface FirstOnboardingExpressApproval {
   buyerForwardSigner?: FirstOpenBuyerSignerPin;
   /** Explicitly reviews the two same-tag write requests that must be denied. */
   g1StandaloneTagProof?: typeof FIRST_OPEN_G1_TAG_PROOF_MODE;
+  /** Exact, opt-in fc41597f coexistence policy, acquired before claiming. */
+  secondSlot?: FirstOpenSecondSlotApproval;
   sampling: ReleaseSamplingBinding; // static; contains only the exact control public key reference
   mediaPublicBaseUrl: string;
 }
@@ -94,7 +98,8 @@ export function firstOpenExpressDatabaseBinding(a: FirstOnboardingExpressApprova
 export async function renderFirstOpenExpressTemplate(stackInput: AwsSandboxTenantStackInput, a: FirstOnboardingExpressApproval,
   material: { identity: FirstOnboardingDatabaseIdentity; sampling: ReleaseSamplingBinding }, configurationHash: string) {
   const { sampling } = a, { identity, sampling: completed } = material;
-  const r = await renderExpressSingleTenantWorkloadV1({ workload: stackInput, databaseOid: identity.databaseOid,
+  const workload = a.secondSlot === undefined ? stackInput : prepareFirstOpenSecondSlotRenderInput(stackInput, a.secondSlot);
+  const r = await renderExpressSingleTenantWorkloadV1({ workload, databaseOid: identity.databaseOid,
     roleOid: identity.roleOid, configurationHash,
     binding: firstOpenExpressDatabaseBinding(a, completed.secrets[1]),
   });
@@ -116,6 +121,14 @@ export async function composeFirstOnboardingExpress(input: {
 }) {
   const a = structuredClone(input.approval), { target, baseline, sampling, applicationRoleArn } = a, { ports, review } = input;
   const scope = review.payload.scope;
+  if (a.secondSlot !== undefined) {
+    assertFirstOpenSecondSlot(a.secondSlot);
+    const exact = FIRST_OPEN_SECOND_SLOT;
+    if (review.jobId !== exact.jobId || scope.deploymentId !== exact.deploymentId || scope.appInstanceId !== exact.instanceId ||
+      scope.environmentId !== exact.environmentId || input.hostname !== exact.hostname) {
+      reject("FIRST_OPEN_SECOND_SLOT_EXPRESS_SCOPE");
+    }
+  }
   const tenant = { appInstanceId: scope.appInstanceId, workspaceId: scope.workspaceId, productId: scope.productId,
     environmentId: scope.environmentId, cellKey: "cell-sandbox-1" as const };
   const names = await firstOnboardingExpressNames(tenant);
@@ -269,6 +282,8 @@ export async function composeFirstOnboardingExpress(input: {
     database, material, applicationRoleArn, controlRef,
     async assertContext(context: DeploymentExecutionContext) {
       window();
+      if (a.secondSlot !== undefined && (!matchesFirstOpenSecondSlotEnvironment(a.secondSlot, context.environment) ||
+        context.activeCellCount !== 1 || context.activeTenantCount !== 1)) reject("FIRST_OPEN_SECOND_SLOT_EXPRESS_CONTEXT");
       if (!context.binding || ![control.arn, controlRef].includes(context.binding.tenantStackParameters.ControlPublicKeyValueFrom) ||
         await sha256Hex(context.binding.tenantStackParameters) !== a.environmentParametersSha256) {
         reject("FIRST_ONBOARDING_EXPRESS_PARAMETERS_CHANGED");

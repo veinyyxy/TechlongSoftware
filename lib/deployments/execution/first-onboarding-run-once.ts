@@ -4,12 +4,13 @@ import { FIRST_OPEN_MANAGEMENT_SQL_USER, parseExpressManagementTargetV3 } from "
 import { awsSandboxTenantStackName } from "../cloudformation/tenant-stack.ts";
 import type { AwsDeploymentPort, DeploymentExecutionBinding, DeploymentExecutionRepository, DeploymentJobLeaseFence } from "./contracts.ts";
 import { FIRST_OPEN_BASELINE_BINDING, isFixedFirstOpenBaseline } from "./first-onboarding-baseline-versions.ts";
-import { verifyFirstOnboardingApprovalBinding } from "./first-onboarding-approval.ts";
+import { FIRST_ONBOARDING_DEFERRED_CLEANUP_PROOF, verifyFirstOnboardingApprovalBinding } from "./first-onboarding-approval.ts";
+import { assertFirstOpenSecondSlot } from "./first-open-second-slot.ts";
 import { firstOpenBuyerBinding } from "./first-open-buyer-binding.ts";
 import { assertFirstOpenClaimTime, FIRST_OPEN_CELL_STACK, firstOpenExecutionWindow } from "./first-onboarding-window.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
 import { firstOpenVersion, verifyFirstOpenTaskRelease } from "./first-onboarding-version.ts";
-import { attachFirstOpenTaskBinding, isFirstOpenTaskBinding, type SupervisedWorkloadAwsPort } from "./single-tenant-workload-strategy.ts";
+import { assertFirstOpenCleanupReadiness, attachFirstOpenTaskBinding, isFirstOpenTaskBinding, type SupervisedWorkloadAwsPort } from "./single-tenant-workload-strategy.ts";
 import { DisabledTenantDatabasePort, validateApprovedBaseline } from "./tenant-database.ts";
 import { runReviewedFirstOnboarding, type DeploymentWorkerDependencies } from "./worker.ts";
 
@@ -102,6 +103,10 @@ export async function checkSandboxFirstOpenApproval(approval: Approval, sha: str
     await verifyFirstOpenTaskRelease(a.taskRelease);
     requireScope(a.taskRelease.firstOpenScope.publication.publishedAt <= now, "RELEASE_NOT_PUBLISHED");
   }
+  if (e.secondSlot !== undefined) {
+    assertFirstOpenSecondSlot(e.secondSlot);
+    requireScope(a.taskRelease && a.approvalBinding === FIRST_ONBOARDING_DEFERRED_CLEANUP_PROOF, "SECOND_SLOT_REVIEW");
+  }
   validateApprovedBaseline(e.baseline, a.jobId);
   assertFirstOpenClaimTime(firstOpenExecutionWindow(a.jobId, a.writeBefore, a.controlledWindow)!, now);
   return a;
@@ -117,12 +122,14 @@ export function createSandboxFirstOpenRunOnce(ports: SandboxFirstOpenPorts, now:
     const a = await checkSandboxFirstOpenApproval(approval, approvedSha256, now(), formalApprovalSha256);
     const version = firstOpenVersion(a.taskRelease), artifact = version.artifactRef;
     if (reviewedTaskBinding) requireScope(isFirstOpenTaskBinding(reviewedTaskBinding, approvedSha256), "TASK_BINDING_UNSEALED");
+    const secondSlot = a.express?.secondSlot;
+    if (secondSlot) requireScope(reviewedTaskBinding && ports.cleanupReadiness.verifyBeforeClaim, "SECOND_SLOT_NO_INDEPENDENT_BINDING");
     requireScope(!used && ports.cloud.region === s.region, "ENTRY_ALREADY_USED_OR_REGION");
     used = true;
     const inWindow = () => requireScope(now() < a.writeBefore, "WINDOW");
     const r = ports.repository;
     let leaseToken: string | undefined, stackId: string | undefined;
-    let claimSent = false, createSent = false, configureSent = false, stackReads = 0;
+    let claimSent = false, createSent = false, configureSent = false, stackReads = 0, secondSlotCellProven = false;
     const finishedSteps = new Set<string>();
     const workerId = "first-onboarding:" + s.jobId;
     const guardLease = (lease: DeploymentJobLeaseFence) => {
@@ -149,9 +156,15 @@ export function createSandboxFirstOpenRunOnce(ports: SandboxFirstOpenPorts, now:
           await sha256Hex(c.workspace.id) === s.workspaceSha256, "CONTEXT");
         if (!reviewedTaskBinding) return c;
         requireScope(c.job.id === job.id && c.job.leaseToken === job.leaseToken && c.job.attempt === job.attempt, "TASK_BINDING_LEASE");
-        return attachFirstOpenTaskBinding(c, reviewedTaskBinding, approvedSha256);
+        const scoped = attachFirstOpenTaskBinding(c, reviewedTaskBinding, approvedSha256);
+        if (!secondSlot) return scoped;
+        // With no shared binding the repository count is 0; recognize the
+        // one actual reused Cell only from this attempt's verified preclaim read.
+        requireScope(secondSlotCellProven && c.activeCellCount === 0 && c.activeTenantCount === 1, "SECOND_SLOT_COUNT_CHANGED");
+        return { ...scoped, activeCellCount: 1 };
       },
-      reserveEnvironmentCapacity(x) { guardLease(x.lease); requireScope(x.environmentId === s.environmentId, "CAPACITY"); return r.reserveEnvironmentCapacity(x); },
+      reserveEnvironmentCapacity(x) { guardLease(x.lease); requireScope(x.environmentId === s.environmentId &&
+        x.maxTenants === (secondSlot ? 2 : 1), "CAPACITY"); return r.reserveEnvironmentCapacity(x); },
       heartbeat(x) { guardLease(x.lease); return r.heartbeat({ ...x, notAfter: a.writeBefore }); },
       transitionDeployment(x) {
         guardLease(x.lease); requireScope(allowedTransitions.has(x.to), "TRANSITION_SCOPE"); return r.transitionDeployment(x);
@@ -214,7 +227,16 @@ export function createSandboxFirstOpenRunOnce(ports: SandboxFirstOpenPorts, now:
       },
     };
     return runReviewedFirstOnboarding({
-      approval: a, approvedSha256, formalApprovalSha256, dependencies: d, cleanupReadiness: ports.cleanupReadiness, expressPorts: ports.express,
+      approval: a, approvedSha256, formalApprovalSha256, dependencies: d, expressPorts: ports.express,
+      cleanupReadiness: secondSlot ? {
+        verify: x => ports.cleanupReadiness.verify(x),
+        async verifyBeforeClaim(x) {
+          const observed = await ports.cleanupReadiness.verifyBeforeClaim!(x);
+          await assertFirstOpenCleanupReadiness(observed, x.scope, x.window, now());
+          secondSlotCellProven = true;
+          return observed;
+        },
+      } : ports.cleanupReadiness,
       config: { workerEnabled: false, applyEnabled: false, confirmation: "", expectedAccountId: s.account,
         expectedRegion: s.region, workerRoleArn: s.workerRole, environmentKey: "aws-sandbox-ca-central-1",
         leaseDurationMs: 120000, pollIntervalMs: 10000 },
@@ -237,7 +259,7 @@ export function createSandboxFirstOpenRunOnce(ports: SandboxFirstOpenPorts, now:
       verifyEmptyExpressCapability: ports.verifyEmptyExpressCapability,
       async claimJob(sql, b) {
         inWindow(); const token = b[2];
-        requireScope(!claimSent && sql === CLAIM_FIRST_ONBOARDING && b[0] === s.jobId && b[1] === workerId &&
+        requireScope(!claimSent && (!secondSlot || secondSlotCellProven) && sql === CLAIM_FIRST_ONBOARDING && b[0] === s.jobId && b[1] === workerId &&
           typeof token === "string" && /^lease_[a-f0-9]{32}$/.test(token) &&
           b[3] === a.writeBefore && b[4] === s.deploymentId && b[9] === s.instanceId && b[11] === s.subscriptionId, "CLAIM_ONCE");
         claimSent = true;

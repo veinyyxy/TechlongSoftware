@@ -2,6 +2,7 @@ import {
   isDeploymentProfileKey,
   type DeploymentProfileKey,
 } from "./profiles.ts";
+import { matchesFirstOpenSecondSlotEnvironment, type FirstOpenSecondSlotApproval } from "./execution/first-open-second-slot.ts";
 
 export type DeploymentEnvironmentKind = "aws_sandbox" | "aws_production";
 export type DeploymentEnvironmentStatus = "active" | "inactive";
@@ -133,8 +134,11 @@ export function parseDeploymentEnvironmentPolicy(
 
 export function validateDeploymentEnvironment(
   environment: DeploymentEnvironment,
+  secondSlot?: FirstOpenSecondSlotApproval,
 ): string[] {
   const errors: string[] = [];
+  const approvedSecondSlot = secondSlot !== undefined && matchesFirstOpenSecondSlotEnvironment(secondSlot, environment);
+  if (secondSlot !== undefined && !approvedSecondSlot) errors.push("sandbox_second_slot_scope_invalid");
   if (!safeKeyPattern.test(environment.key)) errors.push("environment_key_invalid");
   if (!safeKeyPattern.test(environment.cellKey)) errors.push("cell_key_invalid");
   if (!awsAccountPattern.test(environment.expectedAccountId)) {
@@ -165,7 +169,7 @@ export function validateDeploymentEnvironment(
       errors.push("sandbox_budget_invalid");
     }
     if (environment.policy.maxCells !== 1) errors.push("sandbox_cell_limit_invalid");
-    if (environment.policy.maxTenants !== 1) errors.push("sandbox_tenant_limit_invalid");
+    if (environment.policy.maxTenants !== 1 && !approvedSecondSlot) errors.push("sandbox_tenant_limit_invalid");
     if (environment.policy.maxTaskCount !== 1) errors.push("sandbox_task_limit_invalid");
     if (environment.policy.ttlSeconds !== 2 * 60 * 60) {
       errors.push("sandbox_ttl_invalid");

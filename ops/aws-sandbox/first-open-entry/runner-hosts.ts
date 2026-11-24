@@ -136,7 +136,7 @@ export function runOnceHost(input: ReviewedRunOnceHostInputs): FirstOpenRolePort
         signal.throwIfAborted();
         readApi ??= (async () => {
           const c = await session.credentials(signal);
-          return releaseMetadataApi({ region: scope.region, maxMetadataCallsPerSnapshot: 24,
+          return releaseMetadataApi({ region: scope.region, maxMetadataCallsPerSnapshot: approval.express?.secondSlot ? 32 : 24,
             firstOpenTrustStoreArn: input.independentReadiness.restoredCellCoordinates.controlTrustStoreArn },
             { accessKeyId: c.accessKeyId, secretAccessKey: c.secretAccessKey, sessionToken: c.sessionToken!, expiresAt: c.expiration!.getTime() });
         })();
