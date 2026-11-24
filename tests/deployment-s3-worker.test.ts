@@ -10,6 +10,8 @@ import {
 } from "../lib/deployments/execution/aws-sdk-adapter.ts";
 import { EmbeddedCloudFormationCleanupSchedule } from "../lib/deployments/execution/cleanup.ts";
 import { MtlsSaaSControlClient } from "../lib/deployments/execution/control-client.ts";
+import type { EcsFirstOpenApproval, EcsFirstOpenPorts } from "../lib/deployments/execution/ecs-first-open.ts";
+import { runFirstOpenCommand } from "../ops/platform-hosting-v1/first-open.ts";
 import type {
   ApplyReadyTenantStack,
   ClaimedDeploymentJob,
@@ -376,6 +378,84 @@ test("reviewed first-open runs one held job to independent technical proof, not 
   assert.equal(context.deployment.status, "verifying");
   await assert.rejects(runReviewedFirstOnboarding(options), /FIRST_ONBOARDING_CLAIM_NOT_PROVED/);
   assert.equal(calls.filter(call => call === "create").length, 1);
+});
+
+async function ecsFirstOpenFixture() {
+  const fixture = await firstOpenFixture();
+  const { options, context, row, release, calls } = fixture;
+  const executionId = `exec_${"9".repeat(32)}`;
+  const { jobId, reviewSha256, baselineDigest, databaseSchemaVersion, dnsTarget, hostname, writeBefore } = options.approval;
+  const approval: EcsFirstOpenApproval = { executionId, approvedBy: "admin_fixture", approvedAt: options.dependencies.now!() - 1,
+    jobId, reviewSha256, baselineDigest, databaseSchemaVersion, dnsTarget, hostname, writeBefore,
+    instanceId: context.appInstance.id, workspaceId: context.workspace.id, releaseId: release.id };
+  const ports: EcsFirstOpenPorts = {
+    readApproval: async id => { assert.equal(id, executionId); calls.push("approval"); return approval; },
+    readOne: options.readJob,
+    readRelease: options.readRelease,
+    async claimApproved(stored, sql, bindings) {
+      assert.deepEqual(stored, approval);
+      assert.equal(bindings[1], executionId);
+      assert.equal(bindings[3], writeBefore);
+      const claimed = await options.claimJob(sql, bindings);
+      return claimed && { executionId, ...claimed };
+    },
+    management: { dependencies: options.dependencies, config: options.config, cleanupReadiness: options.cleanupReadiness },
+    reader: options.independentReader!,
+  };
+  return { ...fixture, ports, executionId, approval, row, run: () => runFirstOpenCommand([executionId], async () => ports) };
+}
+
+test("ECS first open runs a single claim, real management and a fresh self-check in one command", async () => {
+  const { run, calls, context, executionId, ports } = await ecsFirstOpenFixture();
+  const control = ports.management.dependencies.controlClient;
+  const read = control.readConfiguration.bind(control);
+  control.readConfiguration = async input => { calls.push("read-config"); return read(input); };
+  const result = await run();
+  assert.equal(result.executionId, executionId);
+  assert.equal(result.outcome, "SELF_CHECK_PASSED");
+  assert.equal(result.runtime.instanceId, context.appInstance.id);
+  assert.deepEqual(calls, ["approval", "claim", "capacity", "prepare", "migrate", "capacity", "create", "capacity", "configure",
+    "read-config", "inspect", "read-config"]);
+  assert.equal(context.appInstance.status, "pending");
+  assert.equal(context.deployment.status, "verifying");
+  await assert.rejects(run(), /ECS_FIRST_OPEN_CLAIM_UNCONFIRMED/);
+  assert.equal(calls.filter(call => call === "create").length, 1);
+});
+
+test("ECS first open stops before claim with no approval, a different instance, or missing dependencies", async () => {
+  const { run, ports, approval, executionId } = await ecsFirstOpenFixture();
+  const load = async () => { throw Error("fixture dependencies missing"); };
+  await assert.rejects(runFirstOpenCommand([executionId, "extra"], load), /ECS_FIRST_OPEN_EXECUTION_ID/);
+  await assert.rejects(runFirstOpenCommand([executionId], load), /fixture dependencies missing/);
+  ports.claimApproved = async () => assert.fail("claim without bound approval or dependencies");
+  ports.readApproval = async () => null;
+  await assert.rejects(run(), /ECS_FIRST_OPEN_APPROVAL_REQUIRED/);
+  ports.readApproval = async () => ({ ...approval, instanceId: "app_wrong" });
+  await assert.rejects(run(), /ECS_FIRST_OPEN_APPROVAL_SCOPE/);
+  ports.readApproval = async () => ({ ...approval, jobId: FIRST_OPEN_BASELINE_BINDING.jobId });
+  await assert.rejects(run(), /ECS_FIRST_OPEN_LEGACY_SOURCE_BOUND/);
+  ports.readApproval = async () => approval;
+  ports.management.dependencies.tenantExternalOperationCoordinator = undefined;
+  await assert.rejects(run(), /ECS_FIRST_OPEN_MANAGEMENT_DEPENDENCIES/);
+});
+
+test("ECS first open stops after Management fails, or before activation when self-check finds a mismatch", async () => {
+  const management = await ecsFirstOpenFixture();
+  management.ports.management.dependencies.tenantDatabase!.migrateTenantDatabase = async () => { throw Error("fixture migration failed"); };
+  await assert.rejects(management.run(), /fixture migration failed/);
+  assert.deepEqual(management.calls, ["approval", "claim", "capacity", "prepare"]);
+
+  const inspection = await ecsFirstOpenFixture();
+  const reader = inspection.ports.reader;
+  inspection.ports.reader = { async capture(input) {
+    const observed = await reader.capture(input);
+    observed.facts.checks[1].status = 503;
+    return observed;
+  } };
+  await assert.rejects(inspection.run(), /RELEASE_TECHNICAL_ENDPOINTS_NOT_VERIFIED/);
+  assert.equal(inspection.calls.at(-1), "inspect");
+  assert.equal(inspection.context.appInstance.status, "pending");
+  assert.equal(inspection.context.deployment.status, "verifying");
 });
 
 async function authorizeFirstOpenCompletion(options: Parameters<typeof runReviewedFirstOnboarding>[0],

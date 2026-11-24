@@ -18,6 +18,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Immutable SpeedFeast lifecycle source, verified against its pinned blobs.
+    "ops/platform-hosting-v1/first-open-backend/**",
   ]),
 ]);
 

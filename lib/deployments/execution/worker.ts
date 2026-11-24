@@ -1787,6 +1787,50 @@ export interface FirstOnboardingExecutionApproval {
 type FirstOnboardingDatabaseAdmission = { profile: "express_iam"; evidenceSha256: string } &
   ({ emptyDatabaseInitializationVerified: true } | { restrictedManagementReady: true });
 
+/** Run the existing provisioning and configuration steps under an already
+ * claimed first-onboarding lease. The caller binds the read to that claim. */
+export async function runFirstOnboardingManagement(input: {
+  dependencies: DeploymentWorkerDependencies;
+  config: ReviewedLeaseConfig;
+  workerId: string;
+  loadContext(): Promise<DeploymentExecutionContext>;
+  assertScope?(context: DeploymentExecutionContext): void | Promise<void>;
+  checkWindow(): void;
+  baselineDigest: string;
+  window?: FirstOpenExecutionWindow;
+}) {
+  const { dependencies, config, workerId, loadContext, checkWindow, baselineDigest, window } = input;
+  const now = dependencies.now ?? Date.now;
+  const loadClaimedContext = async () => {
+    checkWindow();
+    const current = await loadContext();
+    assertContextIntegrity(current, { destructive: false });
+    await assertHashes(current, { configuration: true });
+    assertFirstOnboardingContext(config, current);
+    await input.assertScope?.(current);
+    return current;
+  };
+  const context = await loadClaimedContext();
+  if (context.job.attempt !== 1 || !context.job.leaseToken) throw Error("FIRST_ONBOARDING_CONTEXT_CHANGED");
+  if (context.deployment.status !== "planned" || context.tenantResources || context.tenantExternalOperation) {
+    throw Error("FIRST_ONBOARDING_NOT_FRESH");
+  }
+  const lease = canonicalJson(deploymentLease(context, workerId));
+  const reload = async () => {
+    const current = await loadClaimedContext();
+    if (canonicalJson(deploymentLease(current, workerId)) !== lease) throw Error("FIRST_ONBOARDING_CONTEXT_CHANGED");
+    return current;
+  };
+  const base = { dependencies, config, workerId };
+  await ensureExecutionCleanup({ ...base, context, now: now() });
+  checkWindow();
+  const aws = await dependencies.awsFactory({ region: context.environment.region, workerRoleArn: context.binding!.workerRoleArn });
+  const applied = await handleApply({ ...base, context, aws, firstOnboarding: { baselineDigest, window } });
+  if (!applied) throw Error("FIRST_ONBOARDING_CREATE_NOT_PROVED");
+  await handleReconcile({ ...base, context: await reload(), aws, stack: applied.stack, firstOnboarding: { stackId: applied.stackId } });
+  return { ...applied, context: await reload() };
+}
+
 /** One held job through the existing stages. No default network composition
  * or ordinary claimNext path; callers must verify approval and supply reviewed adapters. */
 export async function runReviewedFirstOnboarding(input: {
@@ -1933,29 +1977,16 @@ export async function runReviewedFirstOnboarding(input: {
   // rewrite the held payload, namespace, available time or attempt limit.
   const job = { id: a.jobId, deploymentId: scope.deploymentId, jobType: "apply" as const, attempt: 1, maxAttempts: 1,
     leaseToken, leaseExpiresAt: a.writeBefore, payload: { ...review.payload, schemaVersion: 1, deploymentId: scope.deploymentId, planHash: scope.planHash } };
-  const loadContext = async () => {
-    checkWindow();
-    const context = await repository.loadContext(job);
-    assertContextIntegrity(context, { destructive: false });
-    await assertHashes(context, { configuration: true });
-    assertFirstOnboardingContext(config, context);
+  const assertScope = async (context: DeploymentExecutionContext) => {
     await express?.assertContext(context);
     strategy.assertScope(context);
     if (context.job.id !== job.id || context.job.leaseToken !== job.leaseToken || context.job.attempt !== 1) {
       throw Error("FIRST_ONBOARDING_CONTEXT_CHANGED");
     }
-    return context;
   };
-  let context = await loadContext();
-  if (context.deployment.status !== "planned" || context.tenantResources || context.tenantExternalOperation) throw Error("FIRST_ONBOARDING_NOT_FRESH");
   const base = { dependencies, config, workerId };
-  await ensureExecutionCleanup({ ...base, context, now: now() });
-  checkWindow();
-  const aws = await dependencies.awsFactory({ region: context.environment.region, workerRoleArn: context.binding!.workerRoleArn });
-  const applied = await handleApply({ ...base, context, aws, firstOnboarding: { baselineDigest: a.baselineDigest, window } });
-  if (!applied) throw Error("FIRST_ONBOARDING_CREATE_NOT_PROVED");
-  await handleReconcile({ ...base, context: await loadContext(), aws, stack: applied.stack, firstOnboarding: { stackId: applied.stackId } });
-  context = await loadContext();
+  const { context, ...applied } = await runFirstOnboardingManagement({ ...base, loadContext: () => repository.loadContext(job),
+    assertScope, checkWindow, baselineDigest: a.baselineDigest, window });
   const stepInput = {
     approvalSha256: input.approvedSha256, reviewSha256: review.reviewSha256, stackId: applied.stackId,
   };

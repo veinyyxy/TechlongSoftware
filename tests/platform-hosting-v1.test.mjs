@@ -205,6 +205,12 @@ test('pinned non-root container has explicit source COPY, no secret build args a
   assert.match(source,/RUN apk upgrade --no-cache/);
   assert.match(source,/FROM base AS build/);assert.match(source,/FROM base AS candidate/);
   assert.match(source,/USER node/);assert.doesNotMatch(source,/COPY \. |ARG .*SECRET|migrate|aws login/);
+  assert.match(source,/COPY --from=build --chown=node:node \/app\/dist\/first-open\/ \.\/ops\/platform-hosting-v1\//);
+  assert.match(source,/FROM postgres:16\.14-alpine3\.24@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777 AS first-open-pg/);
+  assert.match(source,/COPY --from=first-open-pg \/first-open-pg\/pg_restore \/usr\/bin\/pg_restore/);
+  assert.match(source,/COPY --from=first-open-backend \/app\/first-open-backend\/ \.\/first-open-backend\//);
+  assert.match(source,/RUN --network=none .*await checkFirstOpenImageDependencies\(\)/);
+  assert.match(source,/CMD \["node", "ops\/platform-hosting-v1\/start.mjs"\]/);
   const ignore=await readFile(new URL('../ops/platform-hosting-v1/Dockerfile.dockerignore',import.meta.url),'utf8');assert(ignore.includes('**/.env*')&&ignore.includes('**/*.pem'));
 });
 test('CI has no AWS/OIDC/Secrets/deployment authority; tests actual built image without external network',async()=>{

@@ -4,11 +4,27 @@ import path from 'node:path';
 import {buildEnvironment,assertBuildChildEnvironment,must} from './contract.mjs';
 import {ROOT,makeBuildConfig} from './config.mjs';
 
+export async function buildFirstOpen(outDir=path.join(ROOT,'dist','first-open')){
+  const {build}=await import('vite');
+  await build({
+    root:ROOT,configFile:false,envDir:false,publicDir:false,
+    build:{
+      ssr:path.join(ROOT,'ops/platform-hosting-v1/first-open.ts'),
+      target:'node22',
+      outDir,
+      rolldownOptions:{output:{entryFileNames:'first-open.mjs'}},
+    },
+  });
+}
+
 export async function main(args=process.argv.slice(2)){
   must(process.env.CI==='true'&&process.env.GITHUB_ACTIONS==='true','CI_BUILD_ONLY');
   if(args.length===1&&args[0]==='--isolated-child'){
     assertBuildChildEnvironment(process.env);
-    const {createBuilder}=await import('vite');await(await createBuilder(await makeBuildConfig())).buildApp();return;
+    const {createBuilder}=await import('vite');
+    await(await createBuilder(await makeBuildConfig())).buildApp();
+    await buildFirstOpen();
+    return;
   }
   must(args.length===0,'ARGUMENTS');
   // The child, not the caller's environment, is what the compiler can inspect.

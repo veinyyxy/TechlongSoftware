@@ -1,0 +1,2 @@
+# Preserve exact reviewed Git blob bytes on every checkout.
+* -text
