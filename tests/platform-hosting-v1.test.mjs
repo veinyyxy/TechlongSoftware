@@ -9,6 +9,7 @@ import {platformClosureV6} from '../ops/platform-cloud-v6/closure.mjs';
 import {INSTALLED_BINDING_V6 as B} from '../lib/deployments/controller-v6/installed-binding.ts';
 import {load} from 'js-yaml';
 import {PUBLIC_ORIGIN,ingressPolicy,checkIngress,ingressHandler,installIngress} from '../ops/platform-hosting-v1/ingress.mjs';
+import {firstOpenBuyerWire} from '../lib/buyer-forward/wire.mjs';
 
 const albPolicy=ingressPolicy({TECHLONG_PLATFORM_INGRESS:'alb-https-v1',TECHLONG_PLATFORM_PUBLIC_ORIGIN:PUBLIC_ORIGIN},{port:3000,host:'0.0.0.0'});
 const albHeaders={host:'console.sandbox.techlong.cloud','x-forwarded-proto':'https','x-forwarded-port':'443'};
@@ -84,6 +85,31 @@ test('every mutation requires exact Origin; cross-site, null, sibling and missin
   }
   assert.equal(checkIngress(wire({...albHeaders,origin:'https://attacker.invalid'}),albPolicy),403);
   assert.equal(checkIngress(wire({...albHeaders,origin:PUBLIC_ORIGIN},'OPTIONS'),albPolicy),0);
+});
+
+test('first-open buyer origin reaches only the signer-enabled relay with the original ALB guard',()=>{
+  const env={TECHLONG_PLATFORM_INGRESS:'alb-https-v1',TECHLONG_PLATFORM_PUBLIC_ORIGIN:PUBLIC_ORIGIN};
+  const opts={port:3000,host:'0.0.0.0'},key=Buffer.alloc(32,167).toString('base64url');
+  const on=ingressPolicy({...env,[firstOpenBuyerWire.signerEnvName]:key},opts);
+  const off=ingressPolicy({...env,[firstOpenBuyerWire.signerEnvName]:key.slice(0,-1)+'-'},opts);
+  const headers={...albHeaders,origin:firstOpenBuyerWire.buyerOrigin,'sec-fetch-site':'same-site'};
+  const path=`${firstOpenBuyerWire.prefix}/api/orders/create`;
+  assert.equal(JSON.stringify(on).includes(key),false);
+  for(const method of ['GET','POST','OPTIONS']){
+    assert.equal(checkIngress(wire(headers,method,path+'?test=1'),on),0);
+    assert.equal(checkIngress(wire(headers,method,path),off),403);
+  }
+  for(const method of ['PUT','PATCH','DELETE','HEAD'])assert.equal(checkIngress(wire(headers,method,path),on),405);
+  for(const url of [firstOpenBuyerWire.prefix,`${firstOpenBuyerWire.prefix}/api/../admin`,`${firstOpenBuyerWire.prefix}/api/%2e%2e/admin`,
+    `${firstOpenBuyerWire.prefix}/api/posts//unsafe`,'/api/stripe/webhook','/api/workspaces/demo/purchase-orders']){
+    assert.equal(checkIngress(wire(headers,'POST',url),on),403);
+  }
+  for(const extra of [{origin:PUBLIC_ORIGIN},{origin:'https://buyer.sandbox.techlong.cloud'}, {cookie:''}, {'next-action':''},
+    {'stripe-signature':''},{'sec-fetch-site':'cross-site'}])assert.equal(checkIngress(wire({...headers,...extra},'POST',path),on),403);
+  assert.equal(checkIngress(wire(albHeaders,'POST',path),on),403);
+  assert.equal(checkIngress(wire({...headers,host:'synthetic.invalid'},'POST',path),on),421);
+  assert.equal(checkIngress(wire({...headers,'x-forwarded-proto':'http'},'POST',path),on),400);
+  assert.equal(buildEnvironment({...env,[firstOpenBuyerWire.signerEnvName]:key})[firstOpenBuyerWire.signerEnvName],undefined);
 });
 
 test('health exemption is only a context-free exact GET/HEAD, with all caller headers discarded',()=>{

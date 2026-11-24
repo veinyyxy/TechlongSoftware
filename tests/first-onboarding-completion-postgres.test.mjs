@@ -124,13 +124,14 @@ test("native PostgreSQL: first-open writes all four records or none and D2 can r
     await assert.rejects(failed.attempt(),{code:"22012"});
     assert.deepEqual(await failed.state(),pending); assert.equal((await failed.read()).rowCount,0);
 
-    const scoped=await seed("scoped"), foreign=await seed("foreign");
+    const scopedSlug="7".repeat(24), scoped=await seed(scopedSlug), foreign=await seed("foreign");
+    const buyerOrigin=`https://app-${scopedSlug}.sandbox.techlong.cloud`;
     const roles={definer:"first_onboarding_ci_definer",writer:"first_onboarding_ci_writer",reader:"first_onboarding_ci_reader"};
     await db.query(`CREATE ROLE ${roles.definer} NOLOGIN NOINHERIT;
       CREATE ROLE ${roles.writer} LOGIN NOINHERIT PASSWORD 'synthetic-ci-only';
       CREATE ROLE ${roles.reader} LOGIN NOINHERIT PASSWORD 'synthetic-ci-only';`);
     await db.query(firstOnboardingCompletionDdl({jobId:scoped.h.jobId,deploymentId:scoped.h.deploymentId,
-      instanceId:scoped.scope.appInstanceId,approvalSha256:scoped.req.receipt.approvalSha256,writeBefore:scoped.req.writeBefore},roles));
+      instanceId:scoped.scope.appInstanceId,approvalSha256:scoped.req.receipt.approvalSha256,writeBefore:scoped.req.writeBefore,buyerOrigin},roles));
     const login=async name=>{
       const u=new URL(testUrl); u.username=name;
       const c=new pg.Client({connectionString:u.toString(),statement_timeout:5000}); separate.push(c); await c.connect(); return c;
@@ -155,7 +156,13 @@ test("native PostgreSQL: first-open writes all four records or none and D2 can r
     assert.equal((await submit(limited,scoped,{...scoped.req,writeBefore:scoped.req.writeBefore+1000})).rowCount,0);
     assert.equal((await submit(limited,scoped)).rowCount,1);
     assert.equal((await submit(limited,scoped)).rowCount,0);
+    assert.deepEqual(await scoped.state(),{instance:"active",deployment:"ready",job:"succeeded",access_url:buyerOrigin,revision:"0"});
+    const { rows: [output] }=await reader.query("SELECT outputs::jsonb AS data FROM public.app_instance_deployments WHERE id=$1",[scoped.h.deploymentId]);
+    assert.equal(output.data.buyerOrigin,buyerOrigin);
+    assert.equal(output.data.tenantHostname,scoped.req.receipt.hostname);
     assert.equal((await readFirstOnboardingCompletion(audit,scoped.req.receipt.initialBindingSha256)).rowCount,1);
+    await db.query("UPDATE public.app_instances SET access_url=$1 WHERE id=$2",[`https://${scoped.req.receipt.hostname}`,scoped.scope.appInstanceId]);
+    assert.equal((await readFirstOnboardingCompletion(audit,scoped.req.receipt.initialBindingSha256)).rowCount,0);
     assert.equal((await readFirstOnboardingCompletion(audit,foreign.req.receipt.initialBindingSha256)).rowCount,0);
   } finally { await Promise.all([db.end(),reader.end(),...separate.map(c=>c.end())]); }
 });

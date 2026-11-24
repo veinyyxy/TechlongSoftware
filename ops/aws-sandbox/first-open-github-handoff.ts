@@ -39,7 +39,7 @@ type ArtifactIoOptions = {
   token: string;
   now?: () => number; fetch?: typeof fetch; pause?: (ms: number, signal: AbortSignal) => Promise<void>;
 };
-function firstOpenArtifactIo(options: ArtifactIoOptions) {
+export function firstOpenArtifactIo(options: ArtifactIoOptions) {
   const now = options.now ?? Date.now, fetcher = options.fetch ?? fetch, pause = options.pause ?? wait;
   if (!options.token || !/^[A-Za-z0-9_]+$/.test(options.token)) return fail("SELF");
   const request = (url: string, signal: AbortSignal, authenticated: boolean) => fetcher(url, {

@@ -1,0 +1,39 @@
+# Render separately as Inspect, RunOnce and the isolated Management reusable.
+# This offline candidate cannot request OIDC or fall back to a cloud profile.
+name: Pinned Sandbox first-open __ROLE__
+on:
+  workflow_call:
+    inputs:
+      pair_sha: { type: string, required: true }
+      release_sha: { type: string, required: true }
+      inspect_run: { type: string, required: true }
+permissions:
+  actions: read
+  contents: read
+jobs:
+  bound-first-open:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && github.repository_owner_id == '14145707' && github.actor_id == '14145707'
+    environment: techlong-sandbox-deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    steps:
+      - name: Require the independently approved release
+        env:
+          APPROVED_SHA: ${{ vars.TECHLONG_FIRST_OPEN_APPROVED_RELEASE_SHA256 }}
+          REQUESTED_SHA: ${{ inputs.release_sha }}
+          PAIR_SHA: ${{ inputs.pair_sha }}
+          INSPECT_RUN: ${{ inputs.inspect_run }}
+        shell: bash
+        run: |
+          [[ "$APPROVED_SHA" =~ ^[a-f0-9]{64}$ && "$REQUESTED_SHA" == "$APPROVED_SHA" ]]
+          [[ "$PAIR_SHA" =~ ^[a-f0-9]{64}$ && "$INSPECT_RUN" =~ ^(0|[1-9][0-9]{0,19})$ ]]
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: '__RUNTIME_COMMIT__'
+          persist-credentials: false
+      - name: Locked provider boundary
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = '__RUNTIME_COMMIT__'
+          echo 'FIRST_OPEN_PROVIDER_NOT_INSTALLED'
+          exit 78

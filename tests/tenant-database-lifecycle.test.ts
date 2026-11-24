@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { OrderedTenantResourceCleanup } from "../lib/deployments/execution/cleanup.ts";
 import { RepositoryTenantExternalOwnershipCoordinator } from "../lib/deployments/execution/external-ownership-coordinator.ts";
+import { FIRST_OPEN_BASELINE_BINDING } from "../lib/deployments/execution/first-onboarding-baseline-versions.ts";
 import { sha256Hex } from "../lib/deployments/execution/hash.ts";
 import { NeonDeploymentExecutionRepository } from "../lib/deployments/execution/neon-repository.ts";
 import type {
@@ -738,6 +739,31 @@ test("blocks restore before adapters when no baseline is independently approved"
       (error as { code?: string }).code === "TENANT_BASELINE_NOT_APPROVED",
   );
   assert.equal(adapterCalls, 0);
+});
+
+test("the exact first-open job passes both pinned object references unchanged to restore", async () => {
+  const { jobId, bucket, objects } = FIRST_OPEN_BASELINE_BINDING;
+  const claimed = await reservedContext();
+  claimed.job.id = jobId;
+  const approvedBaseline = { ...baseline,
+    archiveS3Uri: `s3://${bucket}/${objects.archive.key}`, archiveSha256: objects.archive.sha256, approvedArchiveSha256: objects.archive.sha256,
+    manifestS3Uri: `s3://${bucket}/${objects.manifest.key}`, manifestSha256: objects.manifest.sha256,
+    archiveVersionId: objects.archive.versionId, manifestVersionId: objects.manifest.versionId };
+  const stop = Error("TEST_STOP_BEFORE_RESTORE");
+  const guarded = new GuardedTenantDatabasePort({
+    approvedBaseline, fixedFirstOpenBaseline: true,
+    lifecycle: {
+      inspect: async ({ fence: next, externalFence }) => ({ ...inspection(next, "empty"), externalFence }),
+      restoreApprovedBaseline: async ({ baseline: selected }) => { assert.deepEqual(selected, approvedBaseline); throw stop; },
+      prepareEmptyDatabase: async () => assert.fail(), migrateSaas: async () => assert.fail(), verify: async () => assert.fail(), destroy: async () => assert.fail(),
+    },
+    secrets: {
+      inspectRuntimeSecret: async ({ fence: next, externalFence }) => ({ ...secretInspection(next, "present"), externalFence }),
+      ensureRuntimeSecret: async () => assert.fail(), destroyRuntimeSecret: async () => assert.fail(),
+    },
+  });
+  await assert.rejects(guarded.migrateTenantDatabase({ context: claimed, externalFence: claimed.tenantExternalOperation!,
+    idempotencyKey: "dep_one:migration:v1", signal: signal() }), error => error === stop);
 });
 
 function cleanupLease(resourceFence: TenantResourceFence, jobId: string) {

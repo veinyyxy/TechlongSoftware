@@ -4,9 +4,81 @@
 
 ## 当前主线状态：D2 六阶段已完成（2026-11-17，温尼伯）
 
+**当前云环境按用户要求停费，等待本人通知恢复（11 月 24 日）。** [平台 ECS、两台 ALB、控制台 DNS 和两库已核验停用](aws-environment-tool.md#11-月-24-日更新两台-alb-与平台控制台-dns-纳入停用及恢复)，旧租户 API 记录及数据库数据保留。不得自动恢复或启动首开；同一任务仍未领取，停费不等于首开权限尾项已回锁。未来恢复以本轮私有清单为准，不重放旧窗口。
+
+**当前唯一继续点：** [同任务的本机安装已接入同一 Source 的有界分段续签](aws-sandbox-fc41597f-owner-transition-review.md#统一安装审批草案保护安装恢复)。固定单份快照覆盖不了收尾；新的会话策略、官方续签上限及本机登录缓存写回须并入一份实际安装审批，不再要求用户重复登录，不重复仍有效的核对。仍需足够的回锁和桶恢复时间，旧窗口及旧批准不延。未签发执行 SHA、推送、续签、安装、调度或领取；正式首开及独立验收另审。
+
+**先前首开前置：** [正式 Provisioner Grant 的独立回读已接到现有 Inspect](aws-sandbox-fc41597f-owner-transition-review.md)。RunOnce 仍在领取前核对独立回执；148 项离线回归通过。原安装续件仍须落实超限模板新暂存键的独立读取身份与准确写入、保留及取版证据，集中另批补核。不重查 GitHub、ECR 或静态安装。不延长旧事实，无执行 SHA。
+
+已完成[原安装清单合并续件](../ops/aws-sandbox/reviews/fc41597f-one-window-shared-predecessor.prepared.json)：同一共享栈前置先验固定版本、后验独立执行回执；后续 Grant 必须匹配。已离线拆开清理证明对安装定稿的循环；安装使用独立的精确意图摘要，正式启动仍绑定完整批准及真实清理证据才可领取。下一步只定稿真实安装意图和键，不重放旧入口、不提前刷新 AWS 或重新排期；未上线或领取。
+
+**同租户图片前置已验收（11 月 23 日）：** 单次创建达到 `CREATE_COMPLETE`，随后限定只读补齐准确栈与 S3 的核验，沿用已通过的原 CloudFront 核对。[实际 CDN 和持久化摘要](../.local-secrets/fc41597f-tenant-media-create-v1/verified-media-outputs.json)已绑定原安装续件。没有再写 AWS、重复查询 CloudFront 或测试图片上传；正式安装键和窗口未定稿，首开仍未领取。
+
+**配合时段已确认，未开窗：** [合并续件](../ops/aws-sandbox/reviews/fc41597f-one-window-shared-predecessor.prepared.json)记录温尼伯 11 月 23 日 23:00–23:50 安装、23:50–00:00 交接、次日 00:00–01:00 正式首开，01:00 硬截止。只读补核集中另审：同任务的真实独立 Inspect 输入投影（现有回执只含摘要），以及覆盖截止所需的原 AWS 事实。不复用过期事实、不重查图片、不安装或领取。
+
+**集中补核已停在 Neon 第六条：** [原只读回执](../.local-secrets/fc41597f-first-open-consolidated-preflight-v1/neon-result.json)不能区分共享绑定与容量原因；AWS 段未开始。离线同时确认两处 Management 消费者仍固定旧发布操作摘要。保留回执，先处理这两处引用并定向区分第六条失败，线上补读另审。当前无执行 SHA，23:00 不自动开窗，任务未领取。
+
+**离线修正已完成：** 受保护 Management 与 Express 复用同一受审任务的操作摘要派生，旧发行不能替代；后续 Neon 结果能分别报告共享绑定、容量或格式异常。原停止原因仍未判明，下一只另审定向只读查因，不重查已通过项。未推送、安装或开窗。
+
+**当前首开阻塞已定位为平台容量：** [20:13 定向补核](../.local-secrets/fc41597f-first-open-consolidated-preflight-v1/capacity-readback-result.json)确认无共享绑定，排除待审任务后 Sandbox 已占 **1 / 1**，不是 AWS 实际运行任务计数。下一只需另审定位占位记录及可否释放，不改上限、不动其他租户，任务未领取。
+
+**占位者是原验收租户：** [20:17 回执](../.local-secrets/fc41597f-first-open-consolidated-preflight-v1/occupancy-readback-result.json)绑定 `app_e897a4377bce498b9c5ee9e64509dcad` 的唯一 `ready` 部署；实例 `active`、资源账本 `verified`、无清理排程。AWS 停费不释放该逻辑位；现无环境执行绑定，不能直接运行破坏性的退役入口。保留或退役待用户决定；未改容量、未动旧租户、未领取。
+
+**已完成前置：** [Neon 版本绑定和独立核验](../.local-secrets/fc41597f-static-neon-only-v1/result.json)已通过，固定发布 `release_c77f6f23434ce878a0254f1c8869ed6a` 绑定到同一待审任务；一次持久提交获确认，临时权限回滚已核对。复用该回执，不重做或扩大范围。任务未领取、未建租户库或 API，实例未开通。
+
+**已完成前置：** Aurora 安装已提交，用户报告 [v2 只读独立回读](../.local-secrets/fc41597f-aurora-readback-v2/observed.json) COMMIT 且七项全 true，保留原失败记录。这里不重新执行 Aurora 或 Neon 安装，不复用旧窗口或旧槽。
+
+**当前唯一继续点：** 定向只读已区分出错项：三个 `rds_iam` 正确，Definer 仅有一条非自授、无 ADMIN/INHERIT/SET 的 DBA 成员关系。[回读 v2](../ops/aws-sandbox/first-open-fc41597f-aurora-readback-v2.sql)只离线修这一项，十个内存 PostgreSQL 合成用例通过。原失败不改；未重跑安装或修改权限，不启动 Neon。新版真实回读与 Neon 接续须另批，任务未领取、实例未开通。
+
+**当前唯一继续点：** Aurora 安装与独立只读事务由本人确认 COMMIT；[只读结果](../.local-secrets/fc41597f-static-db-continuation-v1/aurora-attestation.json)的 `memberships=false`，程序已停止，Neon 未开始。只在另批后定向核对固定角色成员与标记，不重跑已提交 SQL 或更改权限；任务未领取、实例未开通。
+
+**当前唯一继续点：** [Aurora＋Neon 最后静态接续](aws-sandbox-fc41597f-static-db-continuation-review.md)已封存待批准，SHA `997896a819618c71bb0e8ee4d69e0471623fc5a012dee8f5bab99a6fe9239f14`。先精确重建固定后端证明，后由本人执行一次既有 Aurora 安装和独立只读回执，再仅为同一待审任务绑定版本并独立验证。沿用原时限；未联网、连库或领任务，实例尚未开通，不重做买家、Access、Hosting 等已验收动作。
+
+**当前唯一继续点（温尼伯 11 月 21 日 23:40:21）：** [已有买家变更集独立验收](../.local-secrets/fc41597f-buyer-alias-execute-existing-v1/result.json)通过，Create 0／Execute 1。旧入口仍可用，新入口共享同一 Web 且返回准确租户映射。只准备剩余 Aurora DBA 与 Neon 静态步骤，不重做已办动作；实际安装和首开分别另审。未操作数据库、领取、建库或部署，实例尚未开通。
+
+**当前唯一继续点（温尼伯 11 月 21 日 23:26:26）：** [买家域名接续](aws-sandbox-fc41597f-buyer-alias-continuation-review.md) 已在原栈创建并记录[唯一变更集](../.local-secrets/fc41597f-buyer-alias-continuation-v1/buyer-create-ack.json)，但差异门槛拒绝，因此未执行、域名未接通。只在另批后精确只读此变更集并比对四项差异；不重建或重发，保留原单次槽和期限。DBA、Neon、领取、建库或部署均未发生，实例未开通。下列旧进展仅供追溯。
+
+**当前唯一继续点（温尼伯 11 月 21 日 23:04:01）：** [静态接续](aws-sandbox-fc41597f-static-acm-continuation-review.md)已核验原证书签发、签名材料、访问栈、平台承载栈及[买家共享 Web 发布 44987520965](https://github.com/veinyyxy/speedfeast/actions/runs/44987520965)。在买家别名栈变更集的创建尝试后[停止](../.local-secrets/fc41597f-static-acm-continuation-v1/static-phase.stopped.json)，无创建回执、未执行，是否留下未执行变更集未知。只在另批后查该同名变更集及必要的原失败事件，不重做已完成动作。DBA/Neon 未执行，实例未领取或开通。
+
+**当前唯一继续点：** 获批合并接续在首次 Source STS [停止](../.local-secrets/fc41597f-publish-static-refresh-v3/continuation.stopped.json)；用户随后启动的[单次去敏诊断](../.local-secrets/fc41597f-publish-static-refresh-v3/source-diagnostic-1.result.json)将当前 CLI 错误归为 Source 会话过期。先由用户刷新原 profile；不重放旧清单、不重查终端或重建。后续 AWS 元数据、GitHub、Neon 与所有云写入均 0，平台及静态均未开始，实例未开通。
+
+**最新（覆盖下方旧继续点）：** [用户普通 PowerShell 自检](../.local-secrets/fc41597f-publish-static-refresh-v2/ordinary-powershell-self-check.reported.json)确认无覆盖变量、摘要匹配；只因原整轮启动时间已过而停止。原受管环境及旧 SHA 不重放，两永久槽未用。下一只在用户可配合时集中补新窗口必要事实，再封同一份「发布＋静态安装」审批；不重建、不重复环境诊断。未联网、发布、安装、领取或开通。
+
+**当前继续点：** [同一已付款实例的买家入口合并安装审批材料](aws-sandbox-first-open-buyer-publication-install-review.md)已备，未签执行 SHA。仅待实际平台候选、买家源码提交和证书/现状定向补核；所需新线上读取已集中列明。专用密钥固定版本、窄权限、原平台更新和一次共享 Web 发布合并审批；旧 `buyer` 域名和旧 API 不改。未安装、发布或领取，实际首开仍另审。
+
+[八文件平台候选](aws-sandbox-first-open-buyer-publication-install-review.md#buyer-candidate-sealed)已按批准只推五文件并单次构建。原 run `44922494926` 成功，[唯一制品 `14714442097` 已独立核验并私有封存](evidence/sandbox-first-open-buyer-forward-candidate.verified.json)，不重建。后续有新的读取或发布安装仍另审；未发布 ECR、未安装或领取。
+
+[GitHub 直发原 ECR 的受保护入口](evidence/sandbox-first-open-buyer-publisher-prep.stopped.json)已按批准推送，两次无 AWS CI 成功；[合并只读](evidence/sandbox-first-open-buyer-merged-readback.observed.json)已核对原任务仍待审、发布器 Locked、旧买家入口保留。买家三文件补丁 `fea0b2e…` 已单次快进，[无 AWS CI 原 run 通过、deploy 跳过](evidence/sandbox-first-open-buyer-web-source-ci.verified.json)。证书尚不覆盖两个域名，首开配置尚未安装；下一步只封现有「发布＋安装」审批，使用已保存的 A 源码令牌回执，不重复采样或已办工作。实际首开另审。
+
+[准确发布＋安装工作稿](../ops/aws-sandbox/reviews/fc41597f-fixed-publish-install.prepared.json)已更新：固定产物的 Source 入口已复用原授权／撤权，六份 Original 均匹配；三栈的 `4/3/1` 项差异、两个 `NOLOGIN` 和四份首开工作流均已离线锁定。不重跑盘点、CI 或构建。实际受保护输入、独立 Inspector 权限证据、限时发布绑定及买家同步范围未封成可执行值；无执行 SHA，不推送、安装或进入实际首开。
+
+依赖已离线装齐，Inspector 只读策略默认关闭。用户批准的一次集中补料已在本机停于支付文件的 `stripeWebhookSecret` 格式：只读支付文件 1 次，其余私密文件、Neon、AWS、Stripe、Aurora 与所有写入均 0。保留回执；先更正本机字段，再待明确接续批准，不自动重读、不延长期限。不恢复旧取证、不领取或发执行 SHA。
+
+上述格式停止已由新批准接续，支付／mTLS 与准确 Neon 待审和模板已通过，AWS 在第六项 Express 身份校验停止（1 STS＋6 项均已用，不重跑）。独立离线模拟确认原版 A 对未匹配租户付款的 Stripe 事件仍可能写租户库。新端点保持禁用，旧端点不改；不改 A 或以旧回执冒充当前证据，无执行 SHA。
+
+租户 webhook 已在后端工作树离线修复，未匹配唯一付款只返回 `200`，不写库；7 项回归通过，原镜像 A 尚未替换。Express 只待确认末项 VPC/网关校验疑点，精确的一次补读另审，前五项及已过输入不重查。新端点不启用、不发事件，无安装 SHA。
+
+Express 末项已通过用户批准的一次集群读取确认：预期网关模式安全组为空，旧非空要求是误判；已离线改为严格验证真实模式，保持物理身份、版本、IAM、writer 和单独加密门槛。不重查前五项。完整就绪摘要、后端修复版真实镜像及安装 SHA 尚未产生。
+
+后端 `main` 已单次快进到只改 `routes/payments.js` 的 `1cd598f1…`，独立回读匹配。[自动构建 44946089122](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/44946089122) 原 attempt 1 停于 OS 安全门禁，未得到可核验 app 镜像；不重跑或绕过扫描。实际 ECR、安装、部署及占槽仍 0，原 A、平台候选与已付款任务不动。只查准确失败步，再决定修复；无执行 SHA。
+
+原失败步已证实是 `libssl3t64` 的 HIGH `CVE-2026-124709`，不是扫描器故障。原摘要未列修复版本，已有本机证据没有可核验的修复镜像；9 项原门禁与容器回归通过、未改代码门禁。只待确认官方修复包及确实包含它的同系列 amd64 digest，再最小换 pin；不重跑旧镜像或跳过门禁，无安装 SHA。
+
+按批准已查官方源：Debian 13 当前两份 openssl 包均仍被标为受影响；OpenSSL 3.5.10 计划于 12 月 1 日发布，不等于 Debian 或 Distroless 当天可用。官方 Distroless 默认 nonroot tag 仍返回原 pin，没有核验到修复版；该次查询未改 app Dockerfile、推送、构建或安装。
+
+**Sandbox app 单次候选已核验（温尼伯 11 月 21 日）：** 经用户明确批准，后端 main 单次快进至 `f1848d5f…`。[GitHub run 44951254081](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/44951254081) 原 attempt 1 成功；候选 `14724569595` 与扫描 `14724569582` 的原 ZIP、归档校验、容器自检、扫描摘要与原报告一致。仅保留经批准的 HIGH=1（`CVE-2026-124709`），CRITICAL=0；漏洞未修复，常规发布保持拒绝。复用封存产物，不重建；实际发布和安装仍另审。无 AWS、ECR 发布、部署或领取。
+
+**用户当前优先事项（2026-11-21）：** [接通同一已付款任务的真实 Sandbox 首开](aws-sandbox-first-onboarding-fc41597f-review.md#first-open-restricted-express-runtime)。唯一执行路径为受保护 Management 用专用 SQL 登录建库并初始化 → RunOnce 部署固定 A → 分离 Inspect 验证 → Neon 原子完成并独立回读。禁止借 `postgres` 管理员或覆盖既有库；r1–r5 仅历史，取消的取证不是门槛或通过证据。下一轮在一份「发布＋剩余权限安装」批准内包含一次性角色 SQL 与运行输入；实际首开另审、GitHub environment 由本人批准。本次仅离线改工程，未查询线上、安装、发布、调度或领取。
+
+**发布＋安装合并核对：** [同任务受保护发布、待审版本换绑及验收已离线接通](aws-sandbox-first-open-buyer-publication-install-review.md#case-scoped-publication-install)，88 项回归通过，常规发布和旧 A 不变。实际入口默认关闭，线上任务仍绑定原 A；不签占位执行 SHA。原平台 Source 最晚启动时间已过去，旧期限不续；下一只集中补核源码、门禁、发布槽和安装必需事实，形成一份发布＋剩余权限安装审批。无线上读取、写入、推送、调度或领取。
+
+**新集中只读已通过：** [接续记录](aws-sandbox-first-open-buyer-publication-install-review.md#case-scoped-publication-install)确认 Source、两条发布路径、GitHub 门禁、原任务待审旧 A 与 Neon 槽。已本机封新平台接续，原窗口/执行槽不续。完整审批不能提前包含要求真实首开窗口的三个权限栈。只补发布和静态安装的实际执行接线；绝不把原型或当前读取当作安装确认。无写入、推送、调度、领取或首开。
+
+[正式上线数据库版本](aws-auto-deployment-execution-runbook.md#production-postgresql-version)为 **PostgreSQL 16.14**；现有 Express 17.9 仅用于 Sandbox 开发测试，不改变本次首开任务，也不替代正式版本验收。
+
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步和[第 4 步首开核心](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。用户用原会话付款，独立只读确认唯一待审任务 `job_fc41597f9b5ba8e02b338ecf`（`pending` / `0/1` / 未领取）。两份原始空库基线的大小和完整 SHA 均匹配，但无 VersionId。**当前唯一继续点**：等待批准[合并清单](evidence/sandbox-first-open-baseline-copy-fc41597f.review.json) `80c5639f501de68c82f821234d7036ed7fc4ce0509f758287e9ecf75ab04eeca`，只在现有私有版本化桶内各复制一次并独立验证新 VersionId 和 SHA；11 月 19 日 03:37:20（温尼伯）前启动，原件保留，失败不重试。真实权限未安装、Express/Cell 未恢复、全队列未启用、未实际开通。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步和[第 4 步首开核心](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。用户已用原会话付款，此前只读确认唯一待审任务 `job_fc41597f9b5ba8e02b338ecf`（`pending` / `0/1` / 未领取）。两份空库基线[独立版本回读](evidence/sandbox-first-open-baseline-copy-fc41597f-continuation.verified.json)通过，[固定版本白名单](../lib/deployments/execution/first-onboarding-baseline-versions.ts)已离线接入同一任务，103 项相关回归及类型、定向 lint 通过；未重复复制或盘点。[集中审批材料](auto-pending-provisioning.md#first-onboarding-fc41597f-execution-preparation)已备（权限、原 Express/Cell 恢复、单次首开、独立核验及原子激活），无执行 SHA。**当前唯一继续点**：[同一任务的独立窗口方案](auto-pending-provisioning.md#first-onboarding-fc41597f-controlled-window)已离线接通，106 项本机回归及隔离 PostgreSQL 领取回归通过；原两小时已过且不续，未设置实际日期。第 1 项离线装配与验证已完成。[集中审批清单](auto-pending-provisioning.md#first-onboarding-fc41597f-approval-checklist)已合并真实端口、余权、原 Express/Cell 恢复和一次首开；[定向只读接续已完成](evidence/sandbox-first-open-fc41597f-preflight.observed.json)，原任务仍 pending / 0/1 / 无租约；确认 DNS 未占用、A 匹配，列明真实 IAM/Neon 缺项。[锁定身份安装包](auto-pending-provisioning.md#first-onboarding-fc41597f-static-install)已封存，用户已批准，三项 IAM 资源已创建；[AWS 与 Neon 锁定身份均已独立回读](evidence/sandbox-first-open-fc41597f-static-install.verified.json)，六个 Neon 角色保持 NOLOGIN，原任务不变。[同任务窄中段 SQL/authority 已离线接线并通过回归](auto-pending-provisioning.md#first-onboarding-fc41597f-middle)，未安装。[剩余安装与单次执行的集中材料](auto-pending-provisioning.md#first-onboarding-fc41597f-remaining-install)已封存，不是执行 SHA。[同任务的 Express V3 空库、固定初始 Secret 和独立目标库接入](auto-pending-provisioning.md#first-onboarding-fc41597f-express-binding)已离线完成。[领取前会话与剩余线上前置](aws-sandbox-first-onboarding-fc41597f-review.md#preclaim-session-review)已合并：锁定信任不提供应用会话，独立验收不能用 Aurora 管理员。用户另准原 Source 的 STS 1＋IAM 6 项均成功；应用和 Inspector 仍锁定、Provisioner boundary 不覆盖目标应用。[窄信任与非管理员 Inspector 已离线收口](aws-sandbox-first-onboarding-fc41597f-review.md#session-deltas-offline)；用户已确认没有现成供给；[三角色的最小 OIDC 会话供给方案](aws-sandbox-first-onboarding-fc41597f-review.md#session-supply-offline)已获用户同意；[精确信任与三处回执合同](aws-sandbox-first-onboarding-fc41597f-review.md#dual-run-trust-and-handoffs)已离线完成，[本机回执和 D2 重建验证](aws-sandbox-first-onboarding-fc41597f-review.md#dual-run-offline-validation)通过；[一次无 AWS 合成双 run 已执行](aws-sandbox-first-onboarding-fc41597f-review.md#dual-run-cloud-probe)：运行中可独立查询第一份制品及服务端摘要，RunOnce 首次列表校验停止，交接 0/5。修正后的[新一对无 AWS 合成实测](aws-sandbox-first-onboarding-fc41597f-review.md#dual-run-cloud-verified)通过 5/5，出处和 ZIP 摘要均已核对；[真实双运行的窄接线与集中待审材料](aws-sandbox-first-onboarding-fc41597f-review.md#dual-run-implementation-review)已离线完成，137 项回归通过；[三项证据审核完成](aws-sandbox-first-onboarding-fc41597f-review.md#dual-run-evidence-audit)：真实工作流和 Inspect 独立输入装配未冻结，会话有效限权未证；[锁定发布候选、截止绑定和独立输入](aws-sandbox-first-onboarding-fc41597f-review.md#dual-run-locked-entry-preparation)已离线完成（140 项回归）；[必要原件已本机核对](aws-sandbox-first-onboarding-fc41597f-review.md#dual-run-original-evidence-review)，[批准的补件已返回](aws-sandbox-first-onboarding-fc41597f-review.md#dual-run-iam-originals-observed)：两栈和边界 v5 匹配，Lifecycle inline 摘要不符即停。[单条 inline 补核已定位旧 C4e 两条持续授权未写回](aws-sandbox-first-onboarding-fc41597f-review.md#dual-run-lifecycle-inline-diff)；[共享栈声明与新会话拒绝差异已离线完成](aws-sandbox-first-onboarding-fc41597f-review.md#dual-run-lifecycle-iam-alignment)；[锁定差异独立离线复核完成](aws-sandbox-first-onboarding-fc41597f-review.md#dual-run-lifecycle-alignment-audit)：C4e 两条原样保留，实际会话选择器与固定 SQL 强制边界未证。[已合并完成两项离线接线和回归](aws-sandbox-first-onboarding-fc41597f-review.md#dual-run-bounded-management)：[独立 Management 位置与集中安装草案完成](aws-sandbox-first-onboarding-fc41597f-review.md#isolated-management-install-review)：同一 RunOnce 内使用独立受保护 runner，固定 SQL 与真实签发差异、剩余 Neon 权限合一。[检查真实工作流提交后停止封存](aws-sandbox-first-onboarding-fc41597f-review.md#isolated-management-install-seal-blocked)：已存 GitHub 引用仅合成测试，实际 launcher 未挂载，不能给安装 SHA。[工作流启动接线已本地提交、单份清单已封存](aws-sandbox-first-onboarding-fc41597f-review.md#isolated-management-workflow-source-sealed)，112 项通过。[现有受保护输入坐标已收拢](aws-sandbox-first-onboarding-fc41597f-review.md#isolated-management-protected-inputs-prepared)，真实启动记录及三个角色包仍未供给。[当天 AWS 32 项及可执行 GitHub 两项已补核通过](aws-sandbox-first-onboarding-fc41597f-review.md#isolated-management-targeted-readback)；[Neon 定向只读回读已通过](aws-sandbox-first-onboarding-fc41597f-review.md#isolated-management-neon-readback)，同任务仍待审、余下角色及 schema/函数名未占用。[四份运行输入的供给与发布后两项核对已合并成草案](aws-sandbox-first-onboarding-fc41597f-review.md#isolated-management-input-supply)；[版本 A runner 与固定 pg_restore 已离线接线](aws-sandbox-first-onboarding-fc41597f-review.md#isolated-management-runner-supply)；[RunOnce mTLS、所有者和独立就绪接线已通过](aws-sandbox-first-onboarding-fc41597f-review.md#isolated-management-runonce-control)，本机五字段材料已单独生成。[原 Express／共享 Cell 最小恢复清单已封存待批准](aws-sandbox-first-onboarding-fc41597f-review.md#isolated-management-minimal-restore)，未恢复或发布。结果有效期间复用，无推送或可执行安装授权，不重复盘点。承载未恢复、任务未领取，无首开执行 SHA，未开通。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 

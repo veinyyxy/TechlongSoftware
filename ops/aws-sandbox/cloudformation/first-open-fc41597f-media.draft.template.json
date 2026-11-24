@@ -1,0 +1,134 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "DRAFT ONLY - durable public product-image delivery, private S3 origin; no compute or IAM resources.",
+  "Metadata": {
+    "PreparationOnly": true,
+    "ExpectedAccountId": "402010193138",
+    "ExpectedRegion": "ca-central-1",
+    "ExpectedStackName": "techlong-sandbox-media-e9fdccd5d8c7685c-v1",
+    "StackTerminationProtectionRequired": true,
+    "PublicProductImagesOnly": true,
+    "ExecutionAuthorized": false
+  },
+  "Resources": {
+    "MediaBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketName": "techlong-sandbox-tenant-images-402010193138-e9fdccd5d8c7685c",
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [{ "ServerSideEncryptionByDefault": { "SSEAlgorithm": "AES256" } }]
+        },
+        "VersioningConfiguration": { "Status": "Enabled" },
+        "OwnershipControls": { "Rules": [{ "ObjectOwnership": "BucketOwnerEnforced" }] },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true, "IgnorePublicAcls": true, "BlockPublicPolicy": true, "RestrictPublicBuckets": true
+        },
+        "CorsConfiguration": {
+          "CorsRules": [{
+            "Id": "BuyerProductImages", "AllowedOrigins": ["https://app-bbd626d7d3806af686073211.sandbox.techlong.cloud"],
+            "AllowedMethods": ["GET", "HEAD"], "AllowedHeaders": ["*"],
+            "ExposedHeaders": ["ETag", "Content-Type"], "MaxAge": 600
+          }]
+        },
+        "Tags": [
+          { "Key": "Project", "Value": "Techlong" }, { "Key": "Environment", "Value": "sandbox" },
+          { "Key": "Component", "Value": "tenant-product-images" },
+          { "Key": "AppInstanceId", "Value": "app_bbd626d7d3806af686073211" },
+          { "Key": "Lifetime", "Value": "persistent" }, { "Key": "ManagedBy", "Value": "TechlongCloudFormation" }
+        ]
+      }
+    },
+    "MediaOriginAccessControl": {
+      "Type": "AWS::CloudFront::OriginAccessControl",
+      "Properties": {
+        "OriginAccessControlConfig": {
+          "Name": "techlong-sandbox-media-e9fdccd5d8c7685c-v1",
+          "Description": "Only this private product-image S3 REST origin",
+          "OriginAccessControlOriginType": "s3", "SigningBehavior": "always", "SigningProtocol": "sigv4"
+        }
+      }
+    },
+    "MediaResponseHeadersPolicy": {
+      "Type": "AWS::CloudFront::ResponseHeadersPolicy",
+      "Properties": {
+        "ResponseHeadersPolicyConfig": {
+          "Name": "techlong-sandbox-media-e9fdccd5d8c7685c-v1",
+          "Comment": "Exact buyer origin; public product images, no credentials",
+          "CorsConfig": {
+            "AccessControlAllowCredentials": false,
+            "AccessControlAllowOrigins": { "Items": ["https://app-bbd626d7d3806af686073211.sandbox.techlong.cloud"] },
+            "AccessControlAllowMethods": { "Items": ["GET", "HEAD", "OPTIONS"] },
+            "AccessControlAllowHeaders": { "Items": ["*"] },
+            "AccessControlExposeHeaders": { "Items": ["ETag", "Content-Type"] },
+            "AccessControlMaxAgeSec": 600, "OriginOverride": true
+          },
+          "SecurityHeadersConfig": { "ContentTypeOptions": { "Override": true } }
+        }
+      }
+    },
+    "MediaDistribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "DistributionConfig": {
+          "Comment": "Public product images only; private S3 origin; no API or buyer app proxy",
+          "Enabled": true, "PriceClass": "PriceClass_100", "HttpVersion": "http2", "IPV6Enabled": true,
+          "ViewerCertificate": { "CloudFrontDefaultCertificate": true },
+          "Origins": [{
+            "Id": "tenant-product-images",
+            "DomainName": { "Fn::GetAtt": ["MediaBucket", "RegionalDomainName"] },
+            "OriginAccessControlId": { "Fn::GetAtt": ["MediaOriginAccessControl", "Id"] },
+            "S3OriginConfig": { "OriginAccessIdentity": "" }
+          }],
+          "DefaultCacheBehavior": {
+            "TargetOriginId": "tenant-product-images", "ViewerProtocolPolicy": "https-only",
+            "AllowedMethods": ["GET", "HEAD", "OPTIONS"], "CachedMethods": ["GET", "HEAD", "OPTIONS"],
+            "ResponseHeadersPolicyId": { "Ref": "MediaResponseHeadersPolicy" },
+            "Compress": true, "MinTTL": 0, "DefaultTTL": 300, "MaxTTL": 86400,
+            "ForwardedValues": {
+              "QueryString": false, "Cookies": { "Forward": "none" },
+              "Headers": ["Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
+            }
+          }
+        },
+        "Tags": [
+          { "Key": "Project", "Value": "Techlong" }, { "Key": "Environment", "Value": "sandbox" },
+          { "Key": "Component", "Value": "tenant-product-images" },
+          { "Key": "AppInstanceId", "Value": "app_bbd626d7d3806af686073211" },
+          { "Key": "Lifetime", "Value": "persistent" }, { "Key": "ManagedBy", "Value": "TechlongCloudFormation" }
+        ]
+      }
+    },
+    "MediaBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": { "Ref": "MediaBucket" },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyInsecureTransport", "Effect": "Deny", "Principal": "*", "Action": "s3:*",
+              "Resource": [{ "Fn::GetAtt": ["MediaBucket", "Arn"] }, { "Fn::Sub": "${MediaBucket.Arn}/*" }],
+              "Condition": { "Bool": { "aws:SecureTransport": "false" } }
+            },
+            {
+              "Sid": "ReadProductsOnlyThroughThisDistribution", "Effect": "Allow",
+              "Principal": { "Service": "cloudfront.amazonaws.com" }, "Action": "s3:GetObject",
+              "Resource": { "Fn::Sub": "${MediaBucket.Arn}/products/*" },
+              "Condition": { "StringEquals": {
+                "AWS:SourceArn": { "Fn::Sub": "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${MediaDistribution}" }
+              } }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "MediaBucketName": { "Value": { "Ref": "MediaBucket" } },
+    "MediaBucketArn": { "Value": { "Fn::GetAtt": ["MediaBucket", "Arn"] } },
+    "MediaDistributionId": { "Value": { "Ref": "MediaDistribution" } },
+    "MediaPublicBaseUrl": { "Value": { "Fn::Sub": "https://${MediaDistribution.DomainName}" } }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Fixed fc41597f sandbox first-open identities. Both roles remain locked. No workload, storage or shared-role change.",
+  "Resources": {
+    "ApplicationPermissions": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxFirstOpen-e9fdccd5d8c7685c-Boundary",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "rds-db:connect",
+              "Resource": "arn:aws:rds-db:ca-central-1:402010193138:dbuser:cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM/tenant_e9fdccd5d8c7685c_role"
+            },
+            {
+              "Effect": "Allow",
+              "Action": "s3:PutObject",
+              "Resource": "arn:aws:s3:::techlong-sandbox-tenant-images-402010193138-e9fdccd5d8c7685c/products/*"
+            }
+          ]
+        }
+      }
+    },
+    "ApplicationRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "TechlongSandboxFirstOpen-e9fdccd5d8c7685c",
+        "PermissionsBoundary": {"Ref": "ApplicationPermissions"},
+        "ManagedPolicyArns": [{"Ref": "ApplicationPermissions"}],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{"Effect": "Deny", "Principal": {"AWS": "*"}, "Action": "sts:AssumeRole"}]
+        },
+        "Tags": [{"Key": "FirstOpenJobId", "Value": "job_fc41597f9b5ba8e02b338ecf"}]
+      }
+    },
+    "LockedInspectorRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "TechlongSandboxFirstOpenInspector",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{"Effect": "Deny", "Principal": {"AWS": "*"}, "Action": "sts:AssumeRole"}]
+        },
+        "Tags": [{"Key": "FirstOpenJobId", "Value": "job_fc41597f9b5ba8e02b338ecf"}]
+      }
+    }
+  }
+}

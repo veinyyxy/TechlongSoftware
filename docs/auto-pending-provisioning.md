@@ -6,6 +6,189 @@
 
 **状态：第 1–3 步已离线实现；第 4 步审批草案已备，尚未实际开通。** [D2 日常版本发布](aws-instance-version-release-plan.md#d2-closeout)已结案。本项补齐从普通购买产生的新实例到第一版可用服务的链路；首开完成后，该实例才能交给 D2 更新。执行与授权以[主线手册](aws-auto-deployment-execution-runbook.md)为准。
 
+<a id="first-onboarding-fc41597f-execution-preparation"></a>
+
+### `job_fc41597f9b5ba8e02b338ecf`：权限、原设施恢复与单次首开的集中审批材料
+
+**2026-11-19（温尼伯）｜原候选与资源上限，未执行。** 当前顺序和待批范围以[最新集中审批清单](#first-onboarding-fc41597f-approval-checklist)为准；本节及[此前首开草案](aws-sandbox-first-onboarding-fc41597f-review.md)保留原证据和上限，不是重复读取、复制或执行的授权。原测试订单已付款；11 月 18 日 21:56:11 的已存回读为同一实例和订阅仅一条待审任务，`pending / 0/1 / 无租约`。只限 `402010193138 / ca-central-1 / cell-sandbox-1 / g1`，实例 `app_bbd626d7d3806af686073211`、部署 `dep_746535593025bf97a9efeccd`；复用原订阅，不购买、不重放回调。
+
+**原两小时承载窗口已过，不重放。** [持久化登记](../lib/deployments/first-onboarding.ts#L56)在付款事务内以数据库时钟写入部署 `created_at`，因此其时间不晚于已观察到这条部署的 21:56:11；受审 sandbox 的 [TTL 是 7,200 秒](../lib/deployments/environment.ts#L170)，实际到期不晚于当晚 **23:56:11**（上述回读为秒级记录）。[worker](../lib/deployments/execution/worker.ts#L1460)和[清理就绪门禁](../lib/deployments/execution/single-tenant-workload-strategy.ts#L178)还要求保留 5 分钟余量。精确创建毫秒无需为得出这个结论而补读。重新登录、刷新观测或发新的 `writeBefore` 都不能续原 TTL。保持原行、尝试数和权限不动；不伪造清理回执、不另买或新建任务。后续[独立窗口](#first-onboarding-fc41597f-controlled-window)已离线接线，但尚未设定或批准实际日期。
+
+#### 审批包 A：只安装缺少的、可核对的最小权限
+
+| 边界 | 候选安装范围及必须取得的回执 |
+| --- | --- |
+| **领取、执行、完成分权** | [领取 SQL](../lib/deployments/execution/first-onboarding-claim-entry.ts)限准确任务；`techlong_first_onboarding_claim.review()`／`release()` 与 `claim()` 分给不同 LOGIN。[完成 SQL](../lib/deployments/execution/first-onboarding-completion-entry.ts)的 `complete()` 与 `inspect()` 再分写、读 LOGIN。每组仅受限 `NOLOGIN` definer 持必需列级权限；运行者无底表写、owner、普通队列或角色管理权。固定实际计划/配置 SHA、最终批准和截止后再生成准确 DDL；实际执行身份还须覆盖该任务的容量、租约、围栏、步骤和一次配置调用。仓库已有窄端口接口，不等于生产适配已绑定。核验 schema/函数所有者、锁定 `search_path`、函数摘要、撤销 PUBLIC 和角色继承/互斥，不调用领取或完成写入来测试。 |
+| **AWS 投递及执行** | 复用[窄策略草案](../lib/deployments/execution/first-onboarding-run-permissions.ts)，源为准确 `TechlongSandboxProvisionerRole`，仅对 `techlong-sandbox-tenant-d3806af686073211` 读回与一次带准确标签的 `CreateStack`；只传给 `TechlongSandboxCloudFormationExecutionRole`。CFN 只准本次七项及另批托管回滚，ECS `PassRole` 只给 `TechlongSandboxTaskExecutionRole` 和 `TechlongSandboxFirstOpen-e9fdccd5d8c7685c`。监听规则授权须等 B 的两条真实监听器 ARN，不能先给通配权限或借旧 ARN。最终材料须核有效 trust、边界与安装差异，并有独立回读；不授予执行者 IAM 写、通用栈更新或删除。 |
+| **生命周期、应用、凭据及核验** | `TechlongSandboxTenantLifecycleTaskRole` 只需原集群的 `postgres` 管理连接和[已核验两份副本](evidence/sandbox-first-open-baseline-copy-fc41597f-continuation.verified.json)逐键逐版本的两条 `s3:GetObjectVersion`，无列表或 latest 回退。应用身份只准 `tenant_e9fdccd5d8c7685c_role` IAM 登录和本桶 `products/*` 的必要动作。供给身份仅创建一次 `techlong/sandbox/tenant/appbbd626d7d3806af686073211_e9fdccd5d8/runtime/g1` 初始 Secret；执行身份只取固定控制公钥和该 g1 的准确固定版本，另加原镜像仓库拉取和本栈日志。实际 g1 ARN/版本由当次 ACK 和独立元数据证明；若不能在领取前证明后续固定注入有受审权限路径，就不领取。独立核验用 `TechlongSandboxFirstOpenInspector` 与分离的目标库只读登录，无旧 D2 角色、Secret 正文或云写。 |
+
+#### 审批包 B：只恢复原 Express 与原共享 Cell，准备隔离存储和准确 DNS
+
+- **Express：** 仅 `techlong-sandbox-express-d001`，物理 `cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM`，原 writer `techlong-sandbox-express-d001-instance-1`。准确匹配且实际 `stopped` 时最多一次 `StartDBCluster`，不单起 writer；已 `available` 且匹配则不写。独立验原集群和 writer 均 `available`、端点归属、PG17.9、IAM auth 和 TLS。历史停止证据不是当前状态；不启动 `speedfeast-postgres-prod` 或另建集群。
+- **Cell：** 仅原栈 `techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1`。复用[已存四 Add 差异](#first-onboarding-step4-install-restore-facts)和[原候选模板](../ops/deployment-baseline/cell-reattach-draft.template.json)，不复用旧变更集或监听器。若仍是准确 12 项且无未决操作，最多创建、执行各一次普通 UPDATE Change Set；只 Add `CellLoadBalancer`、`BusinessHttpsListener`、`ControlMtlsListener`、`BusinessControlDenyRule` 并恢复两个监听器输出。执行前核对准确差异和回滚选项；回读同栈 `UPDATE_COMPLETE`、原 12 个物理 ID 未变、共 16 项、同一 ALB 的 443/8443、原证书和 8443 `verify` mTLS/原 trust store、443 拒绝规则。已准确恢复则跳过写；不符即停，不直接建 ELB。
+- **首开所用存储/DNS 是单列候选，不属于 Cell 恢复变更。** 若无合格的本租户存储，最多一个五资源存储栈：私有版本化桶 `techlong-sandbox-tenant-images-402010193138-e9fdccd5d8c7685c`、桶策略、OAC、分发和响应头策略。核准准确 `products/*`、Public Access Block、SSE-S3、TLS、准确 OAC 和分发 `Deployed`，不迁图片。公共 zone `Z01473621BTTHKXBGOOEJ` 只对 `pending-app-bbd626d7d3806af686073211.sandbox.techlong.cloud` 候选一次 A Alias `CREATE`，目标只能来自上述独立 ALB 回执；记录已精确匹配则跳过，冲突停、不 `UPSERT`。真实 443 的 100/101、8443 的 100 必须空闲，不挪旧规则。
+
+#### 审批包 C：只领取和部署一次；独立技术核验通过才激活
+
+1. **领取前**：独立确认任务仍 `pending/0/1`、无租约、前代/外部操作/初始绑定，订阅覆盖整段批准窗口；计划、配置、版本 A、账号、容量及目标空位匹配。同一新任务/库/角色的隔离空库能力、实际角色与端口、清理就绪及所有期限先就绪；不靠领取来探测能力。新期限未另审前绝不开放领取。
+2. **单次部署**：同一 g1 下最多一次领取；按现有顺序一次 g1 Secret 初始供给、一次 V3 prepare（新库 `tenant_e9fdccd5d8c7685c_db`、目标 SQL 角色和临时 NOLOGIN guard）、一次 schema-only 恢复（固定版本 GET 各最多一次，在恢复端复算 SHA-256，不落客户数据）、一组 SaaS 迁移、一次精确应用登录激活。不能连旧租户库，不改其它库的 PUBLIC ACL。之后只一次 `CreateStack`，七项为 ECS 服务、任务定义、目标组、三条监听规则和日志组；固定 [A](aws-instance-release-initial-publication-observed-20261117.json)（`release_00b9c5cfa6bceedc5fd05aa451dca811` / `sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0` / `linux/amd64`），Fargate 期望 1，固定公钥/g1 Secret，`IMAGE_STORAGE_PROVIDER=s3` 且 `ALLOW_EPHEMERAL_IMAGE_STORAGE=false`。一次受限实例配置；不领养同名栈、不更新补救、不启动普通队列。
+3. **独立核验**：分离角色最多 24 次有边界的 AWS 元数据调用（身份另计），只在目标库做一次验证 TLS 的只读身份/元数据核对，再对准确 hostname 各一次 `/health`、`/ready`。确认 `CREATE_COMPLETE` 与七项真实物理归属、Alias/两监听器路由与目标健康、ECS 1 运行 0 待启动、实际 A digest 与固定两 Secret、私有桶/CDN 配置；库与角色 OID、owner/g1 围栏、恢复摘要、迁移、隔离和兼容性均与独立证据相符。提交方 ACK、历史容量或仅 HTTP 200 均不足。不代做用户业务验收。
+4. **原子激活**：只在独立 checkpoint、同任务审批与初始绑定摘要、有效订阅/租约/g1 围栏及无已存在 D2 状态全部匹配后，调用 `complete` 一次。单事务：实例 `active` 并填核验过的 HTTPS 入口、部署 `ready`、任务 `succeeded` 并释放租约，插入 D2 初始版本 **A / revision 0 / 无活动请求**。再用不同 Neon LOGIN 调 `inspect` 一次，读回同实例、revision 0 和同一次完成证据，才可报告已开通。拒绝/结果不明时停；若已收到提交 ACK 但独立回读失败，仅记「已提交，未验收」，不重发完成。
+
+**前置次序及停点。** 先解决[同一待审任务的独立受控窗口](#first-onboarding-fc41597f-controlled-window)。解决后再复用原证据，只补会改变执行决策的缺项：实际选用的窄身份/适配、准确的 A 目录与镜像、该任务/名称/容量的准入、原 Express/Cell 实态和恢复后的物理引用。先离线备齐不依赖实际监听器的权限材料，再另批 B；只从 B 的独立回执派生 ARN。前置值齐全后冻结 C 的审批体 SHA、调用预算、实际端口和截止，用该 SHA/时限生成 A 的领取和完成 DDL；冻结摘要不是执行授权。A 另批安装并独立回读、剩余时间足够且 C 单独获批后，才可领取。已存历史窗口和批准不重放，旧基线复制不重复。GitHub environment 如使用由用户本人批准。CFN、Aurora、Neon 跨服务非原子，部分结果可能持续计费；异常保留回执及槽，不自动重试、清理或回滚（另批的 CFN 托管回滚除外）。**本轮仅本机编制及核对：AWS、数据库、Stripe、镜像发布、权限安装、恢复、领取、部署均为 0。**
+
+<a id="first-onboarding-fc41597f-controlled-window"></a>
+
+#### 时序审定：为原待审任务增加一次独立的首开窗口
+
+**已实现最小时序接线；尚无实际执行日期或授权。** 不改变旧窗口的结论，也不改付款、订阅、实例、部署或任务的原始记录。单独在这一条任务的受审执行材料中固定一个新的执行起点和截止，保留原 `created_at`、`available_at`、payload、去重键和 `maxAttempts=1`。新窗口不重新派生 job 或 g1，不添加队列、数据库表、到期作业或通用续期入口。原任务今后只有经实际批准并成功领取时才按原规则发生状态转换。
+
+1. **一个审批体，三个绝对时点。** 将 `startAt`（最早开始）、`claimBefore`（最晚领取，不含该时刻）、`writeBefore`（执行硬截止，不含该时刻）和 `workloadExpiresAt = startAt + 7,200 秒` 一起纳入同一受审 SHA。`startAt` 用整秒 UTC，三个关口须满足 `startAt < claimBefore < writeBefore`，领取截止与执行截止之间至少留 10 分钟，实际清单可按核验及完成所需时长再留更多；`writeBefore` 不晚于 `startAt + 1 小时`、承载到期前 5 分钟和所有适用事实的原截止。订阅须覆盖 `writeBefore`。固定实际任务、部署、实例、订阅／工作区摘要、环境／账号／区域、g1、原计划和配置摘要、版本 A、两份基线版本及清理准入证据。只接受可信批准入口交付的 SHA，不接受执行者自行提交一个新摘要；时间不能取进程启动时刻、刷新时刻或签核后的滚动 `now + TTL`。本轮不设置任何实际日期。
+2. **窗口只进入现有单次入口，期限不合格时不占槽。** [入口](../lib/deployments/execution/first-onboarding-run-once.ts)在连接运行端口前拒绝错任务、错 SHA 或窗口不符。领取前读取原行并核对 `pending / 0/1 / 无租约`、无前代/外部操作/绑定及独立、准确的清理责任证据，不以领取成功来代替预检。复用[窄领取 SQL](../lib/deployments/execution/first-onboarding-claim-entry.ts)：生成时锁定审批 SHA 和时点，在[同一次行锁后的数据库时钟比较](../lib/deployments/first-onboarding.ts#L185)再拒绝 `now < startAt` 或 `now >= claimBefore`，不能只在进入 SQL 时检查。保留原子 `attempts=0→1`、精确行比较和 `leaseExpiresAt=writeBefore`。时间不足、权限或证据不齐，领取为 0；领取或外部写结果不明则停，不以另一窗口重试。
+3. **同一份承载到期值贯穿建栈和清理。** 最小接线点为[建栈前检查](../lib/deployments/execution/worker.ts#L1460)、[清理就绪及渲染绑定](../lib/deployments/execution/single-tenant-workload-strategy.ts#L174)、[栈 `ExpiresAt` 标签的来源](../lib/deployments/cloudformation/tenant-stack.ts#L245)。这三个点必须只在准确首开分支使用同一个已校验 `workloadExpiresAt`，且有足够时间、清理证据新鲜、到期值与 CFN 标签一致；普通 worker、历史渲染和 D2 仍使用原逻辑。`requestedAt` 和持久化的创建时间保持原意，不用假时间或修改环境 TTL 绕过剩余检查。若影响清理证据，须绑定同一任务、审批和实际原设施归属；不得更改共享 Cell / Express 的原期限。`ExpiresAt` 只表示受控承载期限，**不保证自动停费**；当前七项受控模板没有清理调度，到期不授权删除或补偿。独立技术回读确认实际标签，原子 `complete` 及分离的 `inspect` 仍限同一审批、围栏与期限。
+
+不选三条捷径：改 `created_at`／环境 TTL 会改写已有事实或影响其它任务；只改 `writeBefore` 仍会被旧建栈和清理门禁拒绝；新购买、重新登记或复位尝试会破坏原支付到唯一任务的绑定。获准编码后只做本任务的时钟接线和离线回归：旧 `created_at` 保持不变、合格新窗口只领一次；提前／到边界／过期、两端时钟偏差或行锁等到截止、跨任务或摘要篡改、清理证据/`ExpiresAt` 不符时停止；旧路径的标签、期限以及普通队列关闭状态保持不变。
+
+**离线验证通过：** 106 项 Node 回归、TypeScript 和定向 lint 通过。独立创建的本机 PostgreSQL 15.3（仅回环）亦通过一次真实 DDL／领取回归，包括错环境 TTL 拒绝、模拟行锁后恰到截止拒领、成功后拒绝重领、旧 `created_at` 保留；临时实例已停止并清理。未生成可执行 SHA，未设真实窗口、未改任何真实记录，也未调用 AWS、Neon、Aurora 或 Stripe。真实适配、权限安装、原设施恢复、实际时序和首开仍分别审批。
+
+<a id="first-onboarding-fc41597f-port-approval"></a>
+
+#### 审批清单：真实执行接线、剩余权限和恢复前置
+
+**第 1 项已按批准离线验证；第 2–4 项尚未实际执行。** 范围仍限 `job_fc41597f9b5ba8e02b338ecf` 对应的同一已付款实例和 g1。复用 [固定版本回执](evidence/sandbox-first-open-baseline-copy-fc41597f-continuation.verified.json)、[首版 A](aws-instance-release-initial-publication-observed-20261117.json)、[原 Cell 四项差异和角色证据](#first-onboarding-step4-install-restore-facts)和 `ad4118f` 的时序回归。历史回执不充当当前权限、归属或可用性证明；不重复制基线、不重查已完成的全量清单。手册既有 A/B/C 的资源上限仍适用。
+
+**1. 可先批准：只接现有单次入口所需的真实适配，不运行。** 复用 [单任务入口](../lib/deployments/execution/first-onboarding-run-once.ts)，只为其装配下表能力。不建通用执行器、不调用旧任务固定 launcher、不打开 `claimNext`，也不改当前客户平台或 D2 工作流。实参以固定、可审核的接线输入接收，不读本机真实 `.env` 或凭据。此项验证只能用注入的测试实现和隔离数据库，不去 AWS/Neon/Express 试错。
+
+| 注入端口 | 可复用的实现及待补判定 |
+| --- | --- |
+| `readHeldJob` / `readFixedRelease` / `claimHeldJob`；`complete` / `inspect` | 复用 [领取 RPC](../lib/deployments/execution/first-onboarding-claim-entry.ts)和[完成/回读 RPC](../lib/deployments/execution/first-onboarding-completion-entry.ts)，分别用读取、领取、完成、回读四条受限会话。接线接收已签核 SHA 和确切连接引用；只核对 RPC 调用、分权与拒绝行为。真实登录、函数归属、摘要及 ACL 未证明，不假定已装。 |
+| `repository` / `provisionEpoch` | 列准原任务的 `loadContext`、容量预留、心跳、状态／步骤、g1 检查点和所有权围栏。复用 [Neon 查询逻辑](../lib/deployments/execution/neon-repository.ts)与[围栏协调器](../lib/deployments/execution/external-ownership-coordinator.ts)，但原始表查询和旧固定镜像适配不等于新任务拥有窄执行权限；实际未覆盖的操作才另列最小受限函数和相应证据。若选用外部 authority，必须先锁定实际表/准确租户键、拒绝跨租户和当次证据；不默认建表或开整表写。 |
+| `cloud` / `cellPreflight` / `control` | 复用 [AWS SDK 适配](../lib/deployments/execution/aws-sdk-adapter.ts)的只读和 create-only 调用、[mTLS Control 客户端](../lib/deployments/execution/control-client.ts)和[固定模板 payload 编译器](../lib/deployments/execution/control-payload.ts)。窗口内只读目标栈（入口代码上限 120，执行清单给出实际预算）、一次准确 `CreateStack`、一次本实例配置写；不得把 SDK 默认身份、旧角色权限或旧 ALB 参照当已绑定。真实会话、模板及 Control TLS/身份材料按固定引用审批；不读取或替换已有凭据来探测。 |
+| `verifyEmptyExpressCapability` / `express.database` / `express.secret` | [现有 Express 编排](../lib/deployments/execution/first-onboarding-express.ts)接[V3 初始化](../lib/deployments/execution/aurora-express-bootstrap-v3.ts)、两份固定版本恢复、迁移、IAM 登录激活和目标库读回。已有同集群历史验证只支持选择实现，不支持认定新库空闲或已隔离；旧通用 lifecycle 仅比对摘要，不替代本任务的两个 VersionId 约束。运行 Secret 材料只允许未来清单列准的供给来源和服务身份，不取旧租户 Secret，不把内容落盘。 |
+| `cleanupReadiness` / 独立技术核验 | 在领取前只读生成 `verifyBeforeClaim` 回执，领取后及写入前继续走既有清理核对；固定同一 scope、清理权限证据、原 Cell 与 `workloadExpiresAt`。独立技术端使用 [只读适配](../lib/deployments/execution/first-onboarding-reader.ts)，只限 `TechlongSandboxFirstOpenInspector` 与独立 Aurora 只读会话。失败无领取、无假回执；真实采样和权限另审。 |
+
+**离线放行标准：** 同一有效、已审输入在测试端口中能从原 held 任务走到一次领取和一次 create-only 调用，独立检查点后才调用完成；错任务、旧窗口、证据不符、g1 授权未就绪或未知 ACK 不调用后继写。所有正式连接仍未启用。最小入口、防护和定向回归若不能复用既有模块，停止并列出确切缺项，不改 liveness、全队列或业务功能来绕过。
+
+**第 1 项回执：** [单次装配入口](../lib/deployments/execution/first-onboarding-run-composition.ts)接受现有适配的注入端口，不自行取凭据或建立连接。领取前由原 `pending/0/1` 投影推导 g1/e1，复用运行时身份、操作哈希和 Secret 版本算法；独立有效授权证据须与同一批准 SHA、ECS 执行角色和准确声明摘要相符，实际围栏和创建请求须匹配预计值。109 项 Node 回归、两项隔离 PostgreSQL 领取／原子完成回归、类型检查和定向 lint 通过。固定任务模拟完成一次领取和一次 create-only 调用；没有 A 原始清单字节时拒绝完成，未绕过 digest 校验。独立验证后的正向完成及 revision 0 回读另由现有合成 fixture 和隔离 PostgreSQL 证明；不是该固定任务的线上技术验收。临时数据库已清理；未访问真实资源或产生执行 SHA。仍待绑定真实中段 SQL／authority、Express 和独立核验端口、实际有效 IAM 与恢复输出。
+
+**2. 剩余权限：仅从上述实际端口收口，不照抄旧角色。** 本轮离线生成并核对了[六块 IAM 草案](../lib/deployments/execution/first-onboarding-run-permissions.ts)：投递、CFN PassRole、Secret 供给、生命周期、应用、ECS 执行。生命周期正好两条固定对象版本读；不查基线最新版本。只列拟补的 trust、边界、ACL、适用时的最小 KMS；检查既有角色的有效权限后只安装缺少项，独立验准入与拒绝范围。Neon 安装清单须单列领取／完成各自的 definer 和 LOGIN、上述中段必要的窄 SQL、源码和生成 DDL 摘要。连接、凭据供给、权限写入和独立回读在实际清单中列准次数，当前不批准。
+
+- **需要先解开的 g1 版本依赖：** `createInitial` 的版本 token 来自现有 `approvalSha256 + 真实名称 + 任务 + active epoch + 基线摘要` 规则；目前策略生成器没有回执时明确返回 `runtimeSecretReadPending`。首选在离线接线时证明空位下 g1 首个 `epoch=1` 可从原任务和不可变计划派生：先冻结首开审批体，再由它与完整预计围栏派生版本；IAM 安装的摘要独立于首开 SHA，避免反向引用。仅可审精确 g1 名和服务发放的物理后缀范围、该唯一 VersionId，实际围栏必须先逐字段匹配预计值才能创建 Secret，随后独立元数据回读实际 ARN/版本。此为候选，不能当作当前 IAM 已可用；若无法证明在领取前就具有有效的固定版本授权，则停，不在领取后临时扩大 IAM，不让 `AWSCURRENT` 或宽通配兜底。
+- **真实类型／位置绑定缺项：** 只从 B 的独立回执填两条监听器 ARN 和 Alias 目标；实际角色信任、目标计划/配置、新目标名称空位、基线工具/版本兼容和隔离能力仍需准确证明。历史成功的复制、A 发布和 CFN 模板不重新做；后续若需新读，只查询影响执行的准确对象与必要字段，另审调用预算和事实截止。
+
+**3. 恢复另审，且放到不依赖线上物理值的接线已通过之后。** 只用[审批包 B](#first-onboarding-fc41597f-execution-preparation)的原集群／writer 和原 Cell 栈：原 Express 匹配且 `stopped` 才最多 1 次启动；原 Cell 当前若仍准确为 12 项且无未决操作，才最多 1 次创建及 1 次执行四 Add 变更集。先取得准确只读前置、再核对唯一变更集，同一栈独立回读四项和 443/8443、证书/mTLS、原 12 项物理归属。已完全就绪则跳过写，差异不符不执行。新租户存储、DNS 及依赖新 ARN 的 IAM 是独立差异，不混进恢复，不启动其它栈／数据库。恢复费在资源停止前可能持续，不自动停费。
+
+**4. 实际开窗最后批准。** 只有第 1 项接线合格、2/3 项有效权限与归属已独立回读、准确固定值齐备且真实任务仍 `pending/0/1`，才按[独立窗口规则](#first-onboarding-fc41597f-controlled-window)定实际日期、派生领取/完成 DDL、独立验安装并请本人批准首开 SHA。此次不生成日期或执行 SHA。沿用一次领取、一次七资源创建、独立核验后一次原子完成与一次分离只读回读的门槛；没有 `active`/`ready`/`succeeded` 和 A/revision 0 的独立证据，不报告已开通。
+
+**本轮实际：** 只整理审批清单，并本机核对六块策略、两个版本读权限和原 Cell 资源数。未改运行代码、未读配置/Secret/PEM、未重新盘点或复制，也未访问云、连库、安装、恢复、领取或部署。
+
+<a id="first-onboarding-fc41597f-approval-checklist"></a>
+
+#### `fc41597f` 集中审批清单：真实执行接线 → 补权与恢复 → 单次首开
+
+**状态：待审批，禁止执行；本轮没有新线上事实、实际窗口或执行 SHA。** 这是一份有明确执行顺序和停点的集中清单，不是已就绪的部署输入。原任务不换、不重建，原窗口和槽不延长、不复位。新读取、安装、恢复、首开在此同一清单内分段签核，前一段批准不授权后一段。只有下列待填字段有原件、独立回执和准确预算支撑时，才封存对应执行输入；不能把 `NO_GO` 或本文档摘要当成执行 SHA。
+
+**已锁定，不重新盘点：** `job_fc41597f9b5ba8e02b338ecf` / `dep_746535593025bf97a9efeccd` / `app_bbd626d7d3806af686073211` / `sub_f0dea547d45bcd26ed823fd7`；`402010193138 / ca-central-1 / cell-sandbox-1 / g1`，工作区按[源码中的固定摘要](../lib/deployments/execution/first-onboarding-run-once.ts)匹配。[两份基线回执](evidence/sandbox-first-open-baseline-copy-fc41597f-continuation.verified.json)逐键固定原大小、SHA 和 VersionId（dump `F0IEF0BdsnrwTj6lhYHNeBSbzsz7Sx7K`，manifest `FYqR4mLX2pK3tcQjbyW1UtoJ1.LX3dFc`），不重复复制、HEAD 或下载来做准备。[可信 A](aws-instance-release-initial-publication-observed-20261117.json) 固定 `release_00b9c5cfa6bceedc5fd05aa451dca811`、`sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0` 和 `linux/amd64`；只引用目录证据，不构建、晋升或重写目录。[装配验证回执](#first-onboarding-fc41597f-port-approval)对应代码 `65b80a4`，109 项本机和 2 项隔离 PostgreSQL 回归通过；不把它当成线上权限、当前任务状态或 GitHub CI 回执。
+
+##### 1．真实运行入口与最小余权：只绑定下列端口
+
+候选入口是**本机受审操作者单次调用** `bindSandboxFirstOpenRunOnce(...)()`，不由平台 Web、支付回调或普通 worker 调度。装配函数已存在，但没有绑定该任务的真实操作入口、隔离身份或运行收据。本清单不新增 GitHub 工作流；若实际环境要求改由 GitHub 执行，须先绑定准确不可变入口及角色，且 environment 仍由用户本人批准。不得借旧恢复脚本、平台 owner 或默认 SDK 凭据直接运行。
+
+| 需绑定的现有端口 | 候选真实权限与放行回执 |
+| --- | --- |
+| **Neon 领取与完成** | 四个相互隔离的 TLS LOGIN：`first_onboarding_fc41597f_review` 仅 `review()`/`release()`，`first_onboarding_fc41597f_claim` 仅 `claim(text,jsonb)`；完成/独立回读候选 `first_onboarding_fc41597f_complete` / `first_onboarding_fc41597f_inspect`，各仅 `complete` 或 `inspect`。用[领取](../lib/deployments/execution/first-onboarding-claim-entry.ts)和[完成](../lib/deployments/execution/first-onboarding-completion-entry.ts)生成器绑定同一 SHA、时间和任务。各自专用隔离 `NOLOGIN` definer，独立核 owner、成员、列 ACL、函数摘要、固定 `search_path` 和 PUBLIC 撤销。运行角色不直接写表，不用调用 claim／complete 试权限。 |
+| **Neon 中段／g1 围栏** | `repository` 只接 `loadContext`、容量保留、心跳、指定状态／步骤、生命周期记账、同租户 g1 及外部 epoch 核对。复用[存储逻辑](../lib/deployments/execution/neon-repository.ts)和[协调器](../lib/deployments/execution/external-ownership-coordinator.ts)，不能把现有通用 SQL 直连角色当窄适配。提交前列出实际选择的窄 RPC/DML 向量、执行登录、准确 authority 后端和唯一租户键，以及 `prepare → installAndObserve → activate` 所需写入及比较；绑定同 lease/attempt、g1/e1、`writeBefore`，拒绝其它任务／代际和 cleanup，心跳不续截止。原件不足时不假定旧表／策略可用，不新建通用 authority 或给整表权限。 |
+| **CloudFormation 与共享 Cell 门禁** | `TechlongSandboxProvisionerRole` 的已审会话使用 [SDK create-only](../lib/deployments/execution/aws-sdk-adapter.ts)，只读新栈名或其 ACK ARN，`CreateStack` 最多一次且精确标签，`PassRole` 只给 `TechlongSandboxCloudFormationExecutionRole`。后者允许精确七资源及获批的 CFN 托管回滚，ECS `PassRole` 只给 `TechlongSandboxTaskExecutionRole` 和 `TechlongSandboxFirstOpen-e9fdccd5d8c7685c`；监听规则权限只能在两条真实监听器上生效。须比较真实 trust／boundary／身份及会话限制、CFN 角色和模板管理归属，不借旧 ARN，不加执行者 Update/DeleteStack 或 IAM 写。`cellPreflight` 还须读取本次恢复独立回执及受审原 Cell/平台参数，不使用关闭的通用适配。 |
+| **Express、两份基线及应用身份** | [Express 端口](../lib/deployments/execution/first-onboarding-express.ts)接 V3 生成器，实际 `TechlongSandboxTenantLifecycleTaskRole` 只对原物理集群的 `postgres` IAM 登录和两键固定版本 `GetObjectVersion`；需证明受审 TLS 路径、准确可用的恢复工具、PG17.9 兼容及未占用的目标库／角色。先验能力回执不试写新库、不改其它库 ACL；领取后只在 `tenant_e9fdccd5d8c7685c_db` 初始化、schema-only 恢复、现有 SaaS 迁移和激活 `tenant_e9fdccd5d8c7685c_role`。应用 TaskRole 仅该 `dbuser` 及本独立桶 `products/*` 的必要动作；图片删除不是本轮验收动作，不默认加权限。 |
+| **g1 供给与固定注入** | 先证明 `TechlongSandboxTaskExecutionRole` 对准确仓库、日志流和两份固定 Secret 的有效路径。领取前用最终首开 SHA 派生唯一 g1 版本，并另封 IAM/授权回读摘要，不把派生版本或其 IAM 回执塞回首开摘要形成循环。[窄策略](../lib/deployments/execution/first-onboarding-run-permissions.ts)允许审核完整 g1 名＋六位物理后缀模式、唯一 `VersionId`；供给身份只对准确名称／标签／加密路径一次初始 `CreateSecret`。实际安装还须证明权限条件及 ECS 注入请求确实匹配，且其他版本、名称和正文读取无额外路径；仅有 IAM 片段或接受测试回执不够。取得实际 ARN/唯一版本的独立元数据后才渲染注入；控制公钥用源码中已有准确 ARN/版本，须与现行控制材料匹配。KMS 只在证明确需时限定准确 key／服务／上下文，不以 `AWSCURRENT`、宽通配、临时补权或试建 Secret 兜底。 |
+| **控制配置、独立核验与清理责任** | 复用 [mTLS 客户端](../lib/deployments/execution/control-client.ts)和[不可变配置编译器](../lib/deployments/execution/control-payload.ts)；必须另锁准确控制 CA/客户端身份、签名来源、已批准模板与同实例首位商家管理员凭据供给，绑定该 hostname 的 8443 和一次配置 POST，不借旧租户材料或把私密输入落盘。[独立核验端](../lib/deployments/execution/first-onboarding-reader.ts)只用 `TechlongSandboxFirstOpenInspector`（历史 `NoSuchEntity`，须按实际存在状态补装或核验）、独立目标库 TLS 只读身份、准确 CFN/ECS/ELB/RDS/DNS、两份 Secret 元数据、桶和 A 的原 ECR manifest；不读 Secret 正文或业务表。时间门禁还要求[同一窗口的清理责任证据](../lib/deployments/execution/single-tenant-workload-strategy.ts)：核准确责任主体 `techlong-sandbox-dev` 的权限证据、原 Cell、同一 scope 和到期值，检查用不超过 **30 秒** 的独立观察；这不是已安装自动停费，也不授权清理。 |
+
+##### 2．执行顺序与签核边界
+
+| 段 | 只执行下列动作，前段回执是后段输入 |
+| --- | --- |
+| **定向只读（下一唯一动作，另批）** | 复用原品类、名称、模板、角色名单、原始 A 回执及固定基线；查会改变放行决策的缺项：① 控制库只投影该任务的 held 状态、计划/配置摘要、订阅有效期、g1/epoch 与 D2 绑定空位和实际窄身份布局；② 核原 Express 集群／writer（各 1 次状态读取）、原 Cell（同 ARN 的状态、Original、一页归属和活动变更集各 1 次），证书／mTLS 各仅准确原 ID，且只补恢复判断所缺字段；③ 只核准确 IAM 缺项和拟用的新栈／目标库／角色／g1／图片／DNS 名称，控制公钥只查固定版本元数据。镜像优先用已封存原始字节（本轮没有核得原件）；无原件时仅候选 ECR 同仓同 digest `BatchGetImage` 1 次，不下载镜像层。必须连线上验证 TLS SQL 才能判定的 Express 空位和隔离能力在集群就绪后另列只读许可；不得为查询先启动。正式批准前固定各角色／对象调用数、SQL／凭据读取数、期限及保存的去敏投影；不按历史读取预算自动重查，不读取新私密材料。 |
+| **最小安装与原设施恢复（分别确认）** | 先收口并独立核验不依赖新监听器、实际窗口或固定 g1 版本的安装差异；持久化仅复用合格本租户设施，否则最多创建原草案的**一个五资源存储栈**，等私有桶/OAC/准确 CORS 和 `Deployed`，不迁图片。待无需恢复就能完成的准备已齐，再启动计费设施：仅原 Express `techlong-sandbox-express-d001`（`cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM`）确为 `stopped` 时 `StartDBCluster` ≤1，不单起 writer；独立确认原 writer/集群均 `available`、版本/IAM auth/端点。仅原 Cell `b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1` 符合原 12 资源及无冲突时，创建、核对、执行同一 UPDATE Change Set 各 ≤1，只 Add `CellLoadBalancer`、`BusinessHttpsListener`、`ControlMtlsListener`、`BusinessControlDenyRule` 并恢复两监听器输出；是否允许 CFN 托管回滚写入实际签核。已合格则跳过对应写入；不直接建 ALB、不启动独立 RDS/旧租户或更新平台。 |
+| **绑定恢复值和实际窗口，最后补依赖项（分别确认）** | 从独立回读取得原 12 项未变、16 项、真实 443／8443、证书和 `verify` trust store；从同一 ALB 的实际回读取得 DNS/canonical zone，不能从两个监听器输出猜 DNS。确认 443 的 100／101、8443 的 100 空闲，`Z01473621BTTHKXBGOOEJ` 仅对 `pending-app-bbd626d7d3806af686073211.sandbox.techlong.cloud` 做准确 `CREATE A Alias` ≤1；已匹配不写，同名冲突停。用真实新 ARN 封余下 CFN/IAM 策略及持久化绑定。冻结首开体：实际计划／配置／Review、Express 能力、独立清理证据、A、两份基线、存储和参数摘要；设新窗口 `startAt < claimBefore < writeBefore`、至少 10 分钟执行预留、`writeBefore ≤ min(startAt+1h, workloadExpiresAt−5min, factsExpireAt)`、`workloadExpiresAt = startAt+7200s`，原订阅须覆盖。**先封首开体，后派生 g1 版本和领取／完成 DDL，再按安装 SHA 审批并独立回读；最后才确认首开 SHA。** 窗口预留须含安装、回读、人工确认；来不及不开窗，不滚动重算日期、不重放。 |
+| **一次首开，独立通过才激活（另批）** | 首开前重新核同一 held 投影仍 `pending/0/1`、无租约／前代／已用槽、证据与时间仍有效。调用现有入口一次：领取 ≤1、g1 初始 Secret ≤1、V3 prepare ≤1、两份固定版本 GET 各 ≤1、schema-only 恢复 ≤1、SaaS 迁移一组、应用 IAM 登录激活 ≤1、租户 `CreateStack` ≤1（原七项）、准确实例配置 POST ≤1。最终清单另封租约／步骤／控制读的次数，目标栈轮询不超过入口硬上限 120 次且只能本栈名或 ACK ARN。独立核验 AWS 元数据 ≤24 次（身份另计）、目标库 TLS 只读连接 ≤1、准确公开 `/health` 和 `/ready` 各 ≤1；要求 `CREATE_COMPLETE`、7 项真实物理归属、A 的原始 manifest 与实际运行 digest、`1 running / 0 pending`、目标健康、两固定 Secret、Alias、S3/CDN、库/角色 OID、g1、迁移与隔离证据。技术核验及租约仍有效才 `complete` ≤1，原子写实例 `active`、部署 `ready`、任务 `succeeded` 与 **A / revision 0 / 无活动请求**；另一登录 `inspect` ≤1 回读一致才报开通。 |
+
+**第一段可单独确认的读取上限（尚未授权）：** 固定原 Source，STS ≤1；CFN ≤5（原 Cell 4 项、新租户栈精确 `DescribeStacks` 1）、RDS ≤2（原集群和 writer）、ACM/mTLS ≤2（原证书和 trust store，仅恢复判断所必需时）、ECR ≤1（只在本地找不到准确 A manifest 原件时）、Secrets Manager `DescribeSecret` ≤2（仅固定控制公钥和准确 g1 名）、Route 53 ≤1（准确域名的一页起始查询）、S3 `HeadBucket` ≤1（仅新租户准确桶名）。IAM ≤29：七个 `GetRole`（Cell、Provisioner、租户 CFN、ECS 执行、lifecycle、应用、Inspector）；对五个有历史关联的现有角色，仅在比对安装缺项所需时各取一页附加／inline 名单和本角色唯一已知边界的 `GetPolicy`＋`GetPolicyVersion`；仅原 Cell 和 ECS 执行角色各取一份此前已定位的 inline。候选角色若出现新绑定，记录差异并停止，不再展开策略。总计 **STS 1＋AWS 43**，不翻页、不重发。仅 AWS 前置匹配后，读取既有 `.env.local` 一次到内存，使用对应固定 Neon 库一条验证主机名和证书的 TLS `READ ONLY` 连接，最多 **12 条**目录/精确任务投影与事务控制 SQL，只核 held、计划/配置摘要、订阅期限、初始绑定/围栏空位、该任务涉及的角色和函数布局。不连 Express、不读 Secret 正文、PEM 或 S3 正文，不改 AWS/数据库、调度或占槽。本段只产去敏事实，不证明实际有效 IAM、实际 SQL 写端口或新监听器归属；不能据此开窗。
+
+**封存前硬缺项：** 实际单次操作者与中段窄 SQL/authority 未绑定；目标空位及 Express/恢复工具、实际控制凭据与独立核验身份未证；原 Express/Cell 的当前状态、新物理值、图片和 DNS 未核；该 g1 的实际有效固定版本路径、清理责任、最终摘要和窗口未封。旧证据保留原采样时间；准备事实最多 5 小时且不延长任何执行期限。提供者回执不明、并发、权限/事实不符、分页超范围或时间不足均停在当前段；不试权写入、不重试、不自动补、回滚或清理（已批准的 CFN 托管回滚除外）。已提交但独立回读不明记「未验收」，不再提交一次。恢复或部分安装/部署可遗留收费资源，窗口和 `ExpiresAt` 都不是账单上限或已安排停费。私密输入按准确范围只进受限进程，不提交或记录内容；网络／服务日志仍有暴露风险。
+
+**本轮实际：** 仅离线核对已存公开投影、模板及代码并编制本清单。未读配置、凭据、Secret 正文或私有业务原件；线上读取、安装、资源启动、领取、部署、Stripe、调度及槽消费全部为 0。下一步仅按上表第一个签核段确认必要的新读取，不批准任何写入，也不启用普通队列或重开 D2。
+
+**第一段已批准并在身份核对处停止（2026-11-19 08:41:23 CST，温尼伯）。** 固定 `techlong-sandbox-user` 配置及 `ca-central-1` 官方端点，单次 STS 命令返回 `SOURCE_SESSION_EXPIRED`（去敏分类，退出码 255），未取得可验证身份。STS 尝试 1；其它 AWS 元数据、`.env.local` 读取、Neon 连接、SQL、写入、恢复、领取、调度和槽消费均为 0。保留停止记录，无新事实、执行 SHA 或窗口。Source 刷新后须明确允许新一轮同范围读取，不重放这次尝试；安装、恢复和首开仍未批准。
+
+**刷新后的新一轮：身份通过，在 DNS 读取处停止（2026-11-19 08:56:56–08:58:44 CST，温尼伯）。** 固定 Source 只做 1 次 STS，命中准确账号和 IAM 用户。AWS 元数据共尝试 12 次：CFN 5、RDS 2、ACM 1、ELB trust store 1、Secret 元数据 2、Route 53 1。已确认原 Cell 为 `UPDATE_COMPLETE`，Original 仍匹配原 12 项模板及全部 12 个保留物理 ID，无活动变更集，新租户栈名未占用；原 Express 和原 writer 均为 `stopped`，PG 17.9、IAM auth 与归属匹配；原证书 `ISSUED`、mTLS trust store `ACTIVE`、控制公钥固定版本存在、准确 g1 名返回 `ResourceNotFoundException`。这些是本次元数据事实，不是有效 IAM、空库或恢复就绪证明。
+
+该次 Route 53 读取停于 `AWS_CLI_UNCLASSIFIED`；本地 CLI skeleton 参数形状通过，但未证明原失败原因。该轮未重发、未进入 S3、ECR、IAM 和 Neon。以下接续已另批完成，不重放任一历史尝试。
+
+**只读接续已完成（2026-11-19 09:04:38 CST，温尼伯）。** [去敏回执](evidence/sandbox-first-open-fc41597f-preflight.observed.json)保留原事实：只对同一域名发一次 Route 53 请求，确认未占用；准确图片桶 HEAD 返回 404，A 原 ECR manifest 字节复算与固定 digest 一致；未重查 Cell、Express、证书、trust store 或 Secret 元数据。两个新 IAM 角色均不存在，五个已知角色的信任主体和关联布局符合预期；已读策略未找到新应用 TaskRole 的显式 PassRole 引用或 g1 精确固定版本声明，不据此断言不存在其它有效路径。限定接续实际 **STS 0、AWS 元数据 30（DNS 1／S3 1／ECR 1／IAM 27）、配置 1／Neon 验证 TLS 只读连接 1／SQL 9**；未读 Secret 值或基线正文。
+
+Neon 回读同一任务仍为 `pending / 0/1 / 无租约`，计划／配置摘要和可信 A 目录匹配，无前代、外部 epoch 或 D2 初始绑定；订阅有效至 `2026-12-19T03:54:22.780Z`，拟用的六个角色和两个专用 schema 都不存在。此回执不证明 Express 实际空库、窄写适配或 g1 已获授权。**下一唯一动作：复用回执准备不依赖新监听器或首开窗口的最小安装差异。** 先锁新应用／Inspector IAM、固定对象版本权限及单任务中段 SQL/authority 真实接线；能确定的差异集中出材料，不重复查本轮资源；最终依赖新监听器、g1 版本和首开 SHA 的部分保留至相应签核段。原准备期限为 `2026-11-19T19:56:56.789Z`（温尼伯 13:56:56.789），不延长；无写入、恢复、领取、调度、执行窗口或执行 SHA。实际安装、恢复和首开仍分别确认。
+
+<a id="first-onboarding-fc41597f-static-install"></a>
+
+#### `fc41597f` 无恢复依赖安装包：只安装锁定身份，待审批
+
+[执行清单](../ops/aws-sandbox/first-open-fc41597f-static-install.review.json)的规范 SHA-256 为 **`b923012d70bc48b4d26705353cee7d73f2bd04a0bbf2c5d4690ba77cd8ab6471`**。直接复用[定向只读回执](evidence/sandbox-first-open-fc41597f-preflight.observed.json)：原任务 `pending / 0/1 / 无租约`、无 g1/epoch 或 D2 初始绑定；两个指定 IAM 角色、六个 Neon 角色及两个专用 schema 未存在。原事实截止 **2026-11-19 13:56:56.789 CST（温尼伯）**；安装最多 20 分钟，须在 **13:36:56.789 CST** 前启动，不续期、不打开首开窗口。材料编制和验证没有新增线上读取、不安装、不启动任何资源。
+
+**准确执行顺序（须用户另批 SHA）：**
+
+1. 按清单核对固定回执、模板、SQL 的文件摘要及原事实期限。用原 Source 做 1 次身份核对；只确认精确新栈、两个角色和专用 managed policy 名称未占用，不盘点其它资源。就绪后记唯一安装意图。对 `techlong-sandbox-first-open-fc41597f-identities` 从[固定模板](../ops/aws-sandbox/cloudformation/first-open-fc41597f-identities.template.json)创建一次 `CREATE` Change Set（`CAPABILITY_NAMED_IAM`，不传新的执行角色）。核对 AWS 返回的同一 ARN、未执行状态、Original 摘要和恰好 **3 Add**：两个 IAM 角色、一个应用 managed policy；不符不执行。精确执行该 Change Set 最多 1 次；允许仅该新 IAM 栈的 CloudFormation 托管回滚。等明确 `CREATE_COMPLETE` 后，用分离只读进程回读相同栈及三项归属、角色信任和应用的同一 attached/boundary policy，确认两个角色都拒绝 AssumeRole、无意外 inline 或附件。应用策略只有新租户精确 `rds-db:connect` 和专用桶 `products/*` 的 `s3:PutObject`；Inspector 不获读权限，也不授予 PassRole。AWS 仅清单列明的 **STS 1＋最多 23 次元数据**，不翻页。
+2. AWS 独立回读通过后，读取现有 `.env.local`，只用固定 Neon 目标、核验服务器证书及主机名的 TLS。提交[固定 SQL](../ops/aws-sandbox/first-open-fc41597f-identities.sql)一次（12 条 SQL，含一笔事务）：原目标库／安装身份 OID、预期 held 行和两类围栏空位都匹配时，只建立六个 `NOLOGIN / NOINHERIT` 非特权角色。无密码、无 SQL 业务写、无 schema、函数、业务表授权或显式成员授权。仅在明确提交后，用分离连接做一次只读回读（≤4 条 SQL），验原任务不变、六个角色状态、双向成员及无新增表／schema／函数权限。配置和 TLS 连接各最多 2；托管 PostgreSQL 可能给创建者自动 ADMIN，回读只接受没有 SET/INHERIT 的安装者自动成员关系。安装者权限不足或目标/对象向量变化即停，不改角色权限绕过。
+3. 保留各段回执。单一 SHA 覆盖本段两个安装操作，不授权运行时。AWS 与 Neon 非原子：先成功的一段可能保留锁定身份；同名冲突、超时、提交结果不明或独立回读失败时停，不重放、不认领同名对象、不自动回滚或删除（获批的 CFN 托管回滚除外）。不运行 AssumeRole、Task、请求或其他试权写入；不恢复 Express/Cell，不部署、创建存储、改 DNS 或启动队列。配置只进内存，接受宽权限安装身份、提供者日志和低额调用成本风险。
+
+**明确没包含的真实接线：** 固定基线权限仍以 [现有生成器](../lib/deployments/execution/first-onboarding-run-permissions.ts)的同桶两键、各自 VersionId 为准。现有 lifecycle 角色和共享 boundary 的回执只保存指纹，不足以重建完整的原栈 IAM 文档并证明有效授权；不直接加旁路 policy，也不把候选版本当已授权。中段 `repository/provisionEpoch` 仍须接到该任务的窄接口和真实 authority，不能借 Neon owner 直接运行；本包没有装这块代码或授予写权限。Inspector 解锁、领取／完成函数、g1 注入、控制身份、监听器引用与 DNS 绑定需要各自的确切材料；真实新监听器和窗口相关权限未提前赋予。锁定身份安装通过不等于允许运行，更不等于已开通。
+
+**离线验证：** 模板只含 3 个 IAM Add、两角色无 Allow trust、应用策略与现有源码的两条准确声明一致；批准体、原回执、候选文件和时间预算离线交叉核对。隔离 PostgreSQL 验证无 held 任务时不创建、精确 held 任务一次原子创建六个 `NOLOGIN`、重放拒绝且两 schema 保持未创建；本机临时库已关闭清理。未调用 AWS `ValidateTemplate` 或访问 Neon。
+
+**已执行至 AWS `CREATE_COMPLETE`，独立回读未完成（2026-11-19 09:18:54 CST，温尼伯）。** 已按上述 SHA 确认前置、创建且核对同一 Change Set 的三项 Add 和 Original，只执行一次。[去敏回执](evidence/sandbox-first-open-fc41597f-static-install.partial.json)记录 AWS `CREATE_COMPLETE`、三项准确物理归属和应用角色锁定 trust、boundary／挂载布局通过。独立进程在准确 Inspector `GetRole` 返回未分类退出码 255 时停止；不据此断言会话过期或角色不存在。Inspector 的信任／附件与应用 policy 的默认正文尚未完成独立回读。STS 1、其余 AWS 元数据 13 次、Create/Execute 各 1，直接 IAM 调用写入、配置读取、Neon 连接/SQL、恢复、领取和调度均为 0。保留原槽，不重发 Create／Execute，不下结论为整包已验收。
+
+**IAM 独立回读已补齐（2026-11-19 09:21:30 CST，温尼伯）。** 用户授权的 5 项精确 IAM 读取分别成功，[回执](evidence/sandbox-first-open-fc41597f-static-install.iam-readback.json)证明 Inspector 仍为拒绝 AssumeRole，附加／inline 均 0；应用 managed policy 默认 v1 的正文与批准模板一致，attachment 与 boundary 各 1。合并上次准确栈与应用信任回读，AWS 身份安装验收通过。该续段没有新 STS、重复建栈、改 IAM、读取配置或连接 Neon；上次未分类错误原因仍未证明。
+
+**锁定身份安装已结案（2026-11-19 09:24:33 CST，温尼伯）。** 用户明确批准后，在原 09:36:16.905 截止前一次提交原 SQL，09:23:47.526 收到明确 COMMIT；新 TLS 只读连接[独立回读](evidence/sandbox-first-open-fc41597f-static-install.verified.json)匹配六个非特权 `NOLOGIN / NOINHERIT`。创建者有六项提供者自动 ADMIN、无 SET 或 INHERIT；新角色无直接 ACL/对象归属，两个候选 schema 仍不存在。原任务仍 `pending / 0/1 / 无租约`，未新增围栏、前代或 D2 绑定。实际配置读取 2、验证 TLS 连接 2、安装 SQL 12／只读核验 SQL 4，无 AWS 调用、业务写、恢复、调度或领取。原安装 SHA 与单次槽均保留，不重放。
+
+<a id="first-onboarding-fc41597f-middle"></a>
+
+#### 同一任务的窄中段 SQL／资源归属接线（已离线完成，未安装）
+
+[受审单次入口](../lib/deployments/execution/first-onboarding-run-composition.ts)现可直接绑定[固定中段适配器](../lib/deployments/execution/first-onboarding-middle.ts)和[候选 DDL](../ops/aws-sandbox/first-onboarding-middle-ddl.ts)。领取前用同一审批 SHA 通过中段只读就绪回执，另查唯一 authority 键未占用；不通过即不领取。保持原 `NeonDeploymentExecutionRepository` 原字节及普通 worker 不变：只复用原十二条语句，逐条绑定源码指纹；运行者只能调用固定函数和传参，不发送任意 SQL。函数在 PostgreSQL 行锁后以数据库时钟校验原任务、第一次尝试、原订阅、计划/配置、租约、截止及 `g1/e1`；只允许执行中段，不能领取、完成、取消、重试、清理或写其它实例。没有新 D2 或普通队列接线。
+
+资源归属使用原 DynamoDB 表、仅 `tenant:<该任务的固定稳定身份摘要>`：领取前读空位一次，领取后用既有条件写 `attribute_not_exists`，最多一次 `PutItem`；前后各读准确租户栈且不得已存在，条件写后独立一致性回读，再激活 Neon `g1/e1`。正常至多 3 次 `GetItem`（含领取前），不翻页、不换键、不重放写；授权草案仅 `GetItem`/`PutItem`，限定该表和单一 `LeadingKeys`。旧资源不会被领养。Neon 核验归属回执的准确结构，不能直接证明 DynamoDB 网络响应；最终仍须把实际授权、数据库 LOGIN 及已审适配固定到同一个操作者，并保留独立 Inspect。原逻辑 Secret 名不带 `/g1`，实际 ARN 则只能是本代固定名称和六字符后缀，二者不互换。
+
+候选 DDL 需要**专用中段角色**（一个 `NOLOGIN` definer、一个隔离的运行 LOGIN），不复用已设的领取/完成身份，不把底表权限给运行者或 PUBLIC；只在装入前有独立角色和精确函数体核对时才允许启用。130 项本机回归、隔离 PostgreSQL 的真实 DDL／受限角色／合成 DynamoDB 回归、类型和 lint 均通过；覆盖无中段就绪回执不领任务、错范围/过期拒绝、无直接表读，及条件写结果不明不激活也不重发。未在 Neon 创建这两个角色或 schema，未发放凭据，未连接 Neon／AWS 或写 authority，未恢复、领取或部署。
+
+<a id="first-onboarding-fc41597f-remaining-install"></a>
+
+#### 剩余安装与单次执行入口：一份集中材料，暂不可签发执行 SHA
+
+[机器材料](../ops/aws-sandbox/first-open-fc41597f-remaining-install.prepared.json)固定原任务、批准源码、14 份已存证据/源码摘要、实际计划/配置摘要、可信 A、两份基线的原键/实际 VersionId 与 `g1/e1` 操作摘要。原锁定身份安装不重做；原准备事实截止仍为 **2026-11-19T19:56:56.789Z（温尼伯 13:56:56.789）**，不会因本材料生成而延长。不把草案摘要伪作安装或首开 SHA，不给恢复、领取或执行授权。
+
+| 范围 | 本轮已定的最小差异与安装门槛 |
+| --- | --- |
+| **真实运行入口** | 唯一候选为 [bindReviewedSandboxFirstOpenRunOnce](../lib/deployments/execution/first-onboarding-run-composition.ts)，同一进程注入彼此独立的 review／claim／middle／complete／inspect TLS 登录、一个精确 provisioner SDK 会话与独立 Inspector。已复用原 SQL、DynamoDB 条件写、create-only AWS 端及独立技术端边界；**入口还不是可运行的真实启动脚本。** 不借平台 owner、默认 SDK 凭据或普通 worker 兜底。旧 Express 运行脚本和只读观察器固定旧实例、旧库/OID及旧 Secret 来源，即使路径相似也不能只换 ID 后调用。 |
+| **Neon 只安装所需入口** | 保留已安装六个角色。仅候选再建一个中段 `NOLOGIN` definer 和一个独立 middle 角色；应用态共 3 definer、5 个分离运行 LOGIN、3 个 schema 的 6 个固定函数（review、release、claim、middle、complete、inspect）。最终首开 SHA／窗口封定后，由现有三份生成器编译彼此一致的 DDL，绑定精确登录供给和独立 ACL 回读；不预开 `LOGIN`、schema 或授予底表 owner，不用业务写试权。 |
+| **DynamoDB／基线固定版本** | 材料内附精确 `dynamodb:GetItem`／`PutItem`，只准原表和本任务 `tenant:<稳定身份>` 键，正常至多 3 次强一致 GET 和 1 次 `attribute_not_exists` PUT；未授权写。生命周期只候选原集群 `postgres` 的 IAM 通路和两个精确 `s3:GetObjectVersion`／匹配 `s3:VersionId`，不许 `GetObject`、latest、列桶或原桶降级。现有回执只有原共享策略摘要，不足以覆盖或合并完整当前原件；现有 IAM stack 只能沿 [原归属](aws-instance-release-step4-execution-review.md)作**确切差异**，不直接挂旁路策略。不用旧策略正文或更宽 boundary 让候选调用通过。 |
+| **AWS 角色、控制和独立验收** | 应用、Inspector 保持安装后的 deny-all trust；新应用登录归属及真实核验会话未证明前不解锁。执行包只能给会话准确新栈 create-only／精确 `PassRole`、新代 Secret 初始供给，以及既定两固定 Secret 注入。CloudFormation 两监听器权限和 Alias 只等**原 Cell 四项 Add 的独立恢复回执**，不得从旧 ARN 填入。mTLS 控制和首位商家管理员凭据可复用现有编译器，但取得同任务凭据来源需审批，不读或上传私密输入；准确配置 POST 最多一次。Inspector 只做已限的 AWS 元数据（≤24，身份另计）、目标库只读及 `/health`、`/ready`，不能提交激活或读取 Secret 正文。 |
+
+**本清单封存时的阻塞是执行端口。** 后继代码状态见[三处离线接入](#first-onboarding-fc41597f-express-binding)。本清单原件保持不变，不作为执行 SHA 或实时事实；不重复 CFN/ECS/RDS 等全量盘点。
+
+**保持原顺序。** 真端口接好和预算可封定后，再审恢复原 Express/原共享 Cell（不重建整环境）；恢复实际值确定后固定安装差异、一次受控首开窗口和两层摘要。先固定首开体 SHA，再用它派生三个 SQL 包和 `g1` 固定版本，账本/权限结果摘要独立封存。安装、恢复及一次领取仍分别确认，无额外静态身份安装轮次。异常、时间不足、并发变动或回执不明即停，不试权、不重试或自动清理；恢复后资源可能持续计费。**本轮线上读取/写入、凭据读取、权限安装、恢复、调度和领取全部为 0。**
+
+<a id="first-onboarding-fc41597f-express-binding"></a>
+
+#### 三处离线接入：同一首开任务，不启用执行
+
+[单次入口装配](../ops/aws-sandbox/first-open-express-runtime.ts)接到原 `bindReviewedSandboxFirstOpenRunOnce`，不改变普通 worker、Full、旧租户或 D2。显式复用 SpeedFeast 后端的 V3 编译／建库、拥有连接、归档编译、两份固定迁移与 PG17 目录校验；不调用固定旧租户运行脚本。
+
+- **Express：** V3 空库准备仅接受同任务 g1/e1，动态取新库和角色 OID。两份固定 VersionId 经限长和 SHA-256 核对后才编译 schema-only 归档；用批准迁移、空表计数和历史迁移目录指纹校验后，才给新角色准确应用权限。建库、恢复、迁移与应用授权不是同一提交，结果不明时不续跑。其他库仍可连接即停止，不更改共享库权限。目标库保留绑定同任务、批准和这对 OID 的数据库标记。
+- **Secret：** 只为准确名称提交一次 `CreateSecret`，用现有 g1 派生 SHA 作 `ClientRequestToken`，默认 AWS-managed KMS。复用 Express 四字段生成器，无数据库密码或 URL；测试 Stripe 材料只能由该租户经审批供给。已有 Secret 或提交不明不认领、不重试；只用元数据核对版本，供给端不读 Secret 正文。
+- **独立核验：** 应用使用自己已验证的 IAM 身份证明实际登录。独立 Inspector 用不同会话访问目标库，只执行固定 TLS/READ ONLY 核验，回读实际数据库／角色 OID、归属标记、角色隔离及 SaaS schema 哨兵，与写端回执进行比较。核验失败不进入原子激活。
+
+114 项本机回归、TypeScript 类型检查及定向 lint 通过，覆盖了阶段顺序、版本、Secret 一次提交和独立 OID 不符停止；另离线核对本机后端 V3 编译器、固定迁移文件与真实入口的无连接装配。**没有真正创建库、生成运行凭据、读取 S3、联机验收或开通实例。** 后续集中审批仍需封定实际后端／工具源码、有效域和权限、同任务 Stripe 材料、持久化与原 Express／Cell 恢复前置。尤其须有**可在租户栈创建前取得的准确应用角色会话**（及生命周期、Inspector 的分离会话）；入口拿不到原角色就停在领取前，不放宽 ECS trust 或借 owner 代测。复用已有回执，只补仍缺的精确项，实际读取、安装、恢复和首开分别按范围审批。
+
 ### 首版范围
 
 只做餐饮订单系统、一个新 sandbox 工作区／租户、现有共享 Cell，首轮选择 Express 数据库档位；空库初始化能否直接复用现有路径须在步骤 2 证明，不能用既有库的可连接性代替。起点是现有购买／支付确认流程生成的 `pending` 实例和 `active` 订阅，终点是该租户的 API 可访问、客户入口可用、实例 `active`、部署 `ready`，且 D2 已看到同一租户的初始版本 `revision 0`。验收从 Stripe 测试模式的正常入口开始，不手工造部署记录或填 URL，不接真实付款。新租户的权限、数据库与配置不能借用已有租户的值；共享设施复用，不重建 Cell 或为每个租户新建独立数据库服务器。

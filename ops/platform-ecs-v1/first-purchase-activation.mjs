@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { validSandboxPurchaseScope } from '../../lib/purchases/sandbox-first-purchase-config.ts';
 import { P, canonical, hash, handoffPolicy } from './contract.mjs';
 import { suppliedTemplate, versionId } from '../platform-hosted-access-v6/contract.mjs';
-import { DAHLIA_FIRST_PURCHASE_CANDIDATE, CHECKOUT_REPAIR_CANDIDATE, BILLING_REPAIR_CANDIDATE } from '../platform-registration-publish-v1/contract.mjs';
+import { DAHLIA_FIRST_PURCHASE_CANDIDATE, CHECKOUT_REPAIR_CANDIDATE, BILLING_REPAIR_CANDIDATE, BUYER_FORWARD_CANDIDATE } from '../platform-registration-publish-v1/contract.mjs';
 
 const json = path => JSON.parse(readFileSync(new URL(`../../${path}`,import.meta.url),'utf8'));
 const evidence = 'docs/evidence/';
@@ -85,6 +85,11 @@ export function checkoutRepairHostingTarget(installed,publisher,baselineDigest){
 
 export function billingRepairHostingTarget(installed,publisher,baselineDigest){
   return imageOnlyHostingTarget(installed,publisher,baselineDigest,CHECKOUT_REPAIR_CANDIDATE,BILLING_REPAIR_CANDIDATE);
+}
+
+export function buyerForwardHostingTarget(installed,publisher){
+  const billingDigest=json(evidence+'sandbox-first-purchase-billing-continuation.verified.json').publication.manifestDigest;
+  return imageOnlyHostingTarget(installed,publisher,billingDigest,BILLING_REPAIR_CANDIDATE,BUYER_FORWARD_CANDIDATE);
 }
 
 function imageOnlyHostingTarget(installed,publisher,baselineDigest,previous,c){

@@ -19,6 +19,114 @@
 
 本节仅说明选用规则，不是执行授权，也不代表本轮已经停用。以下 11 月 13 日记录及其中的命令、清单均为历史，不得用于本轮。
 
+### 11 月 24 日：先停数据库，剩余 ECS／Cell 一份停费审批
+
+用户要求立即停止测试环境费用。使用现有独立 RDS 停止核心，仅对同一 `ca-central-1` 的两座准确数据库核对账号、IAM 和不可变资源 ID，先留私有恢复备份。Aurora `techlong-sandbox-express-d001` 只发一次停止请求并获得 ACK；后续云回读一度为 `stopping`。`speedfeast-postgres-prod` 已 `stopped`，跳过写入。无数据库／快照删除，不读取数据，不触碰首开 IAM 尾项。新的停前原件和恢复备份独立保存，不动原启停状态根和旧失败记录。
+
+[停库备份结案](../.local-secrets/aws-20261124-rds-cost-stop-v1/journal.json)记录 `STOP_SUBMITTED_NOT_VERIFIED`：4 分钟只读等待结束时 Express 仍 `stopping`，独立 RDS 仍 `stopped`；STS 1、数据库元数据 40、唯一停止提交 1，没有重发，不能称 Express 已完整停用。
+
+[剩余停费清单](../.local-secrets/aws-20261124-cost-cfn-stop.review.json) SHA-256 `63a7fa5b64f5d34b1827e4f4558a835de47c05552d999df4f0de3b2ed2dc7b53`，尚未执行。约定账号 `402010193138`／`ca-central-1`，源为今日 `17:00:12.320 UTC` 的新三栈／平台服务／两库／两条 Alias 回执；保留原三栈完整模板、物理绑定、输出和恢复材料。最晚启动温尼伯 **15:00（21:00 UTC）** 前，整轮最长 55 分钟，硬截止温尼伯 **16:00（22:00 UTC）** 之前；不延长、不自动恢复。
+
+- 仅两个原栈各一次严格核对后的 UPDATE Change Set：平台 `Service.DesiredCount 1→0`、不替换并等到 `0/0/0`；原 Cell 移除自己的 ALB、443／8443 监听器及共享拒绝规则。核对服务、控制器关闭、监听器、规则、无争用和外部 Alias 不指向待删边缘，再执行。独立只读校验原平台 ALB 保留、Cell ALB 不存在、平台 ECS 已归零、旧租户及两条 DNS 原样。
+- AWS 变更集创建／执行最多各 2 次；STS 最多 2、元数据最多 320（含轮询和最终核验），使用原 Source 和官方 AWS CLI。既有登录缓存将按 CLI 正常使用；不写 RDS/DNS，不删整栈、网络、库、数据，不触碰 IAM、镜像、业务或其它区域。保留平台 ALB 与控制台 DNS；控制台不可用但 **该 ALB 仍可能计费**，RDS 存储/备份、CDN、日志等仍可能收费，不能承诺零费用。
+- CloudFormation 与数据库非原子，托管回滚、并发、部分停费及响应不明风险保留；阻塞即停，不重发、不自动清理或改 DNS，不重放旧 SHA。使用原独占锁，不改旧状态根日记；新停前原件保留，恢复须另行明确批准。
+
+### 11 月 24 日更新：两台 ALB 与平台控制台 DNS 纳入停用及恢复
+
+用户要求不再保留平台 ALB 与其 DNS，恢复只等本人通知。上一份「保留平台边缘」SHA 已被此范围替代、未执行，不再使用。复用同一新鲜三栈快照，未重新盘点或写 AWS。[新版停用计划](../.local-secrets/aws-20261124-cost-cfn-stop-owned-dns.review.json) SHA-256 `0f66ebb2d96322eebf343fbf8e02434e5924832241de9cfc865464c4d99c0174`，待明确批准；最晚温尼伯 **14:45（20:45 UTC）** 启动，最多 65 分钟，硬截止温尼伯 **16:00（22:00 UTC）**。不延时，不自动恢复。
+
+1. 从原平台栈将现有 ECS Service 归零，独立条件确认 `0/0/0`；再用同一平台栈的一个 UPDATE Change Set 只移除 `Service`、`DnsRecord`（`console.sandbox.techlong.cloud` 的 A Alias）、`HttpsListener` 和 `LoadBalancer`，保留另外 7 项。原 Cell 栈另一次 UPDATE 只移除其 ALB、443／8443 监听器及共享拒绝规则，保留 12 项。旧租户三项不动。禁止直接删除 ALB、直接操作 Route 53、删除托管区或修改其它 DNS。原独立 API Alias `first-acceptance.sandbox.techlong.cloud` 不属于这两台 ALB；写前须验证这一关系和记录摘要，保持原样。
+2. CloudFormation 创建／执行最多各 **3 次**，STS 最多 **2**、精确元数据最多 **320**（含轮询和另一个只读适配器回读）。原栈负责移除一条控制台 DNS，直接 Route 53 写入和 DB 写入均为 0。不删除整栈、数据库、快照、网络和持久资源，不动 IAM、开通或业务。实际两台 ALB 不存在、平台服务停止、控制台记录移除、外部 API 记录原值、旧租户不变才报成功。正常托管回滚可能只完成部分或留下收费项；执行/提交不明、竞争或不匹配时止步并保留日志，不重试或自动清理。AWS CLI 使用既有 Source，读取可能进入内存／私有备份及日志。ECR、CDN、日志、RDS 存储和备份等仍可能计费。
+3. [独立恢复清单](../.local-secrets/aws-20261124-cost-restore-manifest.json)绑定已确认的停前原模板、两台 ALB／监听器和控制台 Alias、本次停库前的原资源 ID 及状态。未来只在重新批准后，由原平台栈重建边缘及控制台记录，记录要指向**新建平台 ALB 的实际 DNS 和区域 ID**，不回填旧 ARN／旧 DNS；原 Cell 恢复并核对新的双监听器与 mTLS。按停前状态恢复平台至 1 个任务，只考虑恢复原本运行的 Express，不启动原本停止的独立 RDS 或旧租户。若停用只部分发生，恢复前先核对实际缺失项。此清单只是恢复依据，不安排任务或授权启动。
+
+**实际停费已独立核验。** 获批 SHA 单次消费，三个变更集均执行完成：平台 ECS 曾确认 `0/0/0`，随后移除服务对象；平台和 Cell 两台 ALB 均不存在，平台 `console.sandbox.techlong.cloud` A Alias 已移除，旧租户 API Alias 和旧租户栈不变，两座原栈及各自保留资源仍在。执行及结尾核验合计 STS 2、指定元数据 124（含最后两次 RDS 读取）、三次创建与三次执行；没有直接 Route 53 写入、RDS 写入、数据库或整栈删除。温尼伯 **11:26:43（17:26:43 UTC）** 最终回读确认 `techlong-sandbox-express-d001` 与 `speedfeast-postgres-prod` 都为 `stopped`。[本轮实际停费回执](../.local-secrets/aws-20261124-cost-cfn-stop-owned-dns-attempt-v1/journal.json)与上述恢复清单留存；不重放、不自动启动，等用户通知恢复。存储、备份、CDN 或日志仍可能计费。首开任务未领取，未触碰其授权收尾。
+
+<a id="night-stop-20261119"></a>
+
+### 11 月 19 日（温尼伯）夜间停费：停用前状态已封存，未执行
+
+用户要求先进入节费状态，次日由用户主动恢复到停用前状态。原工具状态根最后完成记录仍为 11 月 13 日 `stopped` 且无 pending；随后 Cell／Express 已另批恢复，平台配置也有后继版本。不能把旧完成记录、旧 `stop` 或一次性混合脚本当作本轮依据，不能假定明天应恢复三栈同开。
+
+本轮复用常规工具的只读 AWS 适配器，限定三座原栈、所属 ALB／ECS 和两库。首次官方 STS 调用返回通用 `CLI_OR_NETWORK_FAILURE`，本机 CLI 程序存在且版本可读，凭据过期并未证实。元数据读取、云写入、Change Set、执行槽、状态根修改和密钥读取均为 0；未生成停用 SHA，不能声称资源已停止或费用已下降。没有重试。
+
+用户另允一次官方 STS 诊断。直接调用同一 Source 和 `ca-central-1` 官方端点，CLI 正常启动但返回退出码 `255`，去敏分类 **`TOKEN_EXPIRED`**。本次仅 STS 1；三栈／两库的元数据和云写均为 0。未获得可用的身份或停用前状态，未生成新清单、修改状态根或消费执行槽；不重跑。
+
+用户刷新后，温尼伯 **11 月 19 日 22:55:26** 独立保存停用前状态：STS 1、AWS 元数据 12、云写 0。原平台 11 项资源，包含 ALB、ECS `desired/running/pending = 1/1/0`；原 Cell 16 项资源，包含 ALB、443／8443 监听器及共享拒绝规则；老租户栈仍待机，仅 3 项保留资源、无 CFN 所属服务。Aurora `techlong-sandbox-express-d001` 为 `available`，独立 `speedfeast-postgres-prod` 已 `stopped`。原模板、物理归属与配置的准确私有备份已封存；未做全区扫描或逐个 ALB 健康验证。
+
+[本轮停用清单与精确恢复基线](../ops/temporary-idle/night-stop-20261119.review.json)已按原工具规则离线推导：平台先归零，再由原平台和 Cell 各自移除四项承载资源；仅停止仍在运行的 Express，老租户和独立 RDS 不写、不删除数据库或整栈。恢复目标只恢复平台至 1 个任务、两条 Cell 监听器及两套原栈边缘、Express；老租户及独立 RDS 仍不启动。没有设置自动恢复。事实最晚在温尼伯 **11 月 20 日 03:55:26** 前可作为准备依据；备份保留用于恢复比对，不将它当成明日新鲜事实或授权。
+
+**未创建变更集，未停用任何资源。** 两种现有入口都不能直接套用这次混合状态。现已补齐下方一次性接续；首开付款文件的补核保持暂停。
+
+<a id="night-stop-execution-20261119"></a>
+
+### 夜间停用执行：DNS 预检停止，AWS 写入为零
+
+用户已确认下列 SHA 和风险。入口单次执行在 `DNS_OR_ALB_OWNERSHIP` 停止：准确 Source STS 1、AWS 元数据 29，CreateChangeSet／ExecuteChangeSet／停止 Express 均 **0**。两准确 ALB 的独立归属、监听器、规则检查已通过；失败只位于「控制台 Alias 是否指向平台 ALB」或「外部 API Alias 是否为空、与历史准确记录相同或指向当前 Cell ALB」的合并谓词，未保存两条原始 DNS 响应，不能确定是哪项。日志未显示云端变化，费用可能继续。
+
+单次尝试保留，仅此次 SHA 不可重跑。失败 journal 原字节 SHA `cbbdce26074fbc29aec3c9fb507f87493eec896faf1459b52f83955f1ad89e58`；已本机回读 `PREFLIGHT_STOPPED_NO_CLOUD_WRITES`、无已完成阶段或变更集，三份原状态原件不变、无 pending，原锁已正常释放。未启停任何环境或库、改 DNS、改代码、复位槽或自动重试。
+
+<a id="night-stop-dns-diagnostic-20261119"></a>
+
+#### 最小 DNS 只读查因：外部 API Alias 的目标不同
+
+用户另行允许后仅执行 STS 1、两个准确 ALB 合查 1、两条准确 Alias 各 1，AWS 写入 0。两个准确 ALB 仍为 `active`；控制台 Alias 的目标主机名和目标 zone 均匹配平台 ALB。外部 API Alias 的目标 zone 与当前 Cell、历史记录相同，健康评估设置与历史记录相同，但**目标主机名既不是当前 Cell ALB，也不是历史记录里的目标**。分类 `EXTERNAL_API_TARGET_NOT_CURRENT_OR_RECORDED`，不是 ALB 归属失败；未辨认该域名当前所指的资源或断定它已失效。
+
+当前准确外部 Alias 摘要 `6b5879c06a1777ae55a095b30ae498db61330cc1e0dd78307debdb4b2eb73527`；去敏结果保存在 `.local-secrets/aws-env-stop-diagnostic-HIxqVd/dns-diagnostic-once-20261119/snapshot.json`，原字节 SHA `f82e419bf3180a5a752ee8bf1f03863a195bb533b69df32647683e57ef8fcff1`。未读取其它资源、未改 DNS、未停用、未重跑，旧槽与期限保持。
+
+如继续节费，只准备新接续，绑定现有外部 Alias 摘要，并要求写前确认它不指向待删的两个 ALB、写后该 Alias 不变；不为停用改 DNS，不接受任意未知 Alias，也不重复盘点。若目标归属仍有冲突则停止。代码调整和实际执行仍另审，不复用原 SHA。
+
+<a id="night-stop-no-dns-20261119"></a>
+
+#### 新清单：DNS 全部保留，只停任务、Cell 边缘和 Express
+
+**实际结果：`STOPPED`，2026-11-20T05:40:13.521Z 已核验。** 平台 ECS `0/0/0`，平台 ALB、监听器、Service 对象和控制台 Alias 保留；Cell 栈已移除自身 ALB、两条监听器及共享拒绝规则，原栈和 12 项保留资源不变。Express 与独立 RDS 均 `stopped`，仅 Express 接收一次停止请求；老租户的 3 项保留资源未变。两条准确 DNS 记录与执行前一致，DNS 写入 0；没有删除数据库或整栈。执行和独立只读核验合计 STS 2、元数据 119、AWS 写 5（Create 2／Execute 2／Stop 1），五次均受理，没有重试。
+
+私有记录 `.local-secrets/aws-env-stop-diagnostic-HIxqVd/stop-attempt-20261119-no-dns-v2/`，`journal.json` 原字节 SHA `21767edfe05a71559df4b02f7ca10a8f709dfff09bf6dcb3fdd829e5ba9f9ecd`，`snapshot.json` 原字节 SHA `516e7e9e1e54a26f2e728218e2f8f58265be6a855cd30ec085ec4891524f06fd`。独立本机核对旧失败回执、原三份状态原件及原锁释放均通过；新槽不可重用，以下批准材料仅历史。
+
+恢复仅启动 Express、从原 Cell 栈恢复 Cell 边缘并核对新监听器输出、将原平台 ECS 恢复为 1，不重建已保留的平台 ALB、不改 DNS、不启动老租户或独立 RDS。常规 `start` 与旧一次性脚本都不能直接套用。不自动恢复；平台 ALB、存储及其他保留资源仍可能计费。用户已要求开始，单次集中材料见下方。
+
+原批准范围：禁止直接改 Route 53，也**保留原平台栈的 `DnsRecord`、ALB、监听器和 Service 对象**。不使用旧的「移除平台边缘」方案。已消费 SHA：`2a2d307ed35e037f26d65041c032b0d32dd4474185283a196a140089989f0d04`；原最晚启动温尼伯 **11 月 20 日 02:55:26**、原硬截止 **03:55:26** 不延，不构成重新执行的许可。
+
+在同一次审批内执行并核验：
+
+1. 只复用原三栈及两库的准确基线、原独占锁、新独立永久尝试。确认原 ECS/ALB/监听器归属、无其他可执行变更集或外部使用；控制台 Alias 必须仍指平台 ALB，外部 API Alias 必须逐字段匹配已核摘要 `6b5879c0…` 且不指向平台或 Cell ALB。在 Cell 创建变更集前、执行移除前再次核对外部记录；任意差异即停。
+2. 平台 Change Set 只修改 `Service.DesiredCount` 为 0 且不替换；等待 `0/0/0`，保留平台 11 项资源。随后只在原 Cell 栈移除它的 ALB、443／8443 和共享拒绝规则，仍保留 12 项资源。只停止一次 `techlong-sandbox-express-d001`，不删除库、栈或网络；老租户 3 项和 `speedfeast-postgres-prod` 不动。
+3. AWS 写入最多 5 次：两个 Change Set 创建、两个执行和一次停止 Express。STS 最多 2 次、元数据最多 320（含轮询和独立只读核验）；直接和托管 DNS 写入均为 0，不改两条 DNS、IAM、镜像、Secret 或数据。只读核验 Cell ALB 不存在、平台 ALB 和控制台 Alias 原样、外部 Alias 原样、ECS 0、两库停止及旧租户未变，才认定这一版节费状态完成。
+
+完整风险沿用原清单中的非原子、并发、CloudFormation 正常托管回滚、未知结果不重试或自动清理、持久备份及日志风险。核对与执行并非跨服务 CAS；发现记录变更则停止，不改回。平台控制台 DNS 虽保留，ECS 为 0 时仍会不可用；**平台 ALB 会继续计费**，存储、备份等也仍可能收费。不自动恢复；若之后另准恢复，只恢复 Express、Cell 边缘和平台 ECS 任务至 1，不重建平台 ALB，不启动旧租户或独立 RDS。
+
+本次使用 [严格不改 DNS 的接续入口](../ops/temporary-idle/night-stop-20261119.mjs)，已消费一次执行槽，不能再次运行。历史清单的两个 ALB 和托管 DNS 删除范围同样不再适用。
+
+<a id="night-restore-20261120-a"></a>
+
+#### 11 月 20 日恢复结果：原 Cell、Express 与平台已恢复
+
+**实际结果 `RESTORED`，温尼伯 11 月 20 日 06:50:54 已通过独立只读核验。** 原 Cell 栈只加回原四项边缘资源，新的实际 ALB 和 443／8443 输出（含 mTLS 校验）已封存；原 Express 与唯一原 writer 均 `available`；原平台 ECS `1/1/0`、原平台 ALB 保留且有一个健康目标。控制台和外部 API 两条 DNS 均保持原值；旧租户栈和 `speedfeast-postgres-prod` 仍停，部署控制器保持关闭。未做业务验收、未启用首开或普通 worker。
+
+全轮 STS 2、AWS 元数据 128、AWS 写 5（Create 2／Execute 2／Start Express 1），五次均受理，DNS 写 0；无重试、自动恢复任务或资源到期设置。私有回执 `.local-secrets/aws-env-stop-diagnostic-HIxqVd/restore-attempt-20261120-a/`；`journal.json` 原字节 SHA `d5cabe241f5ce2d19cb810ca87300316c67bcd2529713eea6012881eb45e1c93`，`snapshot.json` 原字节 SHA `bc943afc6566534b85f5e1a54f2bff6221dc98834d9e69c392878c072160176f`。独立本机回读确认原停用记录、旧状态原件不变，原锁释放，新槽已消费。后续首开如继续，必须绑定本轮真实新 Cell 输出，不能使用过去 ALB/监听器的物理 ARN 或沿用旧证明。资源恢复后持续计费，下列批准范围仅供追溯，不重放。
+
+审批 SHA：`a81d9573a6631f930c4f88f9be2e13509a1c804ddd43abab0a0dd357b818f0b1`。最晚启动 **11 月 20 日 11:15（温尼伯）**，启动后最多 50 分钟，硬截止不晚于 **12:15**。这是全新窗口，不延长任何旧停用或首开期限。SHA 绑定已验证停用原件与旧状态、原账号 `402010193138`／`ca-central-1`、两份原完整模板、固定 Express writer、两条 Alias 摘要和准确源码。原停用回执只是目标和身份基线，不冒充当前状态。
+
+1. 获批后只取原独占锁，保留旧回执并开启一次新永久尝试。用原 Source 核对当前原三栈、无其它可执行变更集、平台 Service 仍 `0/0/0`、原平台 ALB 仍在且 Cell 未重建、两条 Alias 摘要不变、老租户无服务，两个库仍停止；Express 验证原 `sse-rds` 和唯一原 writer。任一不匹配在首次写前停。
+2. 在原 Cell 栈只允许四项 Add：ALB、443／8443 监听器、共享拒绝规则；复核实际 ALB／监听器物理标识、mTLS／原 Trust Store 和六项输出，保存新值，不用旧 ARN。随后对原 Express 只启动一次，等待原唯一 writer 和集群均 `available`。最后原平台栈只改 `Service.DesiredCount: 0 → 1`，不替换；原 ALB 保留，验证 `1/1/0` 和一个健康目标，控制器保持关闭，不启用 worker。
+3. 全轮最多 **AWS 写 5**（创建变更集 2、核对后执行 2、启动原 Express 1）；**STS 2、元数据 320**，预算含轮询及单独只读适配器核验。独立回读新 Cell 边缘、原平台和目标健康、两条 DNS 和两个保留状态。**直接及托管 DNS 写均为 0**；不启动老租户或 `speedfeast-postgres-prod`，不新建栈、扩 IAM、替换平台 ALB、发布镜像、读 Secret 值或连库做业务测试。正常启动的已有平台任务仍会使用既有 AWS Secret 注入与应用配置；不新装权限、不启动首开。
+
+风险：CloudFormation 与 RDS 非原子、无跨服务 CAS；AWS 正常托管回滚可能失败或留下部分恢复、收费资源。网络／提供者日志和私有本机模板/摘要记录；变更集执行可使同栈记录失效。异常、过期、预算耗尽或结果不明时保留阶段，不自动重试、补齐、回滚、清理或再停费。恢复后运营费用重新开始，无自动到期。因为旧租户及对应外部 DNS 不改，不能宣告旧租户 API 恢复或业务验收通过。
+
+[本次恢复入口](../ops/temporary-idle/night-restore-20261120.mjs)只在该 SHA 的一次准确批准后执行，如今已消费；不调用常规 `start`，不能重放。
+
+#### 原批准清单（历史，本次未产生云写入）
+
+审批 SHA：`a9c1333dfacdcd936e21170b06f475537a678a37e4c5fba4c5b4050f82851556`。仅账户 `402010193138`、`ca-central-1` 和新 [单次接续入口](../ops/temporary-idle/night-stop-20261119.mjs)。SHA 绑定准确原观察和三份旧状态原件、当前源码闭包、三栈与两个数据库配置、三个目标模板及期限，不能用于常规 `stop`、旧混合脚本或 `start`，且已使用，不得重跑。原最晚启动 **11 月 20 日 02:55:26（温尼伯）**，单轮最多 45 分钟，硬截止不晚于 **03:55:26**；不自动更新事实或延期。
+
+1. 取得原启停工具的独占锁，创建本次独立私有尝试，保留停用前的原模板与物理归属。写前只核对已绑定的三栈和两库、准确 ECS/ALB/监听器归属、现有 DNS、控制器关闭状态及无其他可执行变更集、未选服务/路由或外部伸缩；变化、响应不完整或权限不足即停，无全账号扫描。
+2. 依次创建、严格核对并执行三个原栈 UPDATE Change Set：平台 `Service` 只降至 0 且不替换，待 ECS `0/0/0`；平台移除 `Service`、ALB、HTTPS 监听器和该栈管理的控制台 DNS；Cell 移除其 ALB、443／8443 监听器及共享拒绝规则。平台/Cell 分别保留 7／12 项资源，旧租户 3 项原样。保持原角色、参数和保留资源物理 ID，不直接写 ELB、ECS 或外部 API Alias。
+3. 只提交一次停止 `techlong-sandbox-express-d001`；`speedfeast-postgres-prod` 要求原样 `stopped`，不停止／启动它，也不删除任何数据库或整栈。全轮最多 **STS 2、AWS 元数据 320、AWS 写 7**（三个创建、三个执行、一次停库，包括写后只读核验预算）。随后用单独只读适配器核对两 ALB 移除、ECS 服务移除、两库停止、保留资源与旧租户不变、外部 API Alias 不变；没有全部证据就不报停用成功。
+
+完整风险：停用会中断动态控制台/API，控制台 DNS 随原平台栈删除；CloudFormation 与 RDS 非原子，无跨服务 CAS。CloudFormation 使用正常托管回滚，可能部分停用、恢复旧状态或留存收费资源；执行变更集可能使同栈其他记录失效。任何失败或结果不明只留原尝试，不自动重试、补齐、回滚或清理。模板/元数据仅进内存及本机私有备份，不读取 Secret 值、私钥、`.env` 或业务数据。存储、备份、镜像、日志、CDN 等仍可能收费，不等于零费。不会自动恢复；日后只恢复本次关闭的平台、Cell 和 Express，需使用新 ALB／监听器输出，不恢复原本未运行的旧租户或独立 RDS，不直接调用常规 `start`。
+
+本机 `node ops/temporary-idle/night-stop-20261119.mjs --check` 只重算读取本机材料，不调用 AWS；如进入已批准执行，入口仅接受 `--execute --approved-plan-sha <准确SHA> --confirm-account 402010193138`。已通过 41 项离线回归和本机 SHA 重算，错误 SHA 不发 AWS 请求。准备阶段 AWS 调用、写入、变更集、停用槽消费均为 0；没有消费、重置或改写旧完成指针。
+
 <a id="cfn-lifecycle-implementation"></a>
 
 ## 当前实现与范围

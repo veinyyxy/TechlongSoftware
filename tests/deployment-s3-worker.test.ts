@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createHash } from "node:crypto";
+import { zipSync } from "fflate";
+import { firstOpenBuyerSignerSecretName } from "../lib/buyer-forward/signer-binding.ts";
 import {
   AwsSdkDeploymentAdapter,
   createAwsSdkDeploymentAdapter,
@@ -40,17 +43,33 @@ import {
 import { AwsEcsCellPlanOnlyDriver } from "../lib/deployments/drivers/aws-ecs-cell.ts";
 import type { DeploymentEnvironment } from "../lib/deployments/environment.ts";
 import { FIRST_ACCEPTANCE_APP_IMAGE } from "../lib/deployments/execution/single-deployment-scope.ts";
-import { createSingleTenantWorkloadStrategy, type SupervisedTenantStack } from "../lib/deployments/execution/single-tenant-workload-strategy.ts";
-import { finalizeSupervisedTenantStack } from "../lib/deployments/execution/single-tenant-workload-strategy.ts";
+import { createFirstOnboardingWorkloadStrategy, createSingleTenantWorkloadStrategy, type SupervisedTenantStack, type SupervisedWorkloadAwsPort } from "../lib/deployments/execution/single-tenant-workload-strategy.ts";
+import { attachFirstOpenTaskBinding, finalizeSupervisedTenantStack } from "../lib/deployments/execution/single-tenant-workload-strategy.ts";
 import { renderSingleTenantAcceptanceWorkload } from "../lib/deployments/cloudformation/single-tenant-acceptance-workload.ts";
-import { buildFirstOnboardingJob, CLAIM_FIRST_ONBOARDING, SELECT_FIRST_ONBOARDING, firstOnboardingExpressNames, reviewFirstOnboarding, type FirstOnboardingReviewRow } from "../lib/deployments/first-onboarding.ts";
+import { buildFirstOnboardingJob, CLAIM_FIRST_ONBOARDING, SELECT_FIRST_ONBOARDING, firstOnboardingExpressNames, reviewFirstOnboarding, type FirstOnboardingReview, type FirstOnboardingReviewRow } from "../lib/deployments/first-onboarding.ts";
+import type { InstanceReleaseObservation } from "../lib/deployments/releases/contract.ts";
+import { offlineHandoffTitle, offlineRuntimeObservationSha, rebuildOfflineFirstOpenBinding } from "../ops/aws-sandbox/first-open-oidc-offline.ts";
+import { firstOpenGitHubHandoff } from "../ops/aws-sandbox/first-open-github-handoff.ts";
+import { bindFirstOpenPairedInspect, firstOpenRunOnceHandoff } from "../ops/aws-sandbox/first-open-paired-runtime.ts";
+import { prepareFirstOpenInspectSeed, type FirstOpenInspectSeed } from "../ops/aws-sandbox/first-open-inspect-input.ts";
+import { firstOpenControlledCfnTemplate } from "../ops/aws-sandbox/first-open-controlled-cfn.ts";
+import { FIRST_OPEN_INSPECTOR_SQL_USER } from "../ops/aws-sandbox/first-open-express-database.ts";
 import { cycleFixture } from "./instance-release-cycle-fixture.ts";
 import { COMPLETE_FIRST_ONBOARDING } from "../lib/deployments/execution/first-onboarding-completion.ts";
 import type { ReleaseSamplingBinding } from "../lib/deployments/releases/sampling.ts";
 import type { FirstOnboardingDatabaseIdentity } from "../lib/deployments/execution/first-onboarding-express.ts";
 import { FIRST_ONBOARDING_COMPLETE_ENTRY, FIRST_ONBOARDING_READ_ENTRY } from "../lib/deployments/execution/first-onboarding-completion-entry.ts";
 import type { TenantSecretInspection, TenantDatabaseLifecycleState } from "../lib/deployments/execution/contracts.ts";
-import { FIRST_OPEN_BASELINE_BUCKET, FIRST_OPEN_BASELINE_OBJECTS } from "../lib/deployments/execution/first-onboarding-baseline-versions.ts";
+import { FIRST_OPEN_BASELINE_BINDING } from "../lib/deployments/execution/first-onboarding-baseline-versions.ts";
+import { FIRST_OPEN_CELL_STACK, firstOpenExecutionWindow } from "../lib/deployments/execution/first-onboarding-window.ts";
+import { bindReviewedSandboxFirstOpenRunOnce, bindSandboxFirstOpenRunOnce, predictSandboxFirstOpenG1 } from "../lib/deployments/execution/first-onboarding-run-composition.ts";
+import { FIRST_OPEN_MIDDLE_RPC } from "../lib/deployments/execution/first-onboarding-middle.ts";
+import { SANDBOX_FIRST_OPEN as fixedJob } from "../lib/deployments/execution/first-onboarding-run-once.ts";
+import { completeFirstOpenBuyerParameters, firstOpenBuyerBinding } from "../lib/deployments/execution/first-open-buyer-binding.ts";
+import { FIRST_OPEN_EXPRESS_ENDPOINT, FIRST_OPEN_MANAGEMENT_SQL_USER, compileExpressBootstrapCandidateV3,
+  expressBootstrapCandidateDigestV3 } from "../lib/deployments/execution/aurora-express-bootstrap-v3.ts";
+import { sandboxFirstOpenPolicyDrafts } from "../lib/deployments/execution/first-onboarding-run-permissions.ts";
+import { tenantExternalOperationHash } from "../lib/deployments/execution/external-ownership-coordinator.ts";
 
 const now = Date.UTC(2026, 7, 9);
 const workerRoleArn =
@@ -151,6 +170,41 @@ test("invalid supervised scope, binding or cleanup proof fails before generation
   }
 });
 
+test("the exact first-open renderer and cleanup proof share the new expiry without changing requestedAt", async () => {
+  const { context, scope, readiness } = await supervisedFixture();
+  context.job.id = FIRST_OPEN_BASELINE_BINDING.jobId;
+  context.job.payload = { deploymentId: scope.deploymentId, planHash: scope.planHash };
+  const originalCreatedAt = now - 3 * 3600_000;
+  context.deployment.createdAt = originalCreatedAt;
+  const resource = await attachTenantResource(context);
+  resource.runtimeSecretRef = tenantRuntimeSecretRef;
+  readiness.cellStackId = FIRST_OPEN_CELL_STACK;
+  const window = firstOpenExecutionWindow(context.job.id, now + 900_000, { startAt: now, claimBefore: now + 300_000,
+    workloadExpiresAt: now + 7200_000, factsExpireAt: now + 900_000, cleanupReviewSha256: readiness.reviewSha256,
+    cleanupPermissionsEvidenceSha256: readiness.permissionsEvidenceSha256 })!;
+  const strategy = createFirstOnboardingWorkloadStrategy({ scope, window, cleanupReadiness: { verify: async () => readiness } });
+  const input = { deploymentId: scope.deploymentId, resourceGeneration: 1,
+    externalOperation: { ...context.tenantExternalOperation!, intent: "provision" as const, state: "active" as const },
+    runtimeSecretRef: tenantRuntimeSecretRef, runtimeSecretName: tenantRuntimeSecretName, plan: context.deployment.desiredPlan,
+    environment: context.environment, imageUri: scope.artifactRef, tenantHostname: "tenant-one.sandbox.techlong.cloud", listenerPriority: 100,
+    activeCellCount: 1, activeTenantCount: 0, requestedAt: originalCreatedAt };
+  assert.equal(await strategy.ensureCleanup({ context, now, signal: signal() }), `supervised-review:${readiness.reviewSha256}`);
+  const result = await strategy.render({ context, stackInput: input });
+  const legacy = renderAwsSandboxTenantStack(input);
+  assert.equal(result.tags.ExpiresAt, new Date(window.workloadExpiresAt).toISOString());
+  assert.equal(legacy.tags.ExpiresAt, new Date(originalCreatedAt + 7200_000).toISOString());
+  assert.equal(context.deployment.createdAt, originalCreatedAt);
+  assert.equal(result.resourceInventory.length, 7);
+  assert.equal(result.safety.automaticCleanupInstalled, false);
+  assert.equal(result.templateSha256, await sha256Hex(result.template));
+  assert.doesNotMatch(result.templateBody, new RegExp(legacy.tags.ExpiresAt.replaceAll(".", "\\.")));
+  assert.match(result.templateBody, /ExpiresAt/);
+  readiness.expiresAt = originalCreatedAt + 7200_000;
+  await assert.rejects(strategy.ensureCleanup({ context, now, signal: signal() }), /CLEANUP_READINESS_UNPROVED/);
+  context.job.id = "job_other";
+  await assert.rejects(strategy.render({ context, stackInput: input }), /WINDOW_SCOPE_CHANGED/);
+});
+
 test("supervised SDK accepts only finalized immutable material and rechecks provisioner before CreateStack", async () => {
   const { context } = await supervisedFixture();
   const rendered = await renderSingleTenantAcceptanceWorkload({ deploymentId: context.deployment.id, resourceGeneration: 1,
@@ -189,7 +243,7 @@ test("supervised SDK accepts only finalized immutable material and rechecks prov
   assert.throws(() => finalizeSupervisedTenantStack({ rendered, context, expectedRuntimeSecretName: tenantRuntimeSecretName }));
 });
 
-async function firstOpenFixture(expressPlan = false) {
+async function firstOpenFixture(expressPlan = false, fixedTask = false) {
   const { context, readiness } = await supervisedFixture(), cycle = await cycleFixture();
   const calls: string[] = [], transitions: string[] = [];
   const release = structuredClone(cycle.planningInput.release);
@@ -197,6 +251,23 @@ async function firstOpenFixture(expressPlan = false) {
   release.productId = context.appInstance.productId;
   release.image.repository = "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast";
   context.environment.applyEnabled = false;
+  if (fixedTask) {
+    const workspaceId = "wsp_beb2aa5868a9d1c10c257348";
+    Object.assign(context.appInstance, { id: fixedJob.instanceId, workspaceId, subscriptionId: fixedJob.subscriptionId,
+      tenantKey: "pending_" + fixedJob.instanceId, slug: fixedJob.hostname.split(".")[0] });
+    context.workspace.id = workspaceId;
+    context.subscription!.id = fixedJob.subscriptionId;
+    context.deployment.appInstanceId = fixedJob.instanceId;
+    context.deployment.createdAt = now - 3 * 3600_000;
+    context.deployment.desiredPlan = new AwsEcsCellPlanOnlyDriver({ region: fixedJob.region, cellKey: "cell-sandbox-1", mode: "aws_sandbox" })
+      .buildPlan({ appInstanceId: fixedJob.instanceId, workspaceId, productId: fixedJob.productId, planId: "plan_basic",
+        subscriptionId: fixedJob.subscriptionId, tenantKey: context.appInstance.tenantKey, deploymentProfileKey: "standard-v1" });
+    context.binding!.tenantStackParameters.ControlPublicKeyValueFrom = fixedJob.controlArn;
+    release.id = fixedJob.releaseId;
+    Object.assign(release.image, { repository: fixedJob.imageRepository, manifestDigest: fixedJob.imageDigest, platformDigest: fixedJob.imageDigest });
+    Object.assign(release.compatibility, { schemaVersions: [fixedJob.schemaVersion], clientApiVersions: [fixedJob.clientApi] });
+    readiness.cellStackId = fixedJob.cellStack;
+  }
   context.deployment.artifactRef = `${release.image.repository}@${release.image.manifestDigest}`;
   if (expressPlan) {
     const { databaseName, roleName } = await firstOnboardingExpressNames({ appInstanceId: context.appInstance.id, workspaceId: context.workspace.id,
@@ -223,6 +294,10 @@ async function firstOpenFixture(expressPlan = false) {
   const approval: Parameters<typeof runReviewedFirstOnboarding>[0]["approval"] = { jobId: held.jobId, reviewSha256: review.reviewSha256, capabilitySha256: "c".repeat(64),
     baselineDigest: "b".repeat(64), databaseSchemaVersion: "schema-v1", hostname: "tenant-one.sandbox.techlong.cloud",
     dnsTarget: "shared.elb.amazonaws.com", writeBefore: now + 120000 };
+  if (fixedTask) Object.assign(approval, { hostname: fixedJob.hostname, databaseSchemaVersion: fixedJob.schemaVersion,
+    dnsTarget: "synthetic-elb.ca-central-1.elb.amazonaws.com", writeBefore: now + 900_000,
+    controlledWindow: { startAt: now, claimBefore: now + 300_000, workloadExpiresAt: readiness.expiresAt, factsExpireAt: now + 900_000,
+      cleanupReviewSha256: readiness.reviewSha256, cleanupPermissionsEvidenceSha256: readiness.permissionsEvidenceSha256 } });
   let applied: SupervisedTenantStack | undefined, stackId = "", consumed = false;
   const options: Parameters<typeof runReviewedFirstOnboarding>[0] = { approval, approvedSha256: await sha256Hex(approval),
     config: { ...enabledConfig, workerEnabled: false, applyEnabled: false }, cleanupReadiness: { verify: async () => readiness },
@@ -287,7 +362,7 @@ async function firstOpenFixture(expressPlan = false) {
       now: () => now,
     },
   };
-  return { options, context, calls, transitions, row, stack: () => ({ applied: applied!, stackId }) };
+  return { options, context, calls, transitions, row, release, readiness, stack: () => ({ applied: applied!, stackId }) };
 }
 
 test("reviewed first-open runs one held job to independent technical proof, not active/ready", async () => {
@@ -376,16 +451,16 @@ test("D2 proof mismatches do not activate; unknown commit is not retried", async
   assert.equal(writes, 1);
 });
 
-async function derivedFirstOpenFixture(negative?: "caller" | "second-version" | "late-version" | "database-oid" | "old-bucket" | "grant" | "readback", fixedBaseline = false) {
-  const f = await firstOpenFixture(true), { options, context, calls } = f, { approval } = options;
+async function derivedFirstOpenFixture(negative?: "caller" | "second-version" | "late-version" | "database-oid" | "old-bucket" | "grant" | "readback", fixedBaseline = false, fixedTask = false) {
+  const f = await firstOpenFixture(true, fixedTask), { options, context, calls } = f, { approval } = options;
   const templateReader = options.independentReader!;
   delete options.independentReader;
   const n = await firstOnboardingExpressNames({ appInstanceId: context.appInstance.id, workspaceId: context.workspace.id,
     productId: context.appInstance.productId, environmentId: environment.id, cellKey: environment.cellKey });
   const archiveSha256 = "1a65288b4628018932a8d9af4658db5702b6cf49966a2032bc2d919bc591d70a";
   const manifestSha256 = "62b5dc8cadcf276df140be86e002a08b64d9b713bd0257e14ac515c12a996971";
-  const cell = "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/11111111-2222-3333-4444-555555555555";
-  const control = { arn: context.binding!.tenantStackParameters.ControlPublicKeyValueFrom, versionId: "f".repeat(64) };
+  const cell = fixedTask ? fixedJob.cellStack : "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/11111111-2222-3333-4444-555555555555";
+  const control = { arn: context.binding!.tenantStackParameters.ControlPublicKeyValueFrom, versionId: fixedTask ? fixedJob.controlVersion : "f".repeat(64) };
   const s = n.stableIdentity.slice(0,16);
   const cluster = "techlong-sandbox-express-d001", resourceId = "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM";
   const mediaUrl = "https://firstopensynthetic.cloudfront.net";
@@ -394,11 +469,11 @@ async function derivedFirstOpenFixture(negative?: "caller" | "second-version" | 
   const approvedBucket = negative === "old-bucket" ? "techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad" : bucket;
   const clusterArn = "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1";
   approval.baselineDigest = archiveSha256;
-  approval.completion = { clientApiVersion: "v1", deriveG1Secret: true };
+  approval.completion = { clientApiVersion: fixedTask ? fixedJob.clientApi : "v1", deriveG1Secret: true };
   approval.express = {
     target: { schema: "techlong/express-management-target/v3", clusterArn: "arn:aws:rds:ca-central-1:402010193138:cluster:" + cluster,
-      clusterResourceId: resourceId, endpoint: "synthetic.ca-central-1.rds.amazonaws.com", port: 5432, observedEngineVersion: "17.9",
-      managementDatabase: "postgres", managementUsername: "postgres", stableIdentity: n.stableIdentity, resourceGeneration: 1,
+      clusterResourceId: resourceId, endpoint: fixedTask ? FIRST_OPEN_EXPRESS_ENDPOINT : "synthetic.ca-central-1.rds.amazonaws.com", port: 5432, observedEngineVersion: "17.9",
+      managementDatabase: "postgres", managementUsername: fixedTask ? FIRST_OPEN_MANAGEMENT_SQL_USER : "postgres", stableIdentity: n.stableIdentity, resourceGeneration: 1,
       tenantDatabase: n.databaseName, tenantUsername: n.roleName },
     nonce: "a".repeat(32), baseline: { contract: "speedfeast-pg16.14-tenant-baseline-v1", archiveS3Uri: "s3://synthetic-baselines/_migration/schema.dump",
       archiveSha256, approvedArchiveSha256: archiveSha256, manifestS3Uri: "s3://synthetic-baselines/_migration/schema.manifest.json", manifestSha256,
@@ -406,16 +481,28 @@ async function derivedFirstOpenFixture(negative?: "caller" | "second-version" | 
     independentRoleArn: "arn:aws:iam::402010193138:role/TechlongSandboxFirstOpenInspector",
     lifecycleRoleArn: "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole", applicationRoleArn: appRole,
     mediaPublicBaseUrl: mediaUrl, environmentParametersSha256: await sha256Hex(context.binding!.tenantStackParameters),
-    sampling: { cellStackId: cell, platformStackId: cell.replace("cell-sandbox-1","platform-hosting-v1"), hostedZoneId: "ZSYNTHETIC", apiHostname: approval.hostname,
+    sampling: { cellStackId: cell, platformStackId: fixedTask ? fixedJob.platformStack : cell.replace("cell-sandbox-1","platform-hosting-v1"), hostedZoneId: fixedTask ? fixedJob.zone : "ZSYNTHETIC", apiHostname: approval.hostname,
       cellOutputParameters: Object.fromEntries(["ClusterName","VpcId","SubnetIds","HttpsListenerArn","ControlListenerArn"].map(k=>[k,k])),
       database: { kind: "cluster", profile: "express_iam", identifier: cluster, schemaVersion: approval.databaseSchemaVersion },
       secrets: [control], persistence: { bucket: approvedBucket, providerVariable: "IMAGE_STORAGE_PROVIDER", bucketVariable: "IMAGE_S3_BUCKET",
         verificationSha256: "5".repeat(64) } },
   };
-  if (fixedBaseline) {
+  if (fixedBaseline || fixedTask) {
     const baseline = approval.express.baseline;
-    baseline.archiveS3Uri = `s3://${FIRST_OPEN_BASELINE_BUCKET}/${FIRST_OPEN_BASELINE_OBJECTS.archive.key}`;
-    baseline.manifestS3Uri = `s3://${FIRST_OPEN_BASELINE_BUCKET}/${FIRST_OPEN_BASELINE_OBJECTS.manifest.key}`;
+    const { bucket, objects } = FIRST_OPEN_BASELINE_BINDING;
+    baseline.archiveS3Uri = `s3://${bucket}/${objects.archive.key}`;
+    baseline.manifestS3Uri = `s3://${bucket}/${objects.manifest.key}`;
+    baseline.archiveVersionId = objects.archive.versionId;
+    baseline.manifestVersionId = objects.manifest.versionId;
+  }
+  if (fixedTask) {
+    approval.express.buyerForwardSigner = { arn: `arn:aws:secretsmanager:${fixedJob.region}:${fixedJob.account}:secret:${firstOpenBuyerSignerSecretName}-Sg0001`, versionId: "7".repeat(64) };
+    approval.capabilitySha256 = expressBootstrapCandidateDigestV3(compileExpressBootstrapCandidateV3({
+      target: approval.express.target, nonce: approval.express.nonce, scope: { appInstanceId: context.appInstance.id,
+        workspaceId: context.workspace.id, productId: context.appInstance.productId, environmentId: environment.id, cellKey: "cell-sandbox-1" },
+    }));
+    options.verifyEmptyExpressCapability = async () => ({ profile: "express_iam", restrictedManagementReady: true,
+      evidenceSha256: approval.capabilitySha256 });
   }
   options.approvedSha256 = await sha256Hex(approval);
   options.dependencies.tenantDatabase = { ensureTenantDatabase: async () => assert.fail("generic lifecycle"),
@@ -440,7 +527,7 @@ async function derivedFirstOpenFixture(negative?: "caller" | "second-version" | 
     facts.taskDefinition.taskRoleArn = applied.parameters.TaskRoleArn;
     facts.taskDefinition.executionRoleArn = applied.parameters.TaskExecutionRoleArn;
     facts.tasks[0].containers![0].name = "speedfeast-backend";
-    const output = context.binding!.tenantStackParameters;
+    const output = applied.parameters;
     for (const [i, key] of ["TenantBusinessControlDenyRule","TenantListenerRule","TenantControlListenerRule"].entries()) {
       const listener = i===2 ? output.ControlListenerArn : output.HttpsListenerArn;
       facts.resources[key].physicalId = listener.replace(":listener/",":listener-rule/") + "/rule" + i;
@@ -470,11 +557,13 @@ async function derivedFirstOpenFixture(negative?: "caller" | "second-version" | 
         migrationContract: ["saas_migrated","verified"].includes(stage) ? "speedfeast-saas-control-v1" : null, evidenceHash: "a".repeat(64) }),
       prepare: async x => {
         calls.push("prepare-v3"); stage = "empty";
-        assert.equal(x.program.target.tenantDatabase, n.databaseName); assert.equal(x.program.statementCount, 15);
+        assert.equal(x.program.target.tenantDatabase, n.databaseName); assert.equal(x.program.statementCount, fixedTask ? 9 : 15);
         return { fence: x.fence, externalFence: x.externalFence, operation: "prepare_empty_database", outcome: "applied", resultingState: stage, evidenceHash: "b".repeat(64) };
       },
       restore: async x => {
-        calls.push("restore-baseline"); stage = "baseline_restored"; assert.equal(x.archiveVersionId, "archive-pinned"); assert.equal(x.manifestVersionId, "manifest-pinned");
+        calls.push("restore-baseline"); stage = "baseline_restored";
+        assert.equal(x.archiveVersionId, approval.express!.baseline.archiveVersionId);
+        assert.equal(x.manifestVersionId, approval.express!.baseline.manifestVersionId);
         return { fence: x.fence, externalFence: x.externalFence, operation: "restore_approved_baseline", outcome: "applied", resultingState: stage, evidenceHash: "b".repeat(64) };
       },
       migrateSaas: async x => {
@@ -502,21 +591,22 @@ async function derivedFirstOpenFixture(negative?: "caller" | "second-version" | 
       getTechnical: async path => { technical.push(path); return { status: 200, tlsVerified: true, checkedAt: now }; },
       async read<T>(service: string, op: string, parameters: Record<string, unknown>) {
         if (op === "describe-secret") {
-          const first = parameters.SecretId === runtime?.secretRef;
+          const first = parameters.SecretId === runtime?.secretRef || Boolean(runtime && parameters.SecretId === fixedJob.secretName);
           assert(first || parameters.SecretId === control.arn);
           if (first) runtimeSecretReads++;
           const id = first ? runtime!.versionRef! : control.versionId;
-          return { ARN: parameters.SecretId, VersionIdsToStages: { [id]: ["AWSCURRENT"],
+          return { ARN: first ? runtime!.secretRef : parameters.SecretId, VersionIdsToStages: { [id]: ["AWSCURRENT"],
             ...(first && (negative === "second-version" || (negative === "late-version" && runtimeSecretReads > 1))
               ? { ["c".repeat(64)]: ["AWSPREVIOUS"] } : {}) } } as T;
         }
         const facts = observed ??= await raw();
-        const { applied, stackId } = f.stack(), output = context.binding!.tenantStackParameters;
+        const { applied, stackId } = f.stack(), output = applied.parameters;
         const alb = output.HttpsListenerArn.replace(":listener/",":loadbalancer/").split("/").slice(0,-1).join("/");
         const awsPairs = (r: Record<string,string>, key: string, value: string) => Object.entries(r).map(([k,v])=>({[key]:k,[value]:v}));
         let result: unknown;
         switch (service + ":" + op) {
-          case "cloudformation:describe-stacks": result = { Stacks: [{ StackId: parameters.StackName, StackStatus: "CREATE_COMPLETE",
+          case "cloudformation:describe-stacks": result = { Stacks: [{ StackId: parameters.StackName === applied.stackName ? stackId : parameters.StackName,
+            StackName: applied.stackName, StackStatus: "CREATE_COMPLETE",
             RoleARN: cloudFormationRoleArn, CreationTime: new Date(now).toISOString(), Tags: awsPairs(applied.tags,"Key","Value"),
             Parameters: awsPairs(applied.parameters,"ParameterKey","ParameterValue"),
             Outputs: parameters.StackName === cell ? awsPairs(output,"OutputKey","OutputValue") : [] }] }; break;
@@ -557,11 +647,30 @@ async function derivedFirstOpenFixture(negative?: "caller" | "second-version" | 
       return { rows: negative === "readback" ? [] : [{ instanceId: context.appInstance.id, revision: "0" }] };
     } },
   };
-  return { ...f, technical, bucket, appRole };
+  return { ...f, technical, bucket, appRole, databaseIdentity, runtimeSecret: () => runtime };
+}
+
+async function scopedFixtureBinding(f: Awaited<ReturnType<typeof derivedFirstOpenFixture>>) {
+  const binding = structuredClone(f.context.binding!);
+  delete binding.tenantStackParameters.OneShotTaskSecurityGroupId;
+  delete binding.tenantStackParameters.TaskRoleArn;
+  binding.tenantStackParameters.ControlPublicKeyValueFrom = `${fixedJob.controlArn}:::${fixedJob.controlVersion}`;
+  for (const name of Object.keys(firstOpenBuyerBinding.parameters)) delete binding.tenantStackParameters[name];
+  binding.tenantStackParameters = completeFirstOpenBuyerParameters(binding.tenantStackParameters);
+  f.context.environment = { ...f.context.environment, applyEnabled: false };
+  const { approval } = f.options;
+  approval.express!.environmentParametersSha256 = await sha256Hex(binding.tenantStackParameters);
+  const approvedSha = f.options.approvedSha256 = await sha256Hex(approval);
+  const review = (await reviewFirstOnboarding({ ...f.row, scope: (f.row.job.payload as FirstOnboardingReview["payload"]).scope, release: f.release }))!;
+  const seed: FirstOpenInspectSeed = structuredClone({ plan: f.context.deployment.desiredPlan, environment: f.context.environment, binding,
+    review, release: f.release, requestedAt: f.context.deployment.createdAt,
+    activeCellCount: f.context.activeCellCount, activeTenantCount: f.context.activeTenantCount,
+    epoch: (await predictSandboxFirstOpenG1(f.row, approvedSha)).epoch });
+  return { seed, prepared: await prepareFirstOpenInspectSeed(seed, await sha256Hex(seed), approval, approvedSha, signal()) };
 }
 
 test("new first-open: V3 empty DB to one create-only Express/S3 workload, independent D2 proof and scoped RPC", async () => {
-  const f = await derivedFirstOpenFixture(undefined, true);
+  const f = await derivedFirstOpenFixture();
   const result = await runReviewedFirstOnboarding(f.options);
   assert.equal(result.outcome, "ACTIVATED");
   assert.deepEqual(f.technical, ["/health","/ready"]);
@@ -571,6 +680,393 @@ test("new first-open: V3 empty DB to one create-only Express/S3 workload, indepe
   assert.equal(applied.parameters.TaskRoleArn, f.appRole);
   assert.equal(applied.templateBody.includes("DATABASE_URL"), false);
   assert.ok(applied.templateBody.includes(f.bucket) && applied.templateBody.includes("/bootstrap-ready"));
+});
+
+test("the sanitized Inspect projection and RunOnce-held values rebuild the real D2 binding byte for byte", async () => {
+  const f = await derivedFirstOpenFixture(), ports = f.options.expressPorts!, approval = f.options.approval;
+  const secret = ports.secret.createInitial, completion = ports.completionClient;
+  let g1: {arn: string; versionId: string} | undefined, compared = false;
+  ports.secret.createInitial = async x => {
+    const result = await secret(x);
+    g1 = { arn: result.metadata.secretRef!, versionId: result.metadata.versionRef! };
+    return result;
+  };
+  ports.completionClient = { async query(statement, args) {
+    const [request, bindingText] = args, { applied, stackId } = f.stack();
+    const original = JSON.parse(request) as { jobPayload: FirstOnboardingReview["payload"];
+      receipt: { runtime: InstanceReleaseObservation; initialBindingSha256: string } };
+    const { runtime, initialBindingSha256 } = original.receipt, fixed = approval.express!.sampling;
+    assert.ok(g1);
+    const sampling = { ...fixed, secrets: [...fixed.secrets, g1] };
+    const local = { scope: original.jobPayload.scope, release: f.release, sampling, clientApiVersion: approval.completion!.clientApiVersion,
+      stackId, expectedTemplateSha256: applied.templateSha256,
+      expectedRuntimeScopeSha256: await sha256Hex({ parameters: applied.parameters, tags: applied.tags }),
+      epochSha256: await sha256Hex(f.context.tenantExternalOperation),
+      databaseIdentitySha256: await sha256Hex({ databaseOid: "50001", roleOid: "50002" }),
+      // CFN can return the same parameter map in a different order.
+      parameterKeys: Object.keys(applied.parameters).reverse() };
+    const projection = { stackIdSha256: await sha256Hex(stackId), expectedRuntimeScopeSha256: local.expectedRuntimeScopeSha256,
+      samplingSha256: await sha256Hex(sampling), g1e1FenceSha256: local.epochSha256, databaseIdentitySha256: local.databaseIdentitySha256,
+      runtimeConfigurationSha256: runtime.configurationSha256, runtimeTemplateSha256: runtime.templateSha256,
+      runtimeObservationSha256: await offlineRuntimeObservationSha(runtime), initialBindingSha256,
+      releaseId: f.release.id, observedAtUtc: new Date(runtime.observedAt).toISOString() };
+    const wireText = canonicalJson(projection);
+    for (const privateString of [bindingText, g1.arn, g1.versionId, local.scope.workspaceId, stackId, args[2]]) assert.ok(!wireText.includes(privateString));
+    assert.equal((await rebuildOfflineFirstOpenBinding(local, JSON.parse(wireText))).text, bindingText);
+    await assert.rejects(rebuildOfflineFirstOpenBinding({ ...local, parameterKeys: local.parameterKeys.slice(1) }, projection), /RUNTIME_PROJECTION/);
+    await assert.rejects(rebuildOfflineFirstOpenBinding({ ...local, sampling: { ...sampling, hostedZoneId: "ZOTHER" } }, projection), /BINDING_COORDINATE/);
+    await assert.rejects(rebuildOfflineFirstOpenBinding(local, { ...projection, runtimeConfigurationSha256: "0".repeat(64) }), /RUNTIME_PROJECTION/);
+    await assert.rejects(rebuildOfflineFirstOpenBinding(local, { ...projection, initialBindingSha256: "0".repeat(64) }), /BINDING_BYTES/);
+    compared = true;
+    return completion.query(statement, args);
+  } };
+  const result = await runReviewedFirstOnboarding(f.options);
+  assert.equal(result.outcome, "ACTIVATED");
+  assert.equal(compared, true);
+});
+
+test("paired first open uses bounded GitHub handoffs at the real worker gates, never raw facts or a second claim", async t => {
+  // The fixed release pins the real manifest; only this synthetic manifest's
+  // preimage is simulated. All handoff and binding digests remain real.
+  const manifest = '{"schemaVersion":2,"synthetic":"paired-first-open"}', hash = crypto.subtle.digest.bind(crypto.subtle);
+  t.mock.method(crypto.subtle, "digest", (algorithm: AlgorithmIdentifier, bytes: BufferSource) =>
+    new TextDecoder().decode(bytes) === manifest
+      ? Promise.resolve(Uint8Array.from(Buffer.from(fixedJob.imageDigest.slice(7), "hex")).buffer)
+      : hash(algorithm, bytes));
+  for (const failure of [null, "missing-ready", "bad-g1-zip", "bad-final-zip", "observed-template-drift"] as const) {
+    const f = await derivedFirstOpenFixture(undefined, true, true), { options, row } = f;
+    f.context.binding = (await scopedFixtureBinding(f)).prepared.binding;
+    const approval = options.approval, approvedSha256 = options.approvedSha256, raw = options.expressPorts!.independent!;
+    const predictedG1 = await predictSandboxFirstOpenG1(row, approvedSha256);
+    const backup = await derivedFirstOpenFixture(undefined, true, true);
+    const { seed } = await scopedFixtureBinding(backup);
+    assert.equal(backup.options.approvedSha256, approvedSha256);
+    const identity = { ...await raw.caller(signal()),
+      arn: `arn:aws:sts::${fixedJob.account}:assumed-role/TechlongSandboxFirstOpenInspector/first-open-fc41597f-inspector-g1` };
+    const pair = { pairSha256: "a".repeat(64), approvalSha256: approvedSha256, runtimeSourceSha256: "b".repeat(64),
+      callerCommit: "c".repeat(40), workflowId: "555", actorId: "14145707", inspectId: "41", runOnceId: "42", startAt: now,
+      writeBefore: approval.writeBefore, phaseCutoffs: [30, 60, 90, 400, 800].map(seconds => now + seconds * 1_000),
+      inspectorSessionArnSha256: await sha256Hex(identity.arn) };
+    let time = now, afterWriter!: () => void, inspectorStillRunning = true;
+    const writerDone = new Promise<void>(resolve => { afterWriter = resolve; });
+    options.dependencies.now = () => time;
+    options.cleanupReadiness.verifyBeforeClaim = async () => f.readiness;
+    const repository = options.dependencies.repository;
+    options.dependencies.repository = { ...repository, async claimTenantResourceGeneration(request) {
+      const before = f.context.tenantExternalOperation, result = await repository.claimTenantResourceGeneration(request);
+      f.context.tenantExternalOperation = before;
+      return result;
+    } };
+    options.dependencies.tenantExternalOperationCoordinator = { async prepareAndActivate(x) {
+      assert.deepEqual(x.resourceFence, predictedG1.epoch.resourceFence);
+      f.context.tenantExternalOperation = predictedG1.epoch;
+      return predictedG1.epoch;
+    } };
+    const totalReported = new Set<string>();
+    const actions = "https://api.github.com/repos/veinyyxy/TechlongSoftware/actions";
+    const artifacts: { name: string; id: number; owner: string; zip: Uint8Array; digest: string; created: string }[] = [];
+    const wire = (role: "inspect" | "runonce") => {
+      const own = role === "inspect" ? pair.inspectId : pair.runOnceId;
+      return firstOpenGitHubHandoff({ pair, role, ownRunId: own, token: "synthetic_gh_token", now: () => time,
+        async pause(ms) {
+          if (ms > 10_000) return writerDone;
+          await new Promise(resolve => setTimeout(resolve, 5));
+        },
+        async uploadOwn({ name, member, bytes }) {
+          assert.equal(member, "handoff.json");
+          const body = new TextDecoder().decode(bytes);
+          for (const privateString of [identity.arn, row.workspaceId, f.runtimeSecret()?.secretRef, f.runtimeSecret()?.versionRef, f.stack().stackId]) {
+            if (privateString) assert.ok(!body.includes(privateString));
+          }
+          const zip = zipSync({ [member]: bytes }), digest = createHash("sha256").update(zip).digest("hex");
+          const id = 200 + artifacts.length;
+          artifacts.push({ id, name, owner: own, zip, digest, created: new Date(time).toISOString() });
+          time += 100;
+          return { artifactId: String(id) };
+        },
+        async fetch(url, init) {
+          const target = new URL(String(url));
+          const match = /\/runs\/(\d+)(\/artifacts)?$/.exec(target.pathname);
+          const repository = { id: 1323312747, full_name: "veinyyxy/TechlongSoftware", owner: { id: 14145707 } };
+          if (target.origin === "https://api.github.com") {
+            assert.equal(new Headers(init?.headers).get("authorization"), "Bearer synthetic_gh_token");
+            if (match?.[2]) {
+              const row = artifacts.find(x => x.name === target.searchParams.get("name") && x.owner === match[1]);
+              if (!row) return Response.json({ total_count: 0, artifacts: [] });
+              const key = own + ":" + row.id, once = totalReported.has(key);
+              totalReported.add(key);
+              return Response.json({ total_count: once ? 1 : 2, artifacts: [{
+                id: row.id, name: row.name, expired: false, created_at: row.created, expires_at: new Date(pair.writeBefore + 10_000).toISOString(),
+                digest: "sha256:" + row.digest, size_in_bytes: row.zip.length, archive_download_url: actions + "/artifacts/" + row.id + "/zip",
+                workflow_run: { id: Number(row.owner), repository_id: repository.id, head_repository_id: repository.id, head_branch: "main", head_sha: pair.callerCommit },
+              }] });
+            }
+            if (match) {
+              const writer = match[1] === pair.runOnceId;
+              return Response.json({ id: Number(match[1]), workflow_id: Number(pair.workflowId), run_attempt: 1, event: "workflow_dispatch",
+                path: ".github/workflows/sandbox-first-open-v1.yml", head_branch: "main", head_sha: pair.callerCommit,
+                repository, head_repository: repository, actor: { id: 14145707 }, triggering_actor: { id: 14145707 },
+                display_title: offlineHandoffTitle(pair, writer), status: writer || inspectorStillRunning ? "in_progress" : "completed",
+                conclusion: writer || inspectorStillRunning ? null : "success" });
+            }
+            const id = /\/artifacts\/(\d+)\/zip$/.exec(target.pathname)![1];
+            return new Response(null, { status: 302, headers: { location: "https://fixture.blob.core.windows.net/" + id } });
+          }
+          assert.equal(target.origin, "https://fixture.blob.core.windows.net");
+          assert.equal(new Headers(init?.headers).has("authorization"), false);
+          const a = artifacts.find(x => String(x.id) === target.pathname.slice(1))!;
+          const bytes = Uint8Array.from(a.zip);
+          if (role === "runonce" && ((failure === "bad-g1-zip" && a.name.endsWith("-02-g1-metadata-observed")) ||
+            (failure === "bad-final-zip" && a.name.endsWith("-03-runtime-observed")))) bytes[0] ^= 1;
+          return new Response(bytes);
+        },
+      });
+    };
+    const writer = wire("runonce");
+    const { independent: _rawOnlyOnInspector, ...writePorts } = options.expressPorts!;
+    void _rawOnlyOnInspector;
+    options.expressPorts = { ...writePorts, handoff: firstOpenRunOnceHandoff(writer) };
+    let databaseSessions = 0;
+    const inspector = bindFirstOpenPairedInspect({ approval, approvalSha256: approvedSha256, expectedSeed: seed,
+      expectedSeedSha256: await sha256Hex(seed), wire: wire("inspect"),
+      identify: async () => ({ ...identity, roleId: "AROAV3GNMXTZONT55QARZ", credentialExpiresAt: approval.writeBefore + 1_000 }),
+      readOnly: {
+        async read<T>(service: string, op: string, parameters: Record<string, unknown>) {
+          if (op === "batch-get-image") return { images: [{ imageManifest: manifest, imageId: { imageDigest: fixedJob.imageDigest } }] } as T;
+          if (op === "get-template" && failure === "observed-template-drift") {
+            const actual = await raw.read<{ TemplateBody: Record<string, unknown> }>(service, op, parameters);
+            return { TemplateBody: { ...actual.TemplateBody, Description: "provider template drift" } } as T;
+          }
+          return raw.read<T>(service, op, parameters);
+        },
+        async getTechnical(...args) { return { ...await raw.getTechnical(...args), checkedAt: time }; },
+      },
+      database: { roleDirectorySql: "fixture-role", session: async (_signal, run) => {
+        databaseSessions++;
+        return run(async sql => {
+        const id = { name: fixedJob.tenantDatabase, databaseOid: "50001", roleOid: "50002", clusterResourceId: fixedJob.clusterId,
+          ownershipMarker: "tl_owner_" + fixedJob.stableIdentity.slice(0, 32) + "_g1",
+          baselineDigest: FIRST_OPEN_BASELINE_BINDING.objects.archive.sha256, schemaVersion: fixedJob.schemaVersion };
+        const result = sql === "fixture-role" ? { oid: id.roleOid, name: fixedJob.tenantRole, login: true, iam_role_oid: "16389",
+          inherit: false, superuser: false, create_db: false, create_role: false, replication: false, bypass_rls: false, settings: false,
+          owns_objects: false, connection_limit: -1, valid_until: null, config: null, other_connectable_databases: 0,
+          parents: [{ name: "rds_iam", oid: "16389", grantor: "sf_fc41597f_lifecycle_definer", admin: false, inherit: false, set: false }],
+          members: [{ name: "sf_fc41597f_lifecycle_definer", grantor: "rdsadmin", admin: true, inherit: false, set: false }] }
+          : sql.includes("current_database()") ? { database: id.name, username: FIRST_OPEN_INSPECTOR_SQL_USER, session_username: FIRST_OPEN_INSPECTOR_SQL_USER,
+            owner: FIRST_OPEN_MANAGEMENT_SQL_USER, owner_oid: "50003", session_role_oid: "16411", session_other_connectable_databases: 0, version: 170009, tls: true, read_only: "on",
+            database_oid: id.databaseOid, marker: canonicalJson({ schema: "techlong/first-open-express-ready/v1", jobId: fixedJob.jobId,
+              approvalSha256: approvedSha256, clusterResourceId: id.clusterResourceId, ownershipMarker: id.ownershipMarker,
+              baselineDigest: id.baselineDigest, schemaVersion: id.schemaVersion, databaseOid: id.databaseOid, roleOid: id.roleOid }) }
+          : { singleton: true };
+        return { rows: [result], rowCount: 1 };
+      }); } },
+    }, () => time);
+    const work = runReviewedFirstOnboarding(options).finally(afterWriter);
+    if (failure === "missing-ready") {
+      await assert.rejects(work, /LIST_NOT_VISIBLE/);
+      assert.deepEqual(f.calls, []);
+      continue;
+    }
+    const inspect = inspector(signal()).finally(() => { inspectorStillRunning = false; });
+    const result = await Promise.allSettled([work, inspect]);
+    if (failure === "bad-g1-zip") {
+      assert.ok(result[0].status === "rejected" && /ZIP_DIGEST/.test(String(result[0].reason)));
+      assert.ok(result[1].status === "rejected" && /LIST_NOT_VISIBLE/.test(String(result[1].reason)));
+      assert.equal(artifacts.length, 3);
+      assert.ok(f.calls.includes("secret-create") && !f.calls.includes("prepare-v3") && !f.calls.includes("limited-sql"));
+      assert.equal(databaseSessions, 0);
+      continue;
+    }
+    assert.equal(databaseSessions, 1);
+    if (failure === "observed-template-drift") {
+      assert.ok(result[1].status === "rejected" && /RELEASE_/.test(String(result[1].reason)), String((result[1] as PromiseRejectedResult).reason));
+      assert.ok(result[0].status === "rejected" && /LIST_NOT_VISIBLE/.test(String(result[0].reason)));
+      assert.equal(artifacts.length, 4);
+      assert.ok(!f.calls.includes("limited-sql"));
+      continue;
+    }
+    assert.equal(result[1].status, "fulfilled", result[1].status === "rejected" ? String(result[1].reason) : undefined);
+    assert.equal(artifacts.length, 5);
+    assert.equal(f.calls.filter(x => x === "claim").length, 1);
+    if (failure) {
+      assert.ok(result[0].status === "rejected" && /ZIP_DIGEST/.test(String(result[0].reason)), String((result[0] as PromiseRejectedResult).reason));
+      assert.ok(!f.calls.includes("limited-sql"));
+    } else {
+      assert.ok(result[0].status === "fulfilled", String((result[0] as PromiseRejectedResult).reason));
+      assert.equal(result[0].value.outcome, "ACTIVATED");
+      assert.deepEqual(f.calls.slice(-3), ["receipt", "limited-sql", "readback-sql"]);
+    }
+  }
+});
+
+async function boundFixedFirstOpen(negative?: "grant" | "epoch" | "claim-ack" | "create-ack", mode?: "scoped" | "conflict") {
+  const f = await derivedFirstOpenFixture(undefined, true, true), { options, context, calls } = f;
+  const scoped = mode && await scopedFixtureBinding(f);
+  if (mode === "scoped") context.binding = null;
+  const { dependencies: d, expressPorts: express, approval, approvedSha256 } = options;
+  const aws = await d.awsFactory!({ region: fixedJob.region, workerRoleArn: fixedJob.workerRole }) as SupervisedWorkloadAwsPort;
+  const planned = await predictSandboxFirstOpenG1(f.row, approvedSha256);
+  const evidenceSha256 = "4".repeat(64);
+  const checkpoints = new Map<string, Record<string, unknown>>();
+  const run = bindSandboxFirstOpenRunOnce({ approval, approvedSha256, runtimeGrantEvidenceSha256: evidenceSha256,
+    reviewedTaskBinding: scoped?.prepared.binding,
+    sql: { review: { async query(sql, p) {
+      assert.deepEqual(p, []);
+      if (sql === "SELECT techlong_first_onboarding_claim.review() AS result") return { rows: [{ result: f.row }] };
+      assert.equal(sql, "SELECT techlong_first_onboarding_claim.release() AS result"); return { rows: [{ result: f.release }] };
+    } }, claim: { async query(sql, p) {
+      assert.equal(sql, "SELECT * FROM techlong_first_onboarding_claim.claim($1::text,$2::jsonb)");
+      assert.equal(p[0], approvedSha256); assert.equal(JSON.parse(p[1]).length, 8);
+      calls.push("claim"); if (negative === "claim-ack") throw Error("CLAIM_ACK_UNKNOWN");
+      return { rows: [{ jobId: fixedJob.jobId }] };
+    } }, completion: express!.completionClient, inspection: express!.completionReadClient },
+    aws: { ...aws, async applySupervisedTenantStack(stack, x) {
+      assert.equal(x.createOnly, true);
+      const result = await aws.applySupervisedTenantStack(stack, x);
+      if (negative === "create-ack") throw Error("CREATE_ACK_UNKNOWN");
+      return result;
+    } },
+    ports: { repository: { ...d.repository, async claimTenantResourceGeneration(x) {
+      // The older fixture installs a synthetic active epoch on first claim.
+      // For this test leave it absent until the actual composition invokes provisionEpoch.
+      const prior = context.tenantExternalOperation;
+      const result = await d.repository.claimTenantResourceGeneration(x);
+      context.tenantExternalOperation = prior;
+      return result;
+    }, async beginStep(x) {
+      const id = `step_${x.stepKey}:${x.inputHash}`, previousOutput = checkpoints.get(id);
+      return { id, alreadySucceeded: previousOutput !== undefined, previousOutput: previousOutput ?? {} };
+    }, async finishStep(x) {
+      if (x.status === "succeeded") checkpoints.set(x.stepId, x.output);
+      return d.repository.finishStep(x);
+    } }, control: d.controlClient, cellPreflight: d.sharedCellSecurityPreflight,
+      controlPayloadCompiler: d.controlPayloadCompiler, verifyEmptyExpressCapability: options.verifyEmptyExpressCapability,
+      cleanupReadiness: { ...options.cleanupReadiness, async verifyBeforeClaim() { return f.readiness; } },
+      async provisionEpoch(x) {
+        assert.deepEqual(x.resourceFence, planned.epoch.resourceFence);
+        const e = activeProvisionExternalFence(x.resourceFence);
+        e.operationHash = await tenantExternalOperationHash("provision", x.resourceFence, context.deployment);
+        if (negative === "epoch") e.epoch = 2;
+        context.tenantExternalOperation = e;
+        return e;
+      }, express: { ...express!, secret: { ...express!.secret, async createInitial(x) {
+        assert.equal(x.initialVersionId, planned.versionId);
+        return express!.secret.createInitial(x);
+      } } },
+    },
+    async verifyRuntimeGrant(x) {
+      calls.push("fixed-grant"); assert.deepEqual(x.grant, planned.grant);
+      return { approvalSha256: approvedSha256, roleArn: fixedJob.executionRole,
+        grantSha256: negative === "grant" ? "f".repeat(64) : await sha256Hex(x.grant), evidenceSha256,
+        independentlyVerifiedEffective: true, observedAt: now };
+    },
+  }, () => now);
+  return { ...f, run, planned, scoped };
+}
+
+test("the fixed writer and independent Inspector render the same sealed parameters without a shared binding row", async () => {
+  const f = await boundFixedFirstOpen(undefined, "scoped");
+  await assert.rejects(f.run(), /RELEASE_ARTIFACT_MISMATCH/); // No real ECR artifact is used here.
+  const { applied, stackId } = f.stack();
+  assert.equal(f.context.binding, null);
+  assert.equal(f.context.environment.applyEnabled, false);
+  assert.equal(f.calls.filter(x => x === "claim").length, 1);
+  assert.equal(f.calls.filter(x => x === "create").length, 1);
+  assert.equal(applied.parameters.TaskRoleArn, fixedJob.applicationRole);
+  for (const [name, value] of Object.entries(firstOpenBuyerBinding.parameters)) assert.equal(applied.parameters[name], value);
+  assert.equal("OneShotTaskSecurityGroupId" in applied.parameters, false);
+  const expected = await f.scoped!.prepared.assemble({ stackId, arn: f.runtimeSecret()!.secretRef!, identity: f.databaseIdentity() }, signal());
+  assert.deepEqual(expected.stack.parameters, applied.parameters);
+  assert.equal(expected.stack.templateSha256, applied.templateSha256);
+  const rebuilt = await f.scoped!.prepared.renderStack({ arn: f.runtimeSecret()!.secretRef!, identity: f.databaseIdentity() }, signal());
+  const broker = await firstOpenControlledCfnTemplate(f.options.approvedSha256, rebuilt.stack);
+  assert.equal(broker.requestSha256, (await firstOpenControlledCfnTemplate(f.options.approvedSha256, applied)).requestSha256);
+  assert.equal(broker.sha256, applied.templateSha256);
+});
+
+test("a late shared binding, rehashed legacy field or copied binding cannot substitute for the sealed task binding", async () => {
+  const f = await boundFixedFirstOpen(undefined, "conflict"), { seed, prepared } = f.scoped!;
+  await assert.rejects(f.run(), /FIRST_OPEN_TASK_BINDING_CONTEXT_CHANGED/);
+  assert.ok(f.context.binding);
+  assert.equal(f.calls.some(x => ["secret-create", "create"].includes(x)), false);
+  const context = { ...f.context, binding: null };
+  const { approval, approvedSha256 } = f.options;
+  assert.throws(() => attachFirstOpenTaskBinding(context, prepared.binding, "0".repeat(64)), /FIRST_OPEN_TASK_BINDING_CONTEXT_CHANGED/);
+  assert.throws(() => attachFirstOpenTaskBinding(context, structuredClone(prepared.binding), approvedSha256), /FIRST_OPEN_TASK_BINDING_CONTEXT_CHANGED/);
+  assert.throws(() => attachFirstOpenTaskBinding({ ...context, job: { ...context.job, id: "another-job" } }, prepared.binding, approvedSha256), /FIRST_OPEN_TASK_BINDING_CONTEXT_CHANGED/);
+  await assert.rejects(prepareFirstOpenInspectSeed(seed, "0".repeat(64), approval, approvedSha256, signal()), /FIRST_OPEN_INSPECT_INPUT_SEED/);
+  const wrongVersion = structuredClone(seed);
+  wrongVersion.binding.tenantStackParameters.ControlPublicKeyValueFrom = fixedJob.controlArn;
+  const versionApproval = structuredClone(approval);
+  versionApproval.express!.environmentParametersSha256 = await sha256Hex(wrongVersion.binding.tenantStackParameters);
+  await assert.rejects(prepareFirstOpenInspectSeed(wrongVersion, await sha256Hex(wrongVersion), versionApproval, await sha256Hex(versionApproval), signal()), /FIRST_OPEN_TASK_BINDING_SEAL/);
+  const borrowedBuyer = structuredClone(seed), borrowedBuyerApproval = structuredClone(approval);
+  borrowedBuyer.binding.tenantStackParameters.CorsAllowedOrigins = "https://buyer.sandbox.techlong.cloud";
+  borrowedBuyerApproval.express!.environmentParametersSha256 = await sha256Hex(borrowedBuyer.binding.tenantStackParameters);
+  await assert.rejects(prepareFirstOpenInspectSeed(borrowedBuyer, await sha256Hex(borrowedBuyer), borrowedBuyerApproval,
+    await sha256Hex(borrowedBuyerApproval), signal()), /FIRST_OPEN_BUYER_PARAMETERS_CHANGED/);
+  seed.binding.tenantStackParameters.OneShotTaskSecurityGroupId = "sg-0123456789abcdef3";
+  approval.express!.environmentParametersSha256 = await sha256Hex(seed.binding.tenantStackParameters);
+  await assert.rejects(prepareFirstOpenInspectSeed(seed, await sha256Hex(seed), approval, await sha256Hex(approval), signal()), /SUPERVISED_PARAMETER_SET_INVALID/);
+});
+
+test("fixed first-open composition claims and creates once, and does not complete on an unproved A manifest", async () => {
+  const f = await boundFixedFirstOpen();
+  assert.equal(f.planned.grant.Resource, `arn:aws:secretsmanager:${fixedJob.region}:${fixedJob.account}:secret:${fixedJob.secretName}-??????`);
+  const { objects } = FIRST_OPEN_BASELINE_BINDING;
+  const iam = sandboxFirstOpenPolicyDrafts({ archiveVersionId: objects.archive.versionId, manifestVersionId: objects.manifest.versionId,
+    plannedRuntimeSecretVersionId: f.planned.versionId });
+  assert.equal(iam.runtimeSecretReadPending, true);
+  assert.deepEqual(iam.execution.Statement.filter(x => x.Effect === "Allow").at(-1), f.planned.grant);
+  assert.notEqual((await predictSandboxFirstOpenG1(f.row, "0".repeat(64))).versionId, f.planned.versionId);
+  await assert.rejects(f.run(), /RELEASE_ARTIFACT_MISMATCH/); // Only a digest, not A's raw ECR manifest, is in the offline fixture.
+  await assert.rejects(f.run(), /ENTRY_ALREADY_USED/);
+  assert.deepEqual(f.calls.filter(x => ["fixed-grant", "claim", "secret-create", "restore-baseline", "create", "configure"].includes(x)),
+    ["fixed-grant", "claim", "secret-create", "restore-baseline", "create", "configure"]);
+  assert.equal(f.calls.includes("limited-sql"), false);
+  assert.equal(f.calls.includes("readback-sql"), false);
+});
+
+test("fixed composition stops at a bad grant, changed epoch, or unknown claim/create response without retrying", async () => {
+  for (const [bad, code, last] of [["grant", /G1_GRANT_UNPROVED/, "fixed-grant"], ["epoch", /G1_EPOCH_MISMATCH/, "claim"],
+    ["claim-ack", /CLAIM_ACK_UNKNOWN/, "claim"], ["create-ack", /CREATE_ACK_UNKNOWN/, "create"]] as const) {
+    const f = await boundFixedFirstOpen(bad);
+    await assert.rejects(f.run(), code);
+    await assert.rejects(f.run(), /ENTRY_ALREADY_USED/);
+    const writes = f.calls.filter(x => ["fixed-grant", "claim", "secret-create", "create", "configure", "limited-sql", "readback-sql"].includes(x));
+    assert.equal(writes.at(-1), last);
+    assert.equal(writes.filter(x => x === last).length, 1);
+  }
+});
+
+test("reviewed first-open stops before the claim if the narrow middle RPC is not proved", async () => {
+  const f = await derivedFirstOpenFixture(undefined, true, true), { options, row, calls } = f;
+  const { dependencies: d, expressPorts: express, approval, approvedSha256 } = options;
+  const aws = await d.awsFactory!({ region: fixedJob.region, workerRoleArn: fixedJob.workerRole }) as SupervisedWorkloadAwsPort;
+  const evidenceSha256 = "4".repeat(64);
+  const run = bindReviewedSandboxFirstOpenRunOnce({ approval, approvedSha256, runtimeGrantEvidenceSha256: evidenceSha256,
+    sql: { review: { async query(sql) { return { rows: [{ result: sql.includes(".review()") ? row : f.release }] }; } },
+      claim: { async query() { assert.fail("claim must not be called"); } }, completion: express!.completionClient, inspection: express!.completionReadClient },
+    middle: { planHash: row.deployment.planHash, configurationHash: row.deployment.configurationHash,
+      sql: { async query(sql, params) {
+        assert.equal(sql, FIRST_OPEN_MIDDLE_RPC); assert.deepEqual(params, [approvedSha256, "", "readiness", "[]"]);
+        calls.push("middle-readiness"); return { rows: [] };
+      } }, dynamo: { commands: { get: class {}, put: class {} }, client: { async send() { assert.fail("authority must not be called"); } } } },
+    aws, ports: { control: d.controlClient, cellPreflight: d.sharedCellSecurityPreflight, controlPayloadCompiler: d.controlPayloadCompiler,
+      verifyEmptyExpressCapability: options.verifyEmptyExpressCapability, express: express!,
+      cleanupReadiness: { ...options.cleanupReadiness, async verifyBeforeClaim() { return f.readiness; } } },
+    async verifyRuntimeGrant(x) { return { approvalSha256: approvedSha256, roleArn: fixedJob.executionRole,
+      grantSha256: await sha256Hex(x.grant), evidenceSha256, independentlyVerifiedEffective: true, observedAt: now }; },
+  }, () => now);
+  await assert.rejects(run(), /FIRST_OPEN_MIDDLE_READY_UNPROVED/);
+  assert.ok(calls.includes("middle-readiness") && !calls.includes("secret-create"));
+});
+
+test("the reviewed worker never claims a different first-open job with the pinned copies", async () => {
+  const f = await derivedFirstOpenFixture(undefined, true);
+  assert.notEqual(f.options.approval.jobId, FIRST_OPEN_BASELINE_BINDING.jobId);
+  await assert.rejects(runReviewedFirstOnboarding(f.options), { code: "TENANT_BASELINE_INVALID" });
+  assert.deepEqual(f.calls, []);
 });
 
 test("new first-open stops on non-independent caller, old bucket, second Secret version, wrong application grant or wrong observed DB OID", async () => {

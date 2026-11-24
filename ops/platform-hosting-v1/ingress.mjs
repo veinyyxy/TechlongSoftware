@@ -1,6 +1,7 @@
 import {must} from './contract.mjs';
+import {firstOpenBuyerWire,hasFirstOpenBuyerSigningMaterial} from '../../lib/buyer-forward/wire.mjs';
 
-export const PUBLIC_ORIGIN='https://console.sandbox.techlong.cloud';
+export const PUBLIC_ORIGIN=firstOpenBuyerWire.consoleOrigin;
 const PUBLIC_HOST=new URL(PUBLIC_ORIGIN).host;
 const SAFE_METHODS=new Set(['GET','HEAD']);
 const WRITE_METHODS=new Set(['POST','PUT','PATCH','DELETE']);
@@ -12,7 +13,8 @@ export function ingressPolicy(env,options){
   if(!mode&&!origin)return Object.freeze({mode:'loopback',host:`127.0.0.1:${options.port}`,origin:`http://127.0.0.1:${options.port}`});
   must(mode==='alb-https-v1'&&origin===PUBLIC_ORIGIN&&options.host==='0.0.0.0','INGRESS_CONFIG');
   return Object.freeze({mode,host:PUBLIC_HOST,origin:PUBLIC_ORIGIN,
-    ...(env.TECHLONG_SANDBOX_FIRST_PURCHASE==='true'?{sandboxStripeWebhook:true}:{})});
+    ...(env.TECHLONG_SANDBOX_FIRST_PURCHASE==='true'?{sandboxStripeWebhook:true}:{}),
+    ...(hasFirstOpenBuyerSigningMaterial(env[firstOpenBuyerWire.signerEnvName])?{sandboxBuyerForward:true}:{})});
 }
 
 // Validate original wire fields, before Node's merged headers can hide duplicates.
@@ -42,6 +44,18 @@ export function checkIngress(req,policy){
     if(values.has('x-forwarded-host')&&!acceptedHost(values.get('x-forwarded-host')))return 421;
     if(headers.forwarded!==undefined)return 400;
   }else if(Object.keys(headers).some(forwarded))return 400;
+  const path=req.url.split('?',1)[0];
+  if(path===firstOpenBuyerWire.prefix||path.startsWith(firstOpenBuyerWire.prefix+'/')){
+    // No dot, encoded path, or ambiguous separator may normalize into a
+    // different platform route. The buyer handler independently checks its
+    // narrower method/path allowlist plus the JWT/transport boundary.
+    const route=path.slice(firstOpenBuyerWire.prefix.length);
+    if(!policy.sandboxBuyerForward||policy.mode!=='alb-https-v1'||
+      !/^\/api\/[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(route)||values.get('origin')!==firstOpenBuyerWire.buyerOrigin||
+      headers.cookie!==undefined||headers['next-action']!==undefined||values.has('stripe-signature')||
+      (values.has('sec-fetch-site')&&values.get('sec-fetch-site')!=='same-site'))return 403;
+    return ['GET','POST','OPTIONS'].includes(method)?0:405;
+  }
   if(values.has('origin')&&values.get('origin')!==policy.origin)return 403;
   if(WRITE_METHODS.has(method)){
     // Stripe is not a browser. The route still has to authenticate the exact raw body.

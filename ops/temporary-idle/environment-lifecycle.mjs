@@ -115,6 +115,8 @@ async function waitServiceZero(c,io,stack,role,waitSeconds){if(!stack.bindings[S
 async function databaseState(c,io,store,j,mode,waitSeconds){for(const d of c.databases){const before=await db(c,io,d),wanted=mode==='stop'?'stopped':'available';if(before.status===wanted)continue;ensure(before.status===(mode==='stop'?'available':'stopped'),'DATABASE_TRANSITION_REQUIRES_INSPECTION');const cluster=d.kind==='cluster',op=(mode==='stop'?'stop-':'start-')+(cluster?'db-cluster':'db-instance');await writeOnce(io,store,j,mode+'/'+d.kind+'/'+d.id,'rds',op,cluster?{DBClusterIdentifier:d.id}:{DBInstanceIdentifier:d.id});
   const end=io.now()+waitSeconds*1000;for(;;){if((await db(c,io,d)).status===wanted)break;ensure(io.now()<end,'DATABASE_WAIT_TIMEOUT_INSPECT');await io.sleep(Math.min(30000,end-io.now()));}}
 }
+// Reuse exact validators in the one reviewed mixed-state continuation; no change to standard stop/start.
+export {identity,db,alias,serviceScope,liveService,controllerClosed,alb,waitServiceZero};
 export async function executeEnvironmentPlan({config,io,plan,approvedSha,store,onAttemptStarted=async()=>{}}){
  const c=validateEnvironment(config);ensure(c.enabled,'ENVIRONMENT_DISABLED');ensure(hash(plan)===approvedSha&&plan.configSha256===configHash(c)&&plan.schema==='techlong/temporary-environment-plan/v2'&&['stop','start'].includes(plan.mode),'EXACT_PLAN_APPROVAL_REQUIRED');ensure(io.now()<plan.writeBefore,'PLAN_EXPIRED');ensure(plan.mode!=='start'||c.acknowledgeRoleScopeReview&&!plan.writePolicy.roleScopeReviewRequiredBeforeStart,'RESTORATION_ROLE_SCOPE_REVIEW_REQUIRED');
  ensure(same(plan.limits,limitsFor(plan.mode,plan.waitSeconds)),'PLAN_LIMIT_POLICY_CHANGED');
