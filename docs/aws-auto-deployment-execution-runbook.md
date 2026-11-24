@@ -2,13 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：SaaS 租户首开 T3 已验收，等待后续指示（2026-11-24，温尼伯）
+## 当前唯一继续点：SaaS 租户首开 T4 安装准备（2026-11-24，温尼伯）
 
-用户已确认以 [SaaS 首开 ECS 迁移方案](saas-first-open-ecs-migration-plan.md)作为 T1–T3 的开发实施依据。**T3 模拟 ECS 离线串联一单已验收**，涵盖实例审批、单次启动、同进程自检、原子激活、页面回读和故障验证。SaaS 客户开通的目标路径为 ECS，GitHub 仅参与软件交付。
+用户已通知开始 T4。按 [SaaS 首开 ECS 迁移方案](saas-first-open-ecs-migration-plan.md)第 5.1 节准备 I1–I5 的安装差异、离线核验及准确待审范围。优先复用停费后保留的资源。现场补核、恢复、发布、安装和权限修改依各自准确范围另审，客户首开留在 T5。
 
-每轮开始说明当前 T 编号和唯一交付，结束将完成项、证据、剩余项及下一步写回[方案第 6.1 节](saas-first-open-ecs-migration-plan.md#61-跟踪表每次推进更新哪一行)。未达到本阶段完成标准时维持进行中。T4 的安装和 T5 的真实首开分别另审。当前云环境仍按用户要求停费，T3 不启动 AWS、不安装 IAM、不领取或开通真实任务。
+离线候选及边界验证已记入 [T4 准备记录](saas-first-open-ecs-migration-plan.md#t4-准备记录2026-11-24温尼伯)。当前只待审定 [一次定向只读补核](../ops/aws-sandbox/reviews/saas-first-open-t4.prepared.json)，绑定停费后原模板和网络基础事实。实际安装仍为进行中。
 
-T1 同一 Linux/amd64 镜像已通过双入口断网验收。T2 已通过 A/B 实例级审批和只读日志验收。T3 已收尾，后续阶段等待用户另行确认。[T1 完成记录](saas-first-open-ecs-migration-plan.md#t1-完成记录2026-11-24-164542温尼伯) · [T2 完成记录](saas-first-open-ecs-migration-plan.md#t2-完成记录2026-11-24温尼伯) · [T3 完成记录](saas-first-open-ecs-migration-plan.md#t3-完成记录2026-11-24温尼伯)
+每轮开始说明当前 T 编号和唯一交付，结束将完成项、证据、剩余项及下一步写回[方案第 6.1 节](saas-first-open-ecs-migration-plan.md#61-跟踪表每次推进更新哪一行)。未达到本阶段完成标准时维持进行中。当前云环境按用户要求维持停费。
+
+T1 同镜像双入口、T2 实例级审批及 T3 模拟 ECS 串联均已通过离线验收。[T1 完成记录](saas-first-open-ecs-migration-plan.md#t1-完成记录2026-11-24-164542温尼伯) · [T2 完成记录](saas-first-open-ecs-migration-plan.md#t2-完成记录2026-11-24温尼伯) · [T3 完成记录](saas-first-open-ecs-migration-plan.md#t3-完成记录2026-11-24温尼伯)
 
 ## 历史：D2 日常版本发布已结案（2026-11-17，温尼伯）
 

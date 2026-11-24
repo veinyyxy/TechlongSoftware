@@ -1,8 +1,9 @@
 import { FIRST_ONBOARDING_HOLD_AT, FIRST_ONBOARDING_PREFIX } from "../first-onboarding.ts";
+import { FIRST_OPEN_APPROVAL_MAX_WINDOW_MS } from "./ecs-first-open.ts";
 import type { FirstOpenDispatchState, FirstOpenDispatchStore } from "./ecs-first-open-dispatch.ts";
 
 const RESERVE = `WITH eligible AS MATERIALIZED (
-  SELECT execution.id, (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS at
+  SELECT execution.id, execution.approved_at
   FROM first_open_executions execution
   JOIN app_instances instance ON instance.id = execution.instance_id
   JOIN app_instance_deployments deployment ON deployment.id = execution.deployment_id
@@ -27,10 +28,13 @@ const RESERVE = `WITH eligible AS MATERIALIZED (
     AND job.available_at = ${FIRST_ONBOARDING_HOLD_AT} AND job.lease_owner IS NULL AND job.lease_token IS NULL
     AND job.lease_expires_at IS NULL AND job.completed_at IS NULL
     AND NOT EXISTS (SELECT 1 FROM first_open_execution_events event WHERE event.execution_id = execution.id AND event.sequence > 1)
-  FOR SHARE OF instance, deployment, job, purchase, payment
+  FOR UPDATE OF execution FOR SHARE OF instance, deployment, job, purchase, payment
+), timed AS MATERIALIZED (
+  SELECT eligible.*, (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS at FROM eligible
 ), reserved AS (
-  UPDATE first_open_executions execution SET dispatch_token = execution.id, dispatch_started_at = eligible.at
-  FROM eligible WHERE execution.id = eligible.id AND execution.dispatch_started_at IS NULL AND eligible.at >= execution.approved_at
+  UPDATE first_open_executions execution SET dispatch_token = execution.id, dispatch_started_at = timed.at
+  FROM timed WHERE execution.id = timed.id AND execution.dispatch_started_at IS NULL
+    AND timed.at >= timed.approved_at AND timed.at < timed.approved_at + ${FIRST_OPEN_APPROVAL_MAX_WINDOW_MS}
   RETURNING execution.id, execution.dispatch_started_at
 )
 INSERT INTO first_open_execution_events (execution_id, sequence, step, status, at)
