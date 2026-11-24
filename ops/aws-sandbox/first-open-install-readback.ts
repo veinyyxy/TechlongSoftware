@@ -1,6 +1,6 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { createHash } from "node:crypto";
-import { GetObjectCommand, S3Client, type GetObjectCommandOutput } from "@aws-sdk/client-s3";
+import { GetBucketPolicyCommand, GetObjectCommand, S3Client, type GetBucketPolicyCommandOutput, type GetObjectCommandOutput } from "@aws-sdk/client-s3";
 import { AssumeRoleWithWebIdentityCommand, STSClient } from "@aws-sdk/client-sts";
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
 import { FIRST_OPEN_BASELINE_BINDING, validFirstOpenVersionId } from "../../lib/deployments/execution/first-onboarding-baseline-versions.ts";
@@ -36,7 +36,10 @@ const planSchema = "techlong/fc41597f-independent-install-readback/v2" as const;
 const reportSchema = "techlong/fc41597f-independent-install-observed/v2" as const;
 type StagingUpload = { versionId: string; acknowledgedAt: number; putReceiptRawSha256: string };
 type UploadEarly = (input: { name: string; member: "handoff.json"; bytes: Uint8Array; signal: AbortSignal }) => Promise<{ artifactId: string }>;
-type ReadStaging = (command: GetObjectCommand, signal: AbortSignal) => Promise<GetObjectCommandOutput>;
+type ReadStaging = {
+  readBucketPolicy: (command: GetBucketPolicyCommand, signal: AbortSignal) => Promise<GetBucketPolicyCommandOutput>;
+  readObject: (command: GetObjectCommand, signal: AbortSignal) => Promise<GetObjectCommandOutput>;
+};
 
 export type FirstOpenInstallReadbackPlan = {
   schema: typeof planSchema;
@@ -137,16 +140,31 @@ export async function authorizeFirstOpenInstallReadback(input: { env: Env; actua
   return { plan: p, planSha256: approved, scope, runId: e.GITHUB_RUN_ID! };
 }
 
-/** One GET per prepared install object, using the already-identified install
- * session. The report contains only per-version digest/metadata receipts. */
+/** First verify the exact evidence-bucket policy, then make one GET per
+ * prepared install object using the same identified install session. */
 export async function readFirstOpenInstallStaging(a: Awaited<ReturnType<typeof authorizeFirstOpenInstallReadback>>,
   identity: FirstOpenCaller, read: ReadStaging, upstream: AbortSignal, now = Date.now) {
   const { plan, scope, planSha256, runId } = a;
-  if (!plan.staging || !scope.staging) return fail("STAGE_SCOPE");
+  const Bucket = FIRST_OPEN_BASELINE_BINDING.bucket;
+  if (!plan.staging || !scope.staging || scope.evidenceBucketArn !== `arn:aws:s3:::${Bucket}`) return fail("STAGE_SCOPE");
   assertFirstOpenSession("installObserver", identity, now(), plan.window.relockBefore);
   const deadline = scope.staging.readBefore, remaining = deadline - now();
   if (now() < plan.window.startAt || remaining <= 0) return fail("STAGE_WINDOW");
   const signal = AbortSignal.any([upstream, AbortSignal.timeout(remaining)]);
+  signal.throwIfAborted();
+  const bucket = await read.readBucketPolicy(new GetBucketPolicyCommand({ Bucket, ExpectedBucketOwner: s.account }), signal);
+  signal.throwIfAborted();
+  if (now() >= deadline) return fail("STAGE_WINDOW");
+  if (bucket.$metadata.httpStatusCode !== 200 || !bucket.Policy || Buffer.byteLength(bucket.Policy) > 32_768) return fail("STAGE_BUCKET_POLICY");
+  let evidenceBucketPolicySha256: string;
+  try {
+    const policy = JSON.parse(bucket.Policy);
+    if (!policy || typeof policy !== "object" || Array.isArray(policy)) return fail("STAGE_BUCKET_POLICY");
+    evidenceBucketPolicySha256 = await sha256Hex(policy);
+  } catch { return fail("STAGE_BUCKET_POLICY"); }
+  signal.throwIfAborted();
+  if (now() >= deadline) return fail("STAGE_WINDOW");
+  if (evidenceBucketPolicySha256 !== plan.expectedBucketSha256) return fail("STAGE_BUCKET_POLICY");
   const receipts: Partial<Record<Stage, { rawSha256: string; receiptB64: string }>> = {};
   for (const phase of stagePhases) {
     const pin = scope.staging.targets[phase];
@@ -154,9 +172,9 @@ export async function readFirstOpenInstallStaging(a: Awaited<ReturnType<typeof a
     signal.throwIfAborted();
     const upload = plan.staging.uploads[phase];
     if (!upload || upload.acknowledgedAt > now() || now() >= deadline) return fail("STAGE_WINDOW");
-    const req = { Bucket: FIRST_OPEN_BASELINE_BINDING.bucket, Key: pin.key, ExpectedBucketOwner: s.account,
+    const req = { Bucket, Key: pin.key, ExpectedBucketOwner: s.account,
       VersionId: upload.versionId, ChecksumMode: "ENABLED" as const };
-    const got = await read(new GetObjectCommand(req), signal);
+    const got = await read.readObject(new GetObjectCommand(req), signal);
     const body = got.Body as (AsyncIterable<Uint8Array> & { destroy?(): void }) | undefined;
     const checksum = Buffer.from(pin.targetCanonicalSha256, "hex").toString("base64");
     try {
@@ -184,7 +202,7 @@ export async function readFirstOpenInstallStaging(a: Awaited<ReturnType<typeof a
   signal.throwIfAborted();
   if (now() >= deadline) return fail("STAGE_WINDOW");
   return { schema: "techlong/fc41597f-install-staging-observed/v1", jobId: s.jobId, planSha256, runId, attempt: 1,
-    approvalSha256: plan.release.approvalSha256, receipts };
+    approvalSha256: plan.release.approvalSha256, evidenceBucketPolicySha256, receipts };
 }
 
 export function firstOpenInstallInspectorCredentials(a: Awaited<ReturnType<typeof authorizeFirstOpenInstallReadback>>,
@@ -320,7 +338,10 @@ export async function runFirstOpenInstallReadback(input: Parameters<typeof autho
     const early = AbortSignal.any([signal, AbortSignal.timeout(Math.max(1, staging.scope.readBefore - Date.now()))]);
     const client = new S3Client(sdkConfig(await observer.credentials(early)));
     try {
-      const evidence = await readFirstOpenInstallStaging(a, identity, (cmd, mark) => client.send(cmd, { abortSignal: mark }), early);
+      const evidence = await readFirstOpenInstallStaging(a, identity, {
+        readBucketPolicy: (cmd, mark) => client.send(cmd, { abortSignal: mark }),
+        readObject: (cmd, mark) => client.send(cmd, { abortSignal: mark }),
+      }, early);
       await input.uploadEarly!({ name: `fc41597f-${a.planSha256}-install-staging-readback`, member: "handoff.json",
         bytes: Buffer.from(canonicalJson(evidence)), signal: early });
       early.throwIfAborted();
