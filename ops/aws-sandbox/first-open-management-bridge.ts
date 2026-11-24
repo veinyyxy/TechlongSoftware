@@ -36,7 +36,10 @@ const stackIdPattern = new RegExp(`^arn:aws:cloudformation:${s.region}:${s.accou
 
 export function firstOpenManagementKeys(approvalSha256: string, controlledWorkload = false) {
   if (!hex.test(approvalSha256)) return fail("APPROVAL");
-  const root = `first-open-management/${s.jobId}/${approvalSha256}`;
+  // Only the new controlled mailbox uses the short namespace: its bucket
+  // policy repeats every exact slot ARN. Keep the task and approval intact.
+  // Legacy mailboxes, the CFN submission, and install-owner keys are unchanged.
+  const root = `${controlledWorkload ? "fom" : "first-open-management"}/${s.jobId}/${approvalSha256}`;
   const request = firstOpenManagementSteps.map((_, i) => `${root}/request-${i + 1}.json`);
   const reply = ["ready", ...firstOpenManagementSteps].map((_, i) => `${root}/reply-${i}.json`);
   if (controlledWorkload) {
