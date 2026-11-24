@@ -1,4 +1,4 @@
-import { pgTable, uniqueIndex, index, text, bigint, foreignKey, check, integer, primaryKey } from "drizzle-orm/pg-core"
+import { pgTable, uniqueIndex, index, text, bigint, foreignKey, check, integer, primaryKey, unique } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 
@@ -870,6 +870,44 @@ export const deploymentStepRuns = pgTable("deployment_step_runs", {
 	check("deployment_step_runs_status_check", sql`status = ANY (ARRAY['running'::text, 'succeeded'::text, 'failed'::text, 'skipped'::text])`),
 	check("deployment_step_runs_input_hash_check", sql`input_hash ~ '^[a-f0-9]{64}$'::text`),
 	check("deployment_step_runs_output_check", sql`jsonb_typeof((output)::jsonb) = 'object'::text AND octet_length(output) <= 32768`),
+]);
+
+export const firstOpenExecutions = pgTable("first_open_executions", {
+	id: text().primaryKey().notNull(),
+	instanceId: text("instance_id").notNull().unique("first_open_executions_instance_id_key").references(() => appInstances.id, { onDelete: "restrict" }),
+	jobId: text("job_id").notNull().unique("first_open_executions_job_id_key").references(() => deploymentJobs.id, { onDelete: "restrict" }),
+	deploymentId: text("deployment_id").notNull().unique("first_open_executions_deployment_id_key").references(() => appInstanceDeployments.id, { onDelete: "restrict" }),
+	purchaseOrderId: text("purchase_order_id").notNull().references(() => subscriptionPurchaseOrders.id, { onDelete: "restrict" }),
+	releaseId: text("release_id").notNull(),
+	artifactRef: text("artifact_ref").notNull(),
+	reviewSha256: text("review_sha256").notNull(),
+	approvedBy: text("approved_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+	approvedAt: bigint("approved_at", { mode: "number" }).notNull(),
+}, (table) => [
+	check("first_open_executions_id_check", sql`${table.id} ~ '^exec_[a-f0-9]{32}$'`),
+	check("first_open_executions_release_id_check", sql`${table.releaseId} ~ '^release_[a-f0-9]{32}$'`),
+	check("first_open_executions_artifact_ref_check", sql`${table.artifactRef} ~ '@sha256:[a-f0-9]{64}$'`),
+	check("first_open_executions_review_sha256_check", sql`${table.reviewSha256} ~ '^[a-f0-9]{64}$'`),
+	check("first_open_executions_approved_at_check", sql`${table.approvedAt} > 0`),
+]);
+
+export const firstOpenExecutionEvents = pgTable("first_open_execution_events", {
+	executionId: text("execution_id").notNull().references(() => firstOpenExecutions.id, { onDelete: "restrict" }),
+	sequence: integer().notNull(),
+	step: text().notNull(),
+	status: text().notNull(),
+	at: bigint({ mode: "number" }).notNull(),
+	errorCode: text("error_code"),
+}, (table) => [
+	primaryKey({ name: "first_open_execution_events_pkey", columns: [table.executionId, table.sequence] }),
+	unique("first_open_execution_events_execution_id_step_status_key").on(table.executionId, table.step, table.status),
+	check("first_open_execution_events_sequence_check", sql`${table.sequence} > 0`),
+	check("first_open_execution_events_step_check", sql`${table.step} IN ('approval', 'task_start', 'database_initialization', 'api_deployment', 'self_check', 'activation')`),
+	check("first_open_execution_events_status_check", sql`${table.status} IN ('started', 'completed', 'failed', 'unknown')`),
+	check("first_open_execution_events_at_check", sql`${table.at} > 0`),
+	check("first_open_execution_events_error_code_check", sql`${table.errorCode} IN ('AccessDenied', 'DATABASE_INITIALIZATION_FAILED', 'API_DEPLOYMENT_FAILED', 'SELF_CHECK_FAILED', 'ACTIVATION_FAILED', 'RESULT_UNCONFIRMED')`),
+	check("first_open_execution_events_check", sql`(${table.sequence} = 1) = (${table.step} = 'approval') AND (${table.step} <> 'approval' OR ${table.status} = 'completed')`),
+	check("first_open_execution_events_check1", sql`${table.errorCode} IS NULL OR ${table.status} IN ('failed', 'unknown')`),
 ]);
 
 export const paymentWebhookEvents = pgTable("payment_webhook_events", {

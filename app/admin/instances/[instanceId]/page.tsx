@@ -4,12 +4,14 @@ import { StatusActionButton } from "@/components/admin/StatusActionButton";
 import { InitializedDeploymentPanel } from "@/components/admin/InitializedDeploymentPanel";
 import { DeploymentProgressPanel } from "@/components/admin/DeploymentProgressPanel";
 import { DeploymentControlPanel } from "@/components/admin/DeploymentControlPanel";
+import { FirstOpenAdminControls } from "@/components/admin/FirstOpenAdminControls";
 import { getPlatformControlStatus, getPlatformControlRiskFile } from "@/lib/deployments/controller-v6/runtime";
 import { getInitializedPlatformStatus } from "@/lib/deployments/initialized-platform-management";
 import { formatDate } from "@/lib/admin/presentation";
 import { getAdminAccount } from "@/lib/auth/account";
 import { subscriptionStatusLabels } from "@/lib/billing/presentation";
 import { getLatestAppInstanceDeployment } from "@/lib/deployments/management";
+import { listFirstOpenAdminSummaries, readFirstOpenForAdmin } from "@/lib/deployments/first-open-admin-runtime";
 import { getDeploymentProfile } from "@/lib/deployments/profiles";
 import { getAppInstance } from "@/lib/instances/management";
 import {
@@ -23,10 +25,11 @@ export const dynamic = "force-dynamic";
 
 interface InstanceDetailPageProps {
   params: Promise<{ instanceId: string }>;
+  searchParams?: Promise<{ firstOpenLogs?: string | string[] }>;
 }
 
-export default async function InstanceDetailPage({ params }: InstanceDetailPageProps) {
-  await getAdminAccount();
+export default async function InstanceDetailPage({ params, searchParams }: InstanceDetailPageProps) {
+  const account = await getAdminAccount();
   const { instanceId } = await params;
   const instance = await getAppInstance(instanceId);
 
@@ -44,6 +47,15 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
   const deployment = await getLatestAppInstanceDeployment(instance.id);
   const initializedStatus = await getInitializedPlatformStatus(instance.id);
   const controlStatus = initializedStatus.supported ? await getPlatformControlStatus(instance.id) : null;
+  const showLogOnLoad = (await searchParams)?.firstOpenLogs === "1";
+  const firstOpenView = showLogOnLoad && instance.provisioningSource === "payment_success"
+    ? await readFirstOpenForAdmin(account.user, instance.id)
+    : null;
+  const firstOpenSummary = firstOpenView ?? (instance.provisioningSource === "payment_success"
+    ? (await listFirstOpenAdminSummaries(account.user, [instance.id]))[0]
+    : null);
+  const showFirstOpen = firstOpenSummary && (firstOpenSummary.execution || instance.status === "pending");
+  const state = { label: appInstanceStatusLabels[instance.status], tone: appInstanceStatusTone(instance.status) };
 
   const subscriptionIsActive = instance.subscriptionStatus === "active";
   const hasAccessUrl = hasRecordedAccessUrl(instance.accessUrl);
@@ -56,11 +68,11 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
         <div>
           <p className="page-kicker">APP INSTANCE DETAIL</p>
           <h1>{instance.name}</h1>
-          <p>
-            <span className={`status-pill status-${appInstanceStatusTone(instance.status)}`}>
-              {appInstanceStatusLabels[instance.status]}
+          {!showFirstOpen ? <p>
+            <span className={`status-pill status-${state.tone}`}>
+              {state.label}
             </span>
-          </p>
+          </p> : null}
         </div>
         <div className="header-actions">
           <Link className="button button-ghost button-small" href={`/admin/instances/${instance.id}/edit`}>
@@ -109,11 +121,21 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
           <span>只有有效订阅的客户才允许把实例标记为已开通。请先处理客户订阅，再恢复此实例。</span>
         </div>
       ) : null}
-      {subscriptionIsActive && !hasAccessUrl && instance.status !== "active" ? (
+      {subscriptionIsActive && !hasAccessUrl && instance.status !== "active" && !showFirstOpen ? (
         <div className="notice notice-warning billing-alert">
           <strong>尚未登记访问地址</strong>
           <span>请先编辑并填写有效的 access_url，再将此待开通实例标记为已开通。</span>
         </div>
+      ) : null}
+
+      {showFirstOpen ? (
+        <FirstOpenAdminControls
+          fallbackState={state}
+          initialEvents={firstOpenView?.events}
+          instanceName={instance.name}
+          mode="detail"
+          summary={firstOpenSummary}
+        />
       ) : null}
 
       <div className="detail-grid">
@@ -131,7 +153,7 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
         <section className="module-card">
           <h2>开通记录</h2>
           <dl className="detail-list">
-            <div><dt>实例状态</dt><dd>{appInstanceStatusLabels[instance.status]}</dd></div>
+            {!showFirstOpen ? <div><dt>实例状态</dt><dd>{state.label}</dd></div> : null}
             <div><dt>关联订阅</dt><dd>{instance.subscriptionStatus ? subscriptionStatusLabels[instance.subscriptionStatus] : "未关联"}</dd></div>
             <div><dt>订阅套餐</dt><dd>{instance.subscriptionPlanName ?? "未关联"}</dd></div>
             <div>

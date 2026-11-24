@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminSearchFilters } from "@/components/admin/AdminSearchFilters";
+import { FirstOpenAdminControls } from "@/components/admin/FirstOpenAdminControls";
 import { formatDate } from "@/lib/admin/presentation";
 import { getAdminAccount } from "@/lib/auth/account";
 import { subscriptionStatusLabels } from "@/lib/billing/presentation";
+import { listFirstOpenAdminSummaries } from "@/lib/deployments/first-open-admin-runtime";
 import {
   listAppInstances,
   type AppInstanceStatus,
@@ -23,13 +25,16 @@ interface InstancesPageProps {
 }
 
 export default async function InstancesPage({ searchParams }: InstancesPageProps) {
-  await getAdminAccount();
+  const account = await getAdminAccount();
   const params = (await searchParams) ?? {};
   const query = params.q?.slice(0, 100) ?? "";
   const status: AppInstanceStatus | "" = isAppInstanceStatus(params.status)
     ? params.status
     : "";
   const instances = await listAppInstances({ query, status });
+  const paidInstanceIds = instances.filter((instance) => instance.provisioningSource === "payment_success").map((instance) => instance.id);
+  const firstOpenSummaries = await listFirstOpenAdminSummaries(account.user, paidInstanceIds);
+  const firstOpenByInstance = new Map(firstOpenSummaries.map((summary) => [summary.instanceId, summary]));
 
   return (
     <>
@@ -77,8 +82,27 @@ export default async function InstancesPage({ searchParams }: InstancesPageProps
                 </tr>
               </thead>
               <tbody>
-                {instances.map((instance) => (
-                  <tr key={instance.id}>
+                {instances.map((instance) => {
+                  const summary = firstOpenByInstance.get(instance.id);
+                  const showFirstOpen = summary && (summary.execution || instance.status === "pending");
+                  const state = { label: appInstanceStatusLabels[instance.status], tone: appInstanceStatusTone(instance.status) };
+                  const instanceDetails = <>
+                    <td>
+                      <strong>{instance.domain ?? instance.slug}</strong>
+                      <span>{hasRecordedAccessUrl(instance.accessUrl) ? instance.accessUrl : "尚未登记"}</span>
+                    </td>
+                    <td>
+                      {instance.subscriptionStatus ? (
+                        <>
+                          <strong>{instance.subscriptionPlanName ?? "套餐资料缺失"}</strong>
+                          <span>{subscriptionStatusLabels[instance.subscriptionStatus]}</span>
+                        </>
+                      ) : "未关联"}
+                    </td>
+                    <td>{formatDate(instance.updatedAt)} UTC</td>
+                  </>;
+
+                  return <tr key={instance.id}>
                     <td>
                       <strong>{instance.workspaceName}</strong>
                       <span>{instance.workspaceStatus}</span>
@@ -93,39 +117,18 @@ export default async function InstancesPage({ searchParams }: InstancesPageProps
                           ? "付款成功自动创建"
                           : "管理员应急补建"}
                       </strong>
-                      {instance.status === "pending" ? <span>待管理员开通</span> : null}
                     </td>
-                    <td>
-                      <span className={`status-pill status-${appInstanceStatusTone(instance.status)}`}>
-                        {appInstanceStatusLabels[instance.status]}
-                      </span>
-                    </td>
-                    <td>
-                      <strong>{instance.domain ?? instance.slug}</strong>
-                      <span>{hasRecordedAccessUrl(instance.accessUrl) ? instance.accessUrl : "尚未登记"}</span>
-                    </td>
-                    <td>
-                      {instance.subscriptionStatus ? (
-                        <>
-                          <strong>
-                            {instance.subscriptionPlanName ?? "套餐资料缺失"}
-                          </strong>
-                          <span>
-                            {subscriptionStatusLabels[instance.subscriptionStatus]}
-                          </span>
-                        </>
-                      ) : (
-                        "未关联"
-                      )}
-                    </td>
-                    <td>{formatDate(instance.updatedAt)} UTC</td>
-                    <td>
-                      <Link className="table-link" href={`/admin/instances/${instance.id}`}>
-                        查看详情
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                    {showFirstOpen ? (
+                      <FirstOpenAdminControls fallbackState={state} instanceName={instance.name} mode="row" summary={summary}>
+                        {instanceDetails}
+                      </FirstOpenAdminControls>
+                    ) : <>
+                      <td><span className={`status-pill status-${state.tone}`}>{state.label}</span></td>
+                      {instanceDetails}
+                      <td><Link className="table-link" href={`/admin/instances/${instance.id}`}>查看详情</Link></td>
+                    </>}
+                  </tr>;
+                })}
               </tbody>
             </table>
           </div>

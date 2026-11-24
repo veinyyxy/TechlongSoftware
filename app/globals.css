@@ -1090,6 +1090,17 @@ select {
 .deployment-progress-archive summary { cursor: pointer; font-size: 13px; padding: 12px 0; }
 .deployment-progress code { overflow-wrap: anywhere; }
 
+.first-open-status { display: grid; gap: 6px; justify-items: start; }
+.first-open-status .status-pill { display: inline-flex; }
+.first-open-status code { overflow-wrap: anywhere; }
+.first-open-actions { align-items: start; display: flex; flex-wrap: wrap; gap: 8px; margin-block: 12px; }
+.data-table .first-open-actions { align-items: flex-start; flex-direction: column; margin-block: 0 8px; }
+.first-open-actions .button:disabled { cursor: not-allowed; opacity: .65; transform: none; }
+.first-open-log { list-style: none; margin: 0; padding: 0; }
+.first-open-log li { border-top: 1px solid var(--line); display: grid; gap: 5px; padding-block: 12px; }
+.first-open-log time { color: var(--muted); font-size: 12px; }
+.first-open-log p { margin: 0; overflow-wrap: anywhere; }
+
 .header-actions,
 .form-actions,
 .plan-card-actions {
