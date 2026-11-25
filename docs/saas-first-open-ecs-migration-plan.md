@@ -120,7 +120,7 @@
 | T1 离线镜像与入口 | M4；用模拟资源装配单进程三个步骤，不动 AWS。 | 代码提交、镜像自检和顺序回归；同一构建启动 Web 与开通入口，缺批准/缺依赖不能执行。 | **已完成**（2026-11-24）。同一 Linux/amd64 镜像配置摘要 `sha256:9e0f63d1f15149026c0630e4bb6863dc6d67c3f1d1a24feb46c2abe661c29572` 通过双入口断网验收。见下方完成记录。 |
 | T2 离线按钮、状态与日志 | M1、M2、M5；用两条实例验证只批准 A、不影响 B。可与 T1 分开开发。 | 双人并发点击、执行中再点、越权点按钮／查日志、查看失败日志且无副作用的测试结果。 | **已完成**（2026-11-24）。隔离 PostgreSQL 的 A/B 双会话审批、原进度回读、越权和只读日志验收通过。见下方完成记录。 |
 | T3 离线串联一单 | T1＋T2，接 M3、M6。用模拟 ECS 从按钮走到自检、激活和页面读回。 | 正常轨迹：一个执行编号、一次启动、一份结果；失败轨迹：启动响应丢失、迁移失败、自检不符或提交回读失败均显示正确状态。 | **已完成**（2026-11-24）。模拟 ECS 与回环 PostgreSQL 16.14 通过正常流程和规定的故障场景。见下方完成记录。 |
-| T4 准备并另批安装 | T3 通过，完成 I1–I5 差异。审批前仅准备；安装与客户开通是两件事。 | 分别填写“待批准的差异”和“批准后实际安装及权限核验回执”。只有草案或只通过 CI，不能标记已安装。 | **进行中**（2026-11-24）。基础费用已确认。出站规则与路由候选通过离线核对，待绑定实际依赖及另审增量费用。 |
+| T4 准备并另批安装 | T3 通过，完成 I1–I5 差异。审批前仅准备；安装与客户开通是两件事。 | 分别填写“待批准的差异”和“批准后实际安装及权限核验回执”。只有草案或只通过 CI，不能标记已安装。 | 待验证／— |
 | T5 单实例真实技术验收 | T4 已安装并核验；另行确认准确 Sandbox 任务，禁用该任务的旧执行来源，管理员在这一行点一次。 | 同一实例的执行编号、唯一 task ARN、数据库关键日志、实际 API／镜像摘要、初始版本绑定与页面结果、task 退出记录；无 GitHub 客户开通依赖。 | 待验证／— |
 
 #### T1 本轮记录（2026-11-24，温尼伯）
@@ -159,40 +159,6 @@
 - **故障证据** 启动回包丢失显示「结果未确认」，任务未领取。已知迁移失败和自检镜像摘要不符各自在当前步骤显示「失败」，后续阶段未执行。提交回包丢失和只读回包丢失时，四项原始写入实际已提交，后台仍显示「结果未确认」，客户仍待开通且没有访问地址。另注入部署更新被截断的故障，数据库回滚全部四项写入，页面保持「结果未确认」。所有场景的重复调用保持原执行与原结果；公开日志没有模拟私密值。
 - **配套检查** 源码入口与离线构建产物均通过正常加六种故障轨迹；测试入口为 `FIRST_OPEN_T3_PG_BIN` 配合 `tests/deployment-s3-worker.test.ts` 的 `T3 offline` 用例，设置 `FIRST_OPEN_T3_COMPILED=1` 使用构建产物。开通产物 SHA-256 `13aa671af7189e8b3199b4851d66c59c879ee0685b6bb32093a0ebf05af5f59b`。T2 的原生 PostgreSQL 回归、TypeScript、定向 ESLint、断网应用构建及 Dockerfile 合同检查通过。关联回归 119 项通过、2 项跳过，其中 T3 原生用例已单独通过，另一项缺历史私有回执。历史平台冻结闭包用例仍因旧指纹断言失败；本轮及改动前均为相同摘要与 87 项源文件。
 - **剩余项与下一步** T3 的离线验收已完成，本轮在 T3 收尾。面向 AWS 的运行适配、任务启动时序、安装及权限仍待另审。AWS 调用、生产数据库迁移、IAM 安装、真实任务领取和开通均为 0。T4 等用户另行确认。
-
-#### T4 准备记录（2026-11-24，温尼伯）
-
-- **完成项** 已按 I1–I5 核对停费基线、候选任务定义差异、启动权限、角色与路径、计费和回退点。11 月 24 日 11:26:43 温尼伯的停费记录是历史基线，平台 Service、平台与 Cell 的两台 ALB 及控制台 DNS 已移除，集群与原任务定义保留，两库在当时已停。安装候选以原栈停费后的 `Original` 为基底，差异保留停费状态。[停费记录](aws-environment-tool.md#11-月-24-日更新两台-alb-与平台控制台-dns-纳入停用及恢复)
-- **待批准的差异** 原平台栈保留 Web 默认入口，同时为 Web 和新的一次性 Fargate 任务绑定同一已发布的平台镜像摘要。Web 候选只调用固定版本的私有启动入口，入口用批准编号组装固定 ECS 请求。仅启动角色获得原集群、精确任务定义版本和两条精确可传递角色的权限。ECS 执行角色仅拉镜像和写容器日志，程序角色、控制库授权和 Express／证据／自检路径分别按实际调用收口。候选任务无常驻 Service，先对照停费原模板和实际资源 ID，再锁定安装与回退差异。镜像、角色、网络和安装窗口尚未绑定，当前候选不可执行。[I1–I5 候选差异与待核事实](../ops/aws-sandbox/reviews/saas-first-open-t4.prepared.json)
-- **离线证据** 启动边界只接收 `executionId`，拒绝调用方附带命令、镜像、任务定义、角色、环境或网络参数。并发和重复调用共享一次启动保留。启动保留用数据库锁后的时间检查原一小时批准上限，过期审批的模拟启动次数为 0。临时 PostgreSQL 16.14 的非超级用户验证表明，窄写授权下可读状态，但现有审批和启动 SQL 的行锁分别在 `subscription_purchase_orders` 和 `app_instances` 返回 `42501`。拒绝无额外进度或启动保留，客户投影仍隐藏未确认的地址。[启动边界验证](../tests/ecs-first-open-launcher.test.ts) · [原生 PostgreSQL 验证](../tests/ecs-first-open-t4-postgres.test.mjs)
-- **配套检查** 启动边界与 T4 原生 PostgreSQL 测试各 2 项通过，T2／T3 原生回归 9 项通过，均无跳过。全量 TypeScript、定向 ESLint、候选材料结构与差异检查通过。候选差异文件 SHA-256 为 `79d2ea36c4affaab916bc50f653b62e5fd107fc9cff8e9df26084d8747a0222f`。
-- **剩余项** 缺停费后原模板和私网出口的当前回执、包含实际运行适配的已发布 ECR 摘要、受限数据库操作授权、按任务身份绑定的 Express 和证据输入、启动确认与任务领取的时序、实际任务退出及成本核验。旧 Web 子网配置依赖公网 IP，而开通任务固定关闭公网 IP。需核实到 ECR、日志、Neon、Express writer、证据存储及目标 API 的路径。历史首开任务绑定和停费恢复保持原授权边界。[Fargate 网络要求](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-tasks-services.html)
-- **批准后实际安装及权限核验回执** 待审。AWS 账户调用、生产 SQL、权限安装、恢复和客户开通均为 0。
-- **下一步** 只审定候选材料内的定向只读补核。拟在原账号与区域最多做 STS 1 次和 22 次元数据读取，仅收口原平台栈、原 Cell 栈、原集群、两个固定 VPC 和 Express writer 的基础事实。遇到漂移、分页或需要私密值即停止。收口后继续 T4，实际安装及 T5 分别另审。
-
-#### T4 定向只读补核记录（2026-11-24，温尼伯）
-
-- **完成项与范围** 用户批准原清单的定向读取，本轮在停费状态下执行。18:28:55–18:31:09 完成 STS 1 次与 22 次元数据读取，23 次均收到响应，每项仅调用一次。AWS 写入、恢复、生产库连接、发布、IAM 安装、任务启动与客户开通均为 0。[原清单](../ops/aws-sandbox/reviews/saas-first-open-t4.prepared.json)
-- **停费证据** 两个 AWS 原栈均为 `UPDATE_COMPLETE`，平台／Cell 原模板分别保留 7／12 项并匹配活跃资源列表，各有 0 个待执行变更集。停费 `Original` 规范化 SHA-256 分别为 `c57316d6e584fd1a6e31e6f21fe0ddd5b920ec30e4e98324a70d7521ab0a1c27` 和 `42fc857cbbce881c411ff03997805e2d38635bd498f5d2c6ba695fc884a1e355`。平台集群活动服务／运行任务／待运行任务均为 0，服务列表和期望运行的任务列表为空。`techlong-sandbox-express-d001` 及同一 writer 实例均为 `stopped`，Aurora PostgreSQL 17.9、端口 5432、IAM 数据库认证开启，当前 Express 使用 Internet Access Gateway、未开启 VPC networking。ELB、DNS 与独立旧数据库的状态沿用前次证据，本轮范围仅核对两个栈的资源归属与缺失声明。
-- **网络证据** 平台 VPC 与 Cell VPC 分别返回 3 个和 2 个子网。有效路由表的唯一非本地默认路由是到互联网网关的 IPv4 路由，未发现 NAT 路由、IPv6 子网关联或 VPC 端点。当前固定关闭公网 IP 的任务放置缺少已验证的镜像拉取与外部连接路径，现有拓扑也未证明到 Express gateway 的连接与 TLS。网络配置与实时连通性分别验收。[Fargate 网络文档](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-tasks-services.html)
-- **执行沿革和回执** 保留的 Web 任务定义 `techlong-sandbox-platform-web-v1:18` 为 `ACTIVE`，绑定平台 ECR 仓库中的固定摘要。它含入口或命令覆盖。第一次本机检查把这项覆盖当作停费漂移，以 `WEB_ENTRY_OVERRIDE_DRIFT` 停止。纠正后仅完成余下 12 项未调用读取，保留首段，不重读 STS 或元数据。实际覆盖内容未保存，安装前需精确核对。首段 [去敏回执](../.local-secrets/saas-first-open-t4-readonly-20261124/first-stop-redacted-receipt.json) SHA-256 `0a879eae95f2c9a982c61b2b553d33126470ae329ac8f36bf5c2ae86cbc3d8c1`。最终 [去敏回执](../.local-secrets/saas-first-open-t4-readonly-20261124/redacted-receipt.json) SHA-256 `dc18d81266b84f8f3c51e988d0fb39515acd63b675c848ae0d0648e18c744089`。已复核调用顺序、唯一性和两段原件摘要。
-- **剩余项与下一步** 只读补核已办结，T4 保持进行中。下一步在离线状态下收口网络最小差异、费用与默认 Web 入口的准确差异，已发布的平台镜像、最小数据库授权、实际运行适配、连通性和安装核验继续待办。当前保持停费，后续需要实际连通性或上线时再按准确范围审定恢复。实际安装与权限回执仍为待审，T5 另审。
-
-#### T4 网络、费用和 Web 入口离线记录（2026-11-24，温尼伯）
-
-- **Web 入口** 用停费归档重建原平台栈 `Original`，规范化摘要与本轮实测的 `c57316d6…a1c27` 一致。归属 `:18` 的唯一 Web 容器在模板中显式声明 `node ops/platform-hosting-v1/start.mjs`，未声明 `EntryPoint`。其命令与 Dockerfile 的 `CMD` 相同。离线对比仅删除 `Command`，让 Web 使用同一默认入口，摘要为 `2f7196674ee3729c452622d66b3101c3d336b0d36b68b7760219412fc4259f95`。实际 ECS 回执仅保留覆盖存在的证明，镜像发布后仍须同时核对镜像配置和新任务定义。[镜像 Dockerfile](../ops/platform-hosting-v1/Dockerfile)
-- **网络候选** 一次 Sandbox 任务采用平台 VPC 的单可用区专用私有子网及无入站规则的任务安全组，继续关闭公网 IP。在已核实有 IGW 路由的 `ca-central-1a` 同区公网子网放一个 zonal NAT 和 EIP，仅为新增私有子网建立专用路由表、关联及默认路由。候选独立归属共 7 项新增，现有 Web 和 Cell 路由及停费工具管理的资源无修改。已核对实际代码所需的 443（镜像、AWS API、Neon、健康检查）、5432（Express gateway）和 8443（既有 mTLS 控制入口）。候选 CIDR 和安全组目的地均保留未绑定，现有 8443 监听器待另批恢复及核验。[网络与入口候选差异](../ops/aws-sandbox/reviews/saas-first-open-t4-network-web.prepared.json) · [Fargate 出站](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/networking-outbound.html) · [Aurora gateway 网络](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_VPC.WorkingWithRDSInstanceinaVPC.html)
-- **费用** `ca-central-1` 官方目录核得 NAT 为 USD 0.05／小时和 USD 0.05／GB，EIP 为 USD 0.005／小时。仅 NAT 和 EIP 常驻 730 小时约 USD 40.15。若两者保留 2 小时、NAT 处理 1 GB 且 Fargate 0.5 vCPU／1 GiB 运行 1 小时，基础网络和计算约 USD 0.19。示例不含目的地隔离、日志、证据存储、互联网传输及现有资源费用。NAT 部分小时按整小时计。任务退出后 NAT 和 EIP 继续计费，未来启用须将精确时段、单独批准的清理及回读范围一并审查。[区域 NAT 价目表](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/ca-central-1/index.csv) · [AWS VPC 计费](https://aws.amazon.com/vpc/pricing/) · [AWS Fargate 计费](https://aws.amazon.com/fargate/pricing/)
-- **证据** 核对了原模板重建、命令删除和命令漂移拒绝、固定子网与可用区、7 项新增边界、独立路由关联、无入站和关闭公网 IP，以及费用重算。候选文件 SHA-256 `0f34cbb172e872d271a4a3357fddb9cd0c86feac7228f436acd15fd60aff460b`。AWS 账户 API、生产库连接、网络或 IAM 安装、恢复和任务启动均为 0。公开价格文件使用未登录的 AWS 公共目录。
-- **剩余项与下一步** T4 保持进行中。NAT 基础差异尚缺当前 VPC／子网 CIDR、NAT/EIP 安装权限和可验证的目的地限制。先离线收口实际运行端口的准确目标和出站约束，确保 HTTPS 通用出站不会使 GitHub 可达，再合并必要的定向补核及完整费用。镜像发布、数据库授权、实际运行适配、连通性及安装均待审。T5 状态保持待验证。
-
-#### T4 出站依赖、规则与隔离费用记录（2026-11-24，温尼伯）
-
-- **完成项** 用户确认上一轮基础网络及计算费用，本轮离线核对 Fargate 冷启动、开通管理及自检的出站依赖。已从源码与停费回执中的 endpoint SHA-256 绑定 Express writer。保留的平台 ECR registry 和日志端点可按现有范围列入核验；ECR/S3 实际镜像层主机、Neon HTTPS SQL、确切 AWS API、S3 版本与租户主机须随真实适配器绑定。Web 和启动器的依赖按其自身边界审批。[出站候选差异](../ops/aws-sandbox/reviews/saas-first-open-t4-egress.prepared.json)
-- **隔离候选** 任务、Firewall endpoint、zonal NAT 采用原平台 VPC 同一可用区三个专用子网及独立路由表。任务出站先经 Firewall 到 NAT，NAT 回程按任务子网 CIDR 经过同一 Firewall endpoint。任务继续关闭公网 IP，现有 VPC 主路由、Web 和 Cell 路由及 IGW 关联保持原样。专用任务子网需收口内部直通流量。Route 53 Resolver 的新空规则组在 VPC 级关联，防火墙解析验证仅限任务源地址范围。该关联、区域与可用区支持性、DNS 原配置和端点回读须另审。[AWS 对称路由](https://aws.amazon.com/blogs/networking-and-content-delivery/deployment-models-for-aws-network-firewall-with-vpc-routing-enhancements/) · [解析验证边界](https://docs.aws.amazon.com/network-firewall/latest/developerguide/route53-resolved-ip-validation-how-it-works.html)
-- **规则和离线证据** 编译器输出严格顺序、默认拒绝的候选规则。TCP 443 和 8443 同时要求精确 TLS SNI 和该主机的 Resolver 目标；已知 GitHub 域及其他未获准出站被拒。固定 `pg 8.16.3` 的内存连接先发 PostgreSQL `SSLRequest`，收到 `S` 后才发带 writer SNI 的 TLS ClientHello，因此 TCP 5432 只按精确 writer 解析目标匹配，由程序执行 IAM 和 TLS 验证。8443 保留端到端 mTLS。新增规则测试 2 项和启动边界回归 2 项通过，定向 ESLint、路由和费用合同检查通过。候选 SHA-256 `9c78e2a5c7a51d58e08e600214b49a506a7f74a3502d863fe8fbf08e1c8e8760`。现有证据覆盖生成的规则，供应商解析、实际连接和拦截日志仍待验。[规则编译](../ops/aws-sandbox/first-open-egress-policy.mjs) · [规则测试](../tests/first-open-egress-policy.test.mjs) · [AWS 精确解析规则](https://docs.aws.amazon.com/network-firewall/latest/developerguide/route53-resolved-ip-validation-rules.html)
-- **新增费用待审** 加拿大中部区标准 Firewall endpoint 为 USD 0.395／小时、USD 0.065／GB。沿用已确认的 2 小时、1 GB 和 1 小时 Fargate 示例，符合相同路径 NAT 抵扣时基础小计约 USD 0.89，无抵扣时约 USD 1.04，均未含 DNS、日志、传输及额外探测时长。仅 Firewall 与 EIP 常驻 730 小时约 USD 292，限时 Sandbox 候选应单独批准计费时段和清理回读。以上增量未纳入此前费用确认。[加拿大中部区官方目录](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSNetworkFirewall/current/ca-central-1/index.json) · [Network Firewall 计费及抵扣](https://aws.amazon.com/network-firewall/pricing/)
-- **剩余项与下一步** T4 继续标为进行中。实际 `loadRuntime` 仍关闭。下一步只离线绑定实际运行适配器和准确启动及运行主机集合，再合并必要的子网、DNS 和安装身份定向补核。后续验收须同时得到镜像冷启动和必要连接通过，以及从同一受控位置阻断 GitHub、直连地址与错配 SNI 的证据。实际安装、连通性、增量费用与 T5 另审。本轮 AWS 账户 API、生产库连接、安装、恢复和任务运行均为 0。
 
 **判断进度：** T1–T3 通过只能说“代码已离线接通”；T4 有实际安装回执才能说“环境已具备执行条件”；只有 T5 的整条真实记录通过，才能说“这一单已由 SaaS 在 AWS 内开通”。T5 不通过就记录卡在哪个内部步骤，不用重新付款或重复跑整单来证明进度。
 

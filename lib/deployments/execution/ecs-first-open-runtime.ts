@@ -1,7 +1,7 @@
 import { CLAIM_FIRST_ONBOARDING, SELECT_FIRST_ONBOARDING, type FirstOnboardingReviewRow } from "../first-onboarding.ts";
 import type { SoftwareRelease } from "../releases/contract.ts";
 import { createEcsFirstOpenCompletion } from "./ecs-first-open-completion.ts";
-import { FIRST_OPEN_APPROVAL_MAX_WINDOW_MS, type EcsFirstOpenApproval, type EcsFirstOpenPorts } from "./ecs-first-open.ts";
+import type { EcsFirstOpenApproval, EcsFirstOpenPorts } from "./ecs-first-open.ts";
 
 const READ_APPROVAL = `SELECT opened.id AS "executionId", opened.approved_by AS "approvedBy",
   opened.approved_at AS "approvedAt", opened.job_id AS "jobId", instance.id AS "instanceId",
@@ -23,8 +23,7 @@ const CLAIM_APPROVED = CLAIM_FIRST_ONBOARDING.replace("WITH eligible", `WITH app
     AND opened.dispatch_token = opened.id AND opened.dispatch_outcome = 'acknowledged' AND opened.dispatch_task_arn = $19
     AND opened.approved_by = $20 AND opened.approved_at = $21::bigint
     AND opened.review_sha256 = $22 AND opened.release_id = $23
-    AND opened.artifact_ref = ($8::jsonb)->>'artifactRef'
-    AND $4::bigint <= opened.approved_at + ${FIRST_OPEN_APPROVAL_MAX_WINDOW_MS}
+    AND opened.artifact_ref = ($8::jsonb)->>'artifactRef' AND $4::bigint <= opened.approved_at + 3600000
   FOR SHARE OF opened, actor
 ), eligible`).replace(SELECT_FIRST_ONBOARDING,
   `${SELECT_FIRST_ONBOARDING} AND EXISTS (SELECT 1 FROM approval)`);

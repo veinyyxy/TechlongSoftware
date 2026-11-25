@@ -15,7 +15,6 @@ import { runFirstOnboardingManagement, type DeploymentWorkerDependencies } from 
 
 const executionIdPattern = /^exec_[a-f0-9]{32}$/;
 const digestPattern = /^[a-f0-9]{64}$/;
-export const FIRST_OPEN_APPROVAL_MAX_WINDOW_MS = 3_600_000;
 
 export function isFirstOpenExecutionId(value: string): boolean {
   return executionIdPattern.test(value);
@@ -99,8 +98,7 @@ export async function runEcsFirstOpen(executionId: string, ports: EcsFirstOpenPo
   const startedAt = now();
   if (!approval || approval.executionId !== executionId || !/^[A-Za-z0-9_-]{3,128}$/.test(approval.approvedBy) ||
     !Number.isSafeInteger(approval.approvedAt) || approval.approvedAt <= 0 || approval.approvedAt > startedAt ||
-    !Number.isSafeInteger(approval.writeBefore) || approval.writeBefore <= startedAt ||
-    approval.writeBefore > startedAt + FIRST_OPEN_APPROVAL_MAX_WINDOW_MS ||
+    !Number.isSafeInteger(approval.writeBefore) || approval.writeBefore <= startedAt || approval.writeBefore > startedAt + 3_600_000 ||
     !/^job_[a-f0-9]{24}$/.test(approval.jobId) || !digestPattern.test(approval.reviewSha256) || !digestPattern.test(approval.baselineDigest) ||
     !/^[A-Za-z0-9._-]{1,100}$/.test(approval.databaseSchemaVersion) || !/^[a-z0-9][a-z0-9.-]{2,252}$/.test(approval.dnsTarget)) {
     throw Error("ECS_FIRST_OPEN_APPROVAL_REQUIRED");
