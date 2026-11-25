@@ -1,0 +1,129 @@
+{
+  "schema": "techlong/saas-first-open-t4-network-web-prepared/v1",
+  "status": "OFFLINE_DELTA_PENDING_EGRESS_BINDINGS",
+  "installAuthorized": false,
+  "executionManifest": null,
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "parent": {
+    "preparedFile": "ops/aws-sandbox/reviews/saas-first-open-t4.prepared.json",
+    "preparedSha256": "79d2ea36c4affaab916bc50f653b62e5fd107fc9cff8e9df26084d8747a0222f",
+    "stoppedReadbackSha256": "dc18d81266b84f8f3c51e988d0fb39515acd63b675c848ae0d0648e18c744089",
+    "stoppedPlatformOriginalCanonicalSha256": "c57316d6e584fd1a6e31e6f21fe0ddd5b920ec30e4e98324a70d7521ab0a1c27"
+  },
+  "recordedSideEffects": {
+    "awsAccountApiCalls": 0,
+    "productionDatabaseConnections": 0,
+    "restores": 0,
+    "iamWrites": 0,
+    "clientTaskStarts": 0
+  },
+  "I1WebEntry": {
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "retainedTaskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:18",
+    "evidence": "The archived full platform Original reduces to the exact observed stopped template hash. Its single web container declares the same command as the Dockerfile CMD and omits EntryPoint. The ECS readback retained only the presence of an override.",
+    "commandOnlyPatch": [
+      {"op": "test", "path": "/Resources/TaskDefinition/Properties/ContainerDefinitions/0/Name", "value": "web"},
+      {"op": "test", "path": "/Resources/TaskDefinition/Properties/ContainerDefinitions/0/Command", "value": ["node", "ops/platform-hosting-v1/start.mjs"]},
+      {"op": "remove", "path": "/Resources/TaskDefinition/Properties/ContainerDefinitions/0/Command"}
+    ],
+    "commandOnlyComparisonCanonicalSha256": "2f7196674ee3729c452622d66b3101c3d336b0d36b68b7760219412fc4259f95",
+    "entryPointRemainsOmitted": true,
+    "deploymentGates": ["Independently verified published image config preserves the Web default and explicit first-open entry.", "Bind the Web role and image changes in the final stopped-platform change set.", "Read back the exact new revision and its image defaults."
+    ]
+  },
+  "I4Network": {
+    "candidatePurpose": "Single-AZ Sandbox opening task connectivity. NAT provides transport. Destination restrictions are required before GitHub-isolated acceptance.",
+    "networkOwnerCandidate": "techlong-sandbox-first-open-egress-v1",
+    "placement": {
+      "platformVpcId": "vpc-011dab69fff93972b",
+      "availabilityZone": "ca-central-1a",
+      "existingPublicNatSubnetId": "subnet-023b1a81311709ed3",
+      "existingPublicRouteTableId": "rtb-006fb14f444eec219",
+      "existingInternetGatewayId": "igw-0bd95cc8d2c24d5d5",
+      "clusterArn": "arn:aws:ecs:ca-central-1:402010193138:cluster/techlong-sandbox-platform",
+      "assignPublicIp": "DISABLED",
+      "newPrivateSubnetCidr": null,
+      "privateSubnetIdForLaunch": null,
+      "securityGroupIdForLaunch": null
+    },
+    "placementEvidence": "The 11/24 scoped read pins the selected available subnet and its active IPv4 IGW default. Reuse this public subnet for the NAT attachment only. The historical platform VPC primary IPv4 CIDR was 172.31.0.0/16. Select a non-overlapping private CIDR from the current full VPC and subnet allocation set before rendering.",
+    "isolatedOwnership": "The network fragment adds a dedicated stack so the existing stopped platform and Cell resource sets and their stop/restore contracts do not change. Placement remains in the existing VPC and cluster. No fallback to any existing Web subnet or security group.",
+    "delta": {
+      "add": {
+        "FirstOpenPrivateSubnet": {"Type": "AWS::EC2::Subnet", "Properties": {"VpcId": "vpc-011dab69fff93972b", "AvailabilityZone": "ca-central-1a", "CidrBlock": {"$bind": "validatedNonOverlappingPrivateCidr"}, "MapPublicIpOnLaunch": false}},
+        "FirstOpenEgressAddress": {"Type": "AWS::EC2::EIP", "Properties": {"Domain": "vpc"}},
+        "FirstOpenZonalNat": {"Type": "AWS::EC2::NatGateway", "Properties": {"AvailabilityMode": "zonal", "ConnectivityType": "public", "SubnetId": "subnet-023b1a81311709ed3", "AllocationId": {"Fn::GetAtt": ["FirstOpenEgressAddress", "AllocationId"]}}},
+        "FirstOpenPrivateRouteTable": {"Type": "AWS::EC2::RouteTable", "Properties": {"VpcId": "vpc-011dab69fff93972b"}},
+        "FirstOpenPrivateAssociation": {"Type": "AWS::EC2::SubnetRouteTableAssociation", "Properties": {"SubnetId": {"Ref": "FirstOpenPrivateSubnet"}, "RouteTableId": {"Ref": "FirstOpenPrivateRouteTable"}}},
+        "FirstOpenDefaultRoute": {"Type": "AWS::EC2::Route", "Properties": {"RouteTableId": {"Ref": "FirstOpenPrivateRouteTable"}, "DestinationCidrBlock": "0.0.0.0/0", "NatGatewayId": {"Ref": "FirstOpenZonalNat"}}},
+        "FirstOpenTaskSecurityGroup": {"Type": "AWS::EC2::SecurityGroup", "Properties": {"VpcId": "vpc-011dab69fff93972b", "GroupDescription": "SaaS first-open task egress only", "SecurityGroupIngress": [], "SecurityGroupEgress": {"$bind": "reviewedExactDestinationRules"}}}
+      },
+      "modifyExisting": [],
+      "removeExisting": []
+    },
+    "ports": [
+      {"port": 443, "targets": ["Platform image ECR and S3 layers", "CloudWatch Logs", "Reviewed AWS APIs and evidence S3", "Exact Neon HTTPS SQL host", "Exact tenant API HTTPS health/readiness"], "control": "Fix destinations, verified TLS and service IAM/resource policy from the final composition."},
+      {"port": 5432, "targets": ["Express writer through its active Internet Access Gateway"], "control": "Verify the reviewed writer DNS/SNI, IAM login and TLS. Keep Express VPC networking mode unchanged."},
+      {"port": 8443, "targets": ["Reviewed existing Cell control listener on the exact tenant hostname"], "control": "Verify mTLS, server hostname and operation fence after separate restoration. No new listener, public ingress rule, or shared security group change in this delta."}
+    ],
+    "unbound": [
+      "Current VPC and subnet CIDRs, free IPv4 capacity, same-zone public NAT and EIP network border group, and network ACL/DNS facts",
+      "Destination binding for real dependency endpoints and enforceable deny of unapproved egress, including GitHub",
+      "Exact installer IAM and boundaries, including scoped NAT/EIP operations",
+      "Live reachability, TLS and stopped-state teardown readback (each within separately approved scope)"
+    ],
+    "githubAcceptanceGate": "Do not turn the candidate into a template while destination rules are unbound. No general-purpose 443/5432/8443 task egress. Prove the selected rule or enforcement component can allow needed endpoints and reject github.com, api.github.com and dependency endpoints without GitHub credentials; NAT alone supplies no destination allowlist. Validate any additional enforcement and its costs separately.",
+    "references": [
+      "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/networking-outbound.html",
+      "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ec2-natgateway.html",
+      "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_VPC.WorkingWithRDSInstanceinaVPC.html",
+      "https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html"
+    ]
+  },
+  "I5CostAndRollback": {
+    "billableResourcesInCandidate": ["One zonal NAT Gateway", "One public IPv4 address"],
+    "costInputs": {"currency": "USD", "natGatewayHour": "0.05", "natPerGb": "0.05", "publicIpv4Hour": "0.005", "fargateVcpuHour": "0.04456", "fargateGbHour": "0.004865"},
+    "catalogs": [
+      {
+        "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/ca-central-1/index.csv",
+        "version": "20261124231417",
+        "publicationDate": "2026-11-24T23:14:17Z",
+        "rawSha256": "68666d37476860c8bf26731f043e950498b9566a7ce37ac01902c9da28c1e5bc",
+        "skus": {"CAN1-NatGateway-Hours": "N8T4EWFNU7QDZYSA", "CAN1-NatGateway-Bytes": "E4JGN2UYVDEVWJNW"}
+      },
+      {
+        "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonVPC/current/ca-central-1/index.json",
+        "version": "20261123222247",
+        "publicationDate": "2026-11-23T22:22:47Z",
+        "rawSha256": "65f8d0fb375c1fddde912f029df230952abf44ddea63c7f64bd311ddd7ccbcd3",
+        "skus": {"CAN1-PublicIPv4:InUseAddress": "4Q2UVHZNUYYAPGTD", "CAN1-PublicIPv4:IdleAddress": "RMW3Z48EK2Z4WRP2"}
+      },
+      {
+        "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/ca-central-1/index.json",
+        "version": "20261111234623",
+        "publicationDate": "2026-11-11T23:46:23Z",
+        "rawSha256": "0d5969eb0b45ca38f5da1150e7099eeafdf5e544ea59d369ead4da4d236bc90c",
+        "skus": {"CAN1-Fargate-vCPU-Hours:perCPU": "AMFFWAW2YZ4NE23V", "CAN1-Fargate-GB-Hours": "6VAMAU37C7C88BUA"}
+      }
+    ],
+    "pricePage": "https://aws.amazon.com/vpc/pricing/",
+    "illustration": {
+      "idleNetworkHours": 730,
+      "idleNetworkOnlyUsd": "40.15",
+      "natAndAddressHours": 2,
+      "natDataProcessedGb": 1,
+      "shortWindowBasicNetworkOnlyUsd": "0.16",
+      "fargateExampleTaskHours": 1,
+      "fargateExampleVcpu": 0.5,
+      "fargateExampleGb": 1,
+      "fargateExampleComputeUsd": "0.027145",
+      "shortWindowBasicNetworkAndComputeUsd": "0.187145"
+    },
+    "costExclusions": ["Logs and evidence storage", "Internet data transfer and other existing charges", "Any additional forced egress enforcement or endpoints", "Tax and discounts"],
+    "billingBoundary": "NAT hours round up. Task exit does not stop NAT or release the EIP. A future paid interval requires exact duration and network teardown by separate approval; no scheduled or automatic deletion.",
+    "futureTeardownEvidence": "Confirm no task is active on the dedicated subnet, and observe the reviewed route, NAT and EIP cleanup followed by release/readback of just the dedicated resources. The platform and Cell stop/restore tools do not own this paid network candidate.",
+    "installWindow": null,
+    "rollbackAuthorized": false
+  }
+}

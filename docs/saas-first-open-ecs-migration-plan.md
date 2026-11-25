@@ -120,7 +120,7 @@
 | T1 离线镜像与入口 | M4；用模拟资源装配单进程三个步骤，不动 AWS。 | 代码提交、镜像自检和顺序回归；同一构建启动 Web 与开通入口，缺批准/缺依赖不能执行。 | **已完成**（2026-11-24）。同一 Linux/amd64 镜像配置摘要 `sha256:9e0f63d1f15149026c0630e4bb6863dc6d67c3f1d1a24feb46c2abe661c29572` 通过双入口断网验收。见下方完成记录。 |
 | T2 离线按钮、状态与日志 | M1、M2、M5；用两条实例验证只批准 A、不影响 B。可与 T1 分开开发。 | 双人并发点击、执行中再点、越权点按钮／查日志、查看失败日志且无副作用的测试结果。 | **已完成**（2026-11-24）。隔离 PostgreSQL 的 A/B 双会话审批、原进度回读、越权和只读日志验收通过。见下方完成记录。 |
 | T3 离线串联一单 | T1＋T2，接 M3、M6。用模拟 ECS 从按钮走到自检、激活和页面读回。 | 正常轨迹：一个执行编号、一次启动、一份结果；失败轨迹：启动响应丢失、迁移失败、自检不符或提交回读失败均显示正确状态。 | **已完成**（2026-11-24）。模拟 ECS 与回环 PostgreSQL 16.14 通过正常流程和规定的故障场景。见下方完成记录。 |
-| T4 准备并另批安装 | T3 通过，完成 I1–I5 差异。审批前仅准备；安装与客户开通是两件事。 | 分别填写“待批准的差异”和“批准后实际安装及权限核验回执”。只有草案或只通过 CI，不能标记已安装。 | **进行中**（2026-11-24）。已在停费状态完成定向只读补核，待收口网络和其余安装差异。 |
+| T4 准备并另批安装 | T3 通过，完成 I1–I5 差异。审批前仅准备；安装与客户开通是两件事。 | 分别填写“待批准的差异”和“批准后实际安装及权限核验回执”。只有草案或只通过 CI，不能标记已安装。 | **进行中**（2026-11-24）。已核对停费基线、Web 入口和网络费用候选，待收口出站限制与安装差异。 |
 | T5 单实例真实技术验收 | T4 已安装并核验；另行确认准确 Sandbox 任务，禁用该任务的旧执行来源，管理员在这一行点一次。 | 同一实例的执行编号、唯一 task ARN、数据库关键日志、实际 API／镜像摘要、初始版本绑定与页面结果、task 退出记录；无 GitHub 客户开通依赖。 | 待验证／— |
 
 #### T1 本轮记录（2026-11-24，温尼伯）
@@ -177,6 +177,14 @@
 - **网络证据** 平台 VPC 与 Cell VPC 分别返回 3 个和 2 个子网。有效路由表的唯一非本地默认路由是到互联网网关的 IPv4 路由，未发现 NAT 路由、IPv6 子网关联或 VPC 端点。当前固定关闭公网 IP 的任务放置缺少已验证的镜像拉取与外部连接路径，现有拓扑也未证明到 Express gateway 的连接与 TLS。网络配置与实时连通性分别验收。[Fargate 网络文档](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-tasks-services.html)
 - **执行沿革和回执** 保留的 Web 任务定义 `techlong-sandbox-platform-web-v1:18` 为 `ACTIVE`，绑定平台 ECR 仓库中的固定摘要。它含入口或命令覆盖。第一次本机检查把这项覆盖当作停费漂移，以 `WEB_ENTRY_OVERRIDE_DRIFT` 停止。纠正后仅完成余下 12 项未调用读取，保留首段，不重读 STS 或元数据。实际覆盖内容未保存，安装前需精确核对。首段 [去敏回执](../.local-secrets/saas-first-open-t4-readonly-20261124/first-stop-redacted-receipt.json) SHA-256 `0a879eae95f2c9a982c61b2b553d33126470ae329ac8f36bf5c2ae86cbc3d8c1`。最终 [去敏回执](../.local-secrets/saas-first-open-t4-readonly-20261124/redacted-receipt.json) SHA-256 `dc18d81266b84f8f3c51e988d0fb39515acd63b675c848ae0d0648e18c744089`。已复核调用顺序、唯一性和两段原件摘要。
 - **剩余项与下一步** 只读补核已办结，T4 保持进行中。下一步在离线状态下收口网络最小差异、费用与默认 Web 入口的准确差异，已发布的平台镜像、最小数据库授权、实际运行适配、连通性和安装核验继续待办。当前保持停费，后续需要实际连通性或上线时再按准确范围审定恢复。实际安装与权限回执仍为待审，T5 另审。
+
+#### T4 网络、费用和 Web 入口离线记录（2026-11-24，温尼伯）
+
+- **Web 入口** 用停费归档重建原平台栈 `Original`，规范化摘要与本轮实测的 `c57316d6…a1c27` 一致。归属 `:18` 的唯一 Web 容器在模板中显式声明 `node ops/platform-hosting-v1/start.mjs`，未声明 `EntryPoint`。其命令与 Dockerfile 的 `CMD` 相同。离线对比仅删除 `Command`，让 Web 使用同一默认入口，摘要为 `2f7196674ee3729c452622d66b3101c3d336b0d36b68b7760219412fc4259f95`。实际 ECS 回执仅保留覆盖存在的证明，镜像发布后仍须同时核对镜像配置和新任务定义。[镜像 Dockerfile](../ops/platform-hosting-v1/Dockerfile)
+- **网络候选** 一次 Sandbox 任务采用平台 VPC 的单可用区专用私有子网及无入站规则的任务安全组，继续关闭公网 IP。在已核实有 IGW 路由的 `ca-central-1a` 同区公网子网放一个 zonal NAT 和 EIP，仅为新增私有子网建立专用路由表、关联及默认路由。候选独立归属共 7 项新增，现有 Web 和 Cell 路由及停费工具管理的资源无修改。已核对实际代码所需的 443（镜像、AWS API、Neon、健康检查）、5432（Express gateway）和 8443（既有 mTLS 控制入口）。候选 CIDR 和安全组目的地均保留未绑定，现有 8443 监听器待另批恢复及核验。[网络与入口候选差异](../ops/aws-sandbox/reviews/saas-first-open-t4-network-web.prepared.json) · [Fargate 出站](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/networking-outbound.html) · [Aurora gateway 网络](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_VPC.WorkingWithRDSInstanceinaVPC.html)
+- **费用** `ca-central-1` 官方目录核得 NAT 为 USD 0.05／小时和 USD 0.05／GB，EIP 为 USD 0.005／小时。仅 NAT 和 EIP 常驻 730 小时约 USD 40.15。若两者保留 2 小时、NAT 处理 1 GB 且 Fargate 0.5 vCPU／1 GiB 运行 1 小时，基础网络和计算约 USD 0.19。示例不含目的地隔离、日志、证据存储、互联网传输及现有资源费用。NAT 部分小时按整小时计。任务退出后 NAT 和 EIP 继续计费，未来启用须将精确时段、单独批准的清理及回读范围一并审查。[区域 NAT 价目表](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/ca-central-1/index.csv) · [AWS VPC 计费](https://aws.amazon.com/vpc/pricing/) · [AWS Fargate 计费](https://aws.amazon.com/fargate/pricing/)
+- **证据** 核对了原模板重建、命令删除和命令漂移拒绝、固定子网与可用区、7 项新增边界、独立路由关联、无入站和关闭公网 IP，以及费用重算。候选文件 SHA-256 `0f34cbb172e872d271a4a3357fddb9cd0c86feac7228f436acd15fd60aff460b`。AWS 账户 API、生产库连接、网络或 IAM 安装、恢复和任务启动均为 0。公开价格文件使用未登录的 AWS 公共目录。
+- **剩余项与下一步** T4 保持进行中。NAT 基础差异尚缺当前 VPC／子网 CIDR、NAT/EIP 安装权限和可验证的目的地限制。先离线收口实际运行端口的准确目标和出站约束，确保 HTTPS 通用出站不会使 GitHub 可达，再合并必要的定向补核及完整费用。镜像发布、数据库授权、实际运行适配、连通性及安装均待审。T5 状态保持待验证。
 
 **判断进度：** T1–T3 通过只能说“代码已离线接通”；T4 有实际安装回执才能说“环境已具备执行条件”；只有 T5 的整条真实记录通过，才能说“这一单已由 SaaS 在 AWS 内开通”。T5 不通过就记录卡在哪个内部步骤，不用重新付款或重复跑整单来证明进度。
 
