@@ -4,7 +4,7 @@
 
 ## 当前主线状态：SaaS 租户首开 T4 安装准备（2026-11-24，温尼伯）
 
-**当前唯一继续点为 T4 的定向只读补核待审。** I1–I5 候选差异及离线检查已记录，原云环境继续停费。现场补核、实际安装和 T5 单实例真实验收仍按准确范围分别确认。[方案第 6.1 节](saas-first-open-ecs-migration-plan.md#61-跟踪表每次推进更新哪一行)
+**当前唯一继续点为 T4 离线收口安装差异。** 定向只读补核已完成，停费条件下取得两个原模板、平台集群与 Express 状态及 VPC 路由证据。优先收口关闭公网 IP 后的出口、Express 路径、成本和保留 Web 任务定义的入口差异。实际安装、恢复和 T5 仍按准确范围分别确认。[方案第 6.1 节](saas-first-open-ecs-migration-plan.md#61-跟踪表每次推进更新哪一行)
 
 T1 同镜像双入口、T2 实例级审批和 T3 模拟 ECS 串联的离线验收均已通过。[T1 完成记录](saas-first-open-ecs-migration-plan.md#t1-完成记录2026-11-24-164542温尼伯) · [T2 完成记录](saas-first-open-ecs-migration-plan.md#t2-完成记录2026-11-24温尼伯) · [T3 完成记录](saas-first-open-ecs-migration-plan.md#t3-完成记录2026-11-24温尼伯)
 

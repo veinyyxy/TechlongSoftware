@@ -6,7 +6,7 @@
 
 用户已通知开始 T4。按 [SaaS 首开 ECS 迁移方案](saas-first-open-ecs-migration-plan.md)第 5.1 节准备 I1–I5 的安装差异、离线核验及准确待审范围。优先复用停费后保留的资源。现场补核、恢复、发布、安装和权限修改依各自准确范围另审，客户首开留在 T5。
 
-离线候选及边界验证已记入 [T4 准备记录](saas-first-open-ecs-migration-plan.md#t4-准备记录2026-11-24温尼伯)。当前只待审定 [一次定向只读补核](../ops/aws-sandbox/reviews/saas-first-open-t4.prepared.json)，绑定停费后原模板和网络基础事实。实际安装仍为进行中。
+用户已批准的 [一次定向只读补核](../ops/aws-sandbox/reviews/saas-first-open-t4.prepared.json)于温尼伯 18:31:09 完成。两个原栈绑定停费后模板，平台集群活动服务／运行任务／待运行任务均为 0，Express 集群及 writer 均为 `stopped`。两个固定 VPC 的子网出口只核到 IPv4 互联网网关，未发现 VPC 端点。当前唯一继续点是离线收口关闭公网 IP 的开通任务所需的网络差异、费用与 Web 入口偏差，保持停费。T4 安装仍为进行中。[T4 只读补核记录](saas-first-open-ecs-migration-plan.md#t4-定向只读补核记录2026-11-24温尼伯)
 
 每轮开始说明当前 T 编号和唯一交付，结束将完成项、证据、剩余项及下一步写回[方案第 6.1 节](saas-first-open-ecs-migration-plan.md#61-跟踪表每次推进更新哪一行)。未达到本阶段完成标准时维持进行中。当前云环境按用户要求维持停费。
 
