@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { isFirstOpenDispatchSelection, type FirstOpenDispatchSelection } from "../../lib/deployments/execution/ecs-first-open-dispatch.ts";
 import type { SingleDeploymentClaimScope } from "../../lib/deployments/execution/single-deployment-scope.ts";
+import { isFirstOpenRdsPrivateSubnetIds } from "../../lib/deployments/execution/first-open-tenant-network.ts";
 import type { FirstOpenCellBinding } from "./first-open-rds-cell.ts";
 import type { createFirstOpenRdsControl } from "./first-open-rds-control.ts";
 import type { FirstOpenRdsInspectorMaterial } from "./first-open-rds-inspector.ts";
@@ -21,7 +22,7 @@ export type FirstOpenRdsResourceBinding = {
   settings: FirstOpenTaskResources["settings"];
   scope: SingleDeploymentClaimScope;
   management: Omit<ManagementInput["scope"], "writeBefore" | "applicationSecretRef">;
-  inspector: Omit<FirstOpenRdsInspectorMaterial, "tenant"> & { tenant: Omit<FirstOpenRdsInspectorMaterial["tenant"], "databaseUrl">;
+  inspector: Omit<FirstOpenRdsInspectorMaterial, "tenant" | "privateSubnetIds"> & { tenant: Omit<FirstOpenRdsInspectorMaterial["tenant"], "databaseUrl">;
     readSecret: FirstOpenResourceSecretPin; mediaPublicBaseUrl: string };
   ownershipTableArn: string;
   cell: FirstOpenCellBinding;
@@ -49,7 +50,8 @@ export function readFirstOpenRdsResourceBinding(env: Env): FirstOpenRdsResourceB
         if ([pin.settings, pin.scope, pin.management, pin.cell, pin.control, pin.inspector, pin.inspector.tenant,
           pin.inspector.sampling, pin.inspector.ingress, pin.management.target, pin.management.fence, pin.cell.cleanup,
           pin.control.credentials, pin.applicationSecret, pin.controlPublicKey, pin.inspector.readSecret].every(record) &&
-          !Object.hasOwn(pin.inspector.tenant, "databaseUrl")) return pin;
+          isFirstOpenRdsPrivateSubnetIds(pin.cell.privateSubnetIds) &&
+          !Object.hasOwn(pin.inspector, "privateSubnetIds") && !Object.hasOwn(pin.inspector.tenant, "databaseUrl")) return pin;
       }
     }
   } catch { /* Keep the binding contents out of parse errors. */ }

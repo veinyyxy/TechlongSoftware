@@ -10,6 +10,7 @@ import { assertEcsFirstOpenRdsContext, ECS_FIRST_OPEN_RDS_ENVIRONMENT_ID, type E
 import { FIRST_OPEN_BASELINE_BINDING } from "./first-onboarding-baseline-versions.ts";
 import { assertFirstOpenBuyerParameters } from "./first-open-buyer-binding.ts";
 import { freezeFirstOpenTemplate } from "./first-open-frozen-template.ts";
+import { isFirstOpenRdsPrivateSubnetIds } from "./first-open-tenant-network.ts";
 import { FIRST_OPEN_CELL_STACK, FIRST_OPEN_CLEANUP_RESERVE_MS, FIRST_OPEN_TTL_SECONDS, type FirstOpenExecutionWindow } from "./first-onboarding-window.ts";
 import { assertFirstOpenSecondSlot, FIRST_OPEN_SECOND_SLOT, matchesFirstOpenSecondSlotEnvironment,
   type FirstOpenSecondSlotApproval } from "./first-open-second-slot.ts";
@@ -89,13 +90,14 @@ export type FirstOpenRdsWorkload = Readonly<{
   application: FirstOpenRdsSecretVersion;
   control: FirstOpenRdsControlPublicKey;
   persistence: FirstOpenRdsPersistence;
+  privateSubnetIds: readonly string[];
 }>;
 const secretVersionId = /^[A-Za-z0-9-]{32,64}$/;
 const controlSecretArn = /^arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong\/sandbox\/[A-Za-z0-9/_+=.@-]+-[A-Za-z0-9]{6}$/;
 const secretJsonKey = /^[A-Za-z0-9_.-]{1,128}$/;
 
 function bindRdsWorkload(application: FirstOpenRdsSecretVersion | undefined, control: FirstOpenRdsControlPublicKey | undefined,
-  persistence: FirstOpenRdsPersistence | undefined): FirstOpenRdsWorkload {
+  persistence: FirstOpenRdsPersistence | undefined, privateSubnetIds: readonly string[] | undefined): FirstOpenRdsWorkload {
   if (!application || !control || typeof application.arn !== "string" || typeof application.versionId !== "string" ||
       !secretVersionId.test(application.versionId) || typeof control.arn !== "string" || !controlSecretArn.test(control.arn) ||
       typeof control.versionId !== "string" || !secretVersionId.test(control.versionId) || application.arn === control.arn ||
@@ -108,7 +110,8 @@ function bindRdsWorkload(application: FirstOpenRdsSecretVersion | undefined, con
       typeof persistence.mediaPublicBaseUrl !== "string" || !/^https:\/\/[a-z0-9]+\.cloudfront\.net$/.test(persistence.mediaPublicBaseUrl)) {
     fail("ECS_FIRST_OPEN_RDS_PERSISTENCE_REQUIRED");
   }
-  return freeze({ application: { ...application }, control: { ...control }, persistence: { ...persistence } });
+  if (!isFirstOpenRdsPrivateSubnetIds(privateSubnetIds)) fail("ECS_FIRST_OPEN_RDS_PRIVATE_SUBNETS_REQUIRED");
+  return freeze({ application: { ...application }, control: { ...control }, persistence: { ...persistence }, privateSubnetIds: [...privateSubnetIds] });
 }
 
 const rdsTlsEnvironment = {
@@ -150,19 +153,32 @@ export function assertFirstOpenRdsTaskDefinition(pins: FirstOpenRdsWorkload, tas
     })) fail("ECS_FIRST_OPEN_RDS_WORKLOAD_READBACK_MISMATCH");
 }
 
+function assertRdsWorkloadSubnets(pins: FirstOpenRdsWorkload, binding: RenderContext["binding"]) {
+  const legacySubnetIds = binding?.tenantStackParameters.SubnetIds?.split(",").map(id => id.trim());
+  if (!isFirstOpenRdsPrivateSubnetIds(pins.privateSubnetIds) || !legacySubnetIds?.length ||
+    legacySubnetIds.some(id => pins.privateSubnetIds.includes(id))) fail("ECS_FIRST_OPEN_RDS_PRIVATE_SUBNETS_SCOPE");
+}
+
 async function pinRdsWorkload(rendered: Rendered, input: AwsSandboxTenantStackInput, context: RenderContext, pins: FirstOpenRdsWorkload) {
   if (input.runtimeSecretRef !== pins.application.arn || context.binding?.tenantStackParameters.ControlPublicKeyValueFrom !== pins.control.arn) {
     fail("ECS_FIRST_OPEN_RDS_SECRET_SCOPE_CHANGED");
   }
+  assertRdsWorkloadSubnets(pins, context.binding);
   type Value = string | Record<string, string>;
   const resources = rendered.template.Resources as Record<string, {
     Type?: string;
     Properties?: { ContainerDefinitions?: Array<{ Name: string; Environment: { Name: string; Value: Value }[];
-      Secrets: { Name: string; ValueFrom: Value }[] }> };
+      Secrets: { Name: string; ValueFrom: Value }[] }>;
+      NetworkConfiguration?: { AwsvpcConfiguration?: { AssignPublicIp?: string; Subnets?: Value; SecurityGroups?: Value[] } } };
   }>;
   const task = resources.TenantTaskDefinition;
   const containers = task?.Properties?.ContainerDefinitions;
-  if (task?.Type !== "AWS::ECS::TaskDefinition" || containers?.length !== 1 || containers[0].Name !== "speedfeast-backend") {
+  const service = resources.TenantService;
+  const network = service?.Properties?.NetworkConfiguration?.AwsvpcConfiguration;
+  if (task?.Type !== "AWS::ECS::TaskDefinition" || containers?.length !== 1 || containers[0].Name !== "speedfeast-backend" ||
+    service?.Type !== "AWS::ECS::Service" || !network || network.AssignPublicIp !== "ENABLED" ||
+    canonicalJson(network.Subnets) !== canonicalJson({ Ref: "SubnetIds" }) ||
+    canonicalJson(network.SecurityGroups) !== canonicalJson([{ Ref: "TaskSecurityGroupId" }])) {
     fail("ECS_FIRST_OPEN_RDS_WORKLOAD_TEMPLATE_CHANGED");
   }
   const container = containers[0];
@@ -193,6 +209,7 @@ async function pinRdsWorkload(rendered: Rendered, input: AwsSandboxTenantStackIn
   const rdsEnvironment = rdsWorkloadEnvironment(pins.persistence);
   container.Environment = [...container.Environment.filter(item => !Object.hasOwn(rdsEnvironment, item.Name)),
     ...Object.entries(rdsEnvironment).map(([Name, Value]) => ({ Name, Value }))];
+  network.AssignPublicIp = "DISABLED";
   rendered.templateBody = canonicalJson(rendered.template);
   rendered.templateSha256 = await sha256Hex(rendered.template);
 }
@@ -344,7 +361,7 @@ async function renderFirstOnboardingStack(input: AwsSandboxTenantStackInput, con
   // Include the two defaults in the exact parameter readback. The fixed
   // definitions expose only the two already-approved Secret ARN references.
   const parameters = { JwtExpiresIn: "7d", MerchantJwtExpiresIn: "12h", ...finalizedStack.parameters,
-    SubnetIds: finalizedStack.parameters.SubnetIds.split(",").map(s => s.trim()).join(",") };
+    SubnetIds: rdsWorkload ? rdsWorkload.privateSubnetIds.join(",") : finalizedStack.parameters.SubnetIds.split(",").map(s => s.trim()).join(",") };
   const template = freezeFirstOpenTemplate(finalizedStack.template, parameters);
   const stack = freeze({ ...finalizedStack, parameters, template,
     templateBody: canonicalJson(template), templateSha256: await sha256Hex(template) });
@@ -376,12 +393,16 @@ export function createFirstOnboardingWorkloadStrategy(input: {
   rdsApplicationSecret?: FirstOpenRdsSecretVersion;
   rdsControlPublicKey?: FirstOpenRdsControlPublicKey;
   rdsPersistence?: FirstOpenRdsPersistence;
+  rdsPrivateSubnetIds?: readonly string[];
 }): TenantWorkloadExecutionStrategy {
   if (input.rdsAuthority && (input.express || input.window || input.secondSlot ||
       input.scope.environmentId !== ECS_FIRST_OPEN_RDS_ENVIRONMENT_ID ||
       input.scope.appInstanceId !== input.rdsAuthority.instanceId)) fail("ECS_FIRST_OPEN_RDS_CONTEXT_SCOPE");
-  if (!input.rdsAuthority && (input.rdsApplicationSecret || input.rdsControlPublicKey || input.rdsPersistence)) fail("ECS_FIRST_OPEN_RDS_CONTEXT_SCOPE");
-  const rdsWorkload = input.rdsAuthority ? bindRdsWorkload(input.rdsApplicationSecret, input.rdsControlPublicKey, input.rdsPersistence) : undefined;
+  if (!input.rdsAuthority && (input.rdsApplicationSecret || input.rdsControlPublicKey || input.rdsPersistence || input.rdsPrivateSubnetIds)) {
+    fail("ECS_FIRST_OPEN_RDS_CONTEXT_SCOPE");
+  }
+  const rdsWorkload = input.rdsAuthority ? bindRdsWorkload(input.rdsApplicationSecret, input.rdsControlPublicKey,
+    input.rdsPersistence, input.rdsPrivateSubnetIds) : undefined;
   return createSupervisedStrategy(Object.freeze(structuredClone(input.scope)), input.cleanupReadiness, true, input.express, input.window,
     input.secondSlot === undefined ? undefined : structuredClone(input.secondSlot), input.rdsAuthority, rdsWorkload);
 }
@@ -403,6 +424,7 @@ function createSupervisedStrategy(scope: Readonly<SingleDeploymentClaimScope>, c
         (context.tenantResources?.runtimeSecretRef && context.tenantResources.runtimeSecretRef !== rdsWorkload.application.arn))) {
       fail("ECS_FIRST_OPEN_RDS_SECRET_SCOPE_CHANGED");
     }
+    if (rdsWorkload) assertRdsWorkloadSubnets(rdsWorkload, context.binding);
     if (secondSlot && (context.job.id !== FIRST_OPEN_SECOND_SLOT.jobId || context.activeCellCount !== 1 || context.activeTenantCount !== 1 ||
       !matchesFirstOpenSecondSlotEnvironment(secondSlot, context.environment))) fail("FIRST_OPEN_SECOND_SLOT_CONTEXT_CHANGED");
     if (firstOnboarding && ((context.job.id === FIRST_OPEN_BASELINE_BINDING.jobId) !== Boolean(window) ||

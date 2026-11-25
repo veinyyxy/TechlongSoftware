@@ -1,4 +1,5 @@
 import type { DeploymentExecutionBinding, SharedCellSecurityPreflightPort } from "../../lib/deployments/execution/contracts.ts";
+import { FIRST_OPEN_TENANT_PRIVATE_SUBNET_OUTPUT, isFirstOpenRdsPrivateSubnetIds } from "../../lib/deployments/execution/first-open-tenant-network.ts";
 import { sha256Hex } from "../../lib/deployments/execution/hash.ts";
 import type { SingleDeploymentClaimScope } from "../../lib/deployments/execution/single-deployment-scope.ts";
 import type { SupervisedCleanupReadinessPort } from "../../lib/deployments/execution/single-tenant-workload-strategy.ts";
@@ -11,6 +12,7 @@ type Tenant = Omit<FirstOpenRdsInspectorMaterial["tenant"], "databaseUrl">;
 export type FirstOpenCellBinding = {
   templateSha256: string;
   parametersSha256: string;
+  privateSubnetIds: readonly string[];
   trustStoreArn: string;
   cleanup: { scopeSha256: string; reviewSha256: string; permissionsEvidenceSha256: string; observedAt: number;
     validUntil: number; expiresAt: number; responsibleCallerArn: "arn:aws:iam::402010193138:user/techlong-sandbox-dev" };
@@ -20,6 +22,7 @@ const cleanupCaller = `arn:aws:iam::${account}:user/techlong-sandbox-dev` as con
 const healthyStacks = ["CREATE_COMPLETE", "UPDATE_COMPLETE", "UPDATE_ROLLBACK_COMPLETE"];
 const trustedRole = `arn:aws:iam::${account}:role/TechlongSandboxProvisionerRole`;
 const executionRole = `arn:aws:iam::${account}:role/TechlongSandboxCloudFormationExecutionRole`;
+const splitSubnetIds = (value: string) => value.split(",").map(id => id.trim());
 
 export async function bindFirstOpenRdsCell(input: {
   pin: FirstOpenCellBinding; scope: SingleDeploymentClaimScope; cellStackId: string; ingress: FirstOpenRdsInspectorMaterial["ingress"];
@@ -33,7 +36,8 @@ export async function bindFirstOpenRdsCell(input: {
       throw Error("ECS_FIRST_OPEN_CELL_EVIDENCE_WINDOW");
     }
   };
-  if (![pin.templateSha256, pin.parametersSha256, cleanup.reviewSha256, cleanup.permissionsEvidenceSha256].every(v => sha.test(v)) ||
+  if (!isFirstOpenRdsPrivateSubnetIds(pin.privateSubnetIds) || cellOutputParameters.SubnetIds !== FIRST_OPEN_TENANT_PRIVATE_SUBNET_OUTPUT ||
+    ![pin.templateSha256, pin.parametersSha256, cleanup.reviewSha256, cleanup.permissionsEvidenceSha256].every(v => sha.test(v)) ||
     cleanup.scopeSha256 !== await sha256Hex(scope) || cleanup.responsibleCallerArn !== cleanupCaller ||
     ![cleanup.observedAt, cleanup.validUntil, cleanup.expiresAt].every(Number.isSafeInteger) || cleanup.observedAt > now() ||
     cleanup.validUntil < writeBefore || cleanup.validUntil > cleanup.observedAt + 5 * 60 * 60_000 || cleanup.expiresAt <= writeBefore + 5 * 60_000 ||
@@ -41,6 +45,8 @@ export async function bindFirstOpenRdsCell(input: {
     !/^arn:aws:elasticloadbalancing:ca-central-1:402010193138:truststore\/[A-Za-z0-9-]+\/[a-f0-9]{16}$/.test(pin.trustStoreArn)) {
     throw Error("ECS_FIRST_OPEN_CELL_EVIDENCE_SCOPE");
   }
+  const privateSubnetIds = [...pin.privateSubnetIds];
+  const privateSubnetCsv = privateSubnetIds.join(",");
 
   const checkBinding = async (binding: DeploymentExecutionBinding | null) => {
     if (binding?.status !== "active" || binding.environmentId !== scope.environmentId || binding.workerRoleArn !== trustedRole ||
@@ -48,8 +54,11 @@ export async function bindFirstOpenRdsCell(input: {
       throw Error("ECS_FIRST_OPEN_CELL_BINDING_CHANGED");
     }
     const p = binding.tenantStackParameters;
+    const legacySubnetIds = typeof p.SubnetIds === "string" ? splitSubnetIds(p.SubnetIds) : [];
     if (p.VpcId !== ingress.vpcId || p.HttpsListenerArn !== ingress.httpsListenerArn || p.ControlListenerArn !== ingress.controlListenerArn ||
-      ![p.ClusterName, `arn:aws:ecs:${region}:${account}:cluster/${p.ClusterName}`].includes(ingress.clusterArn)) {
+      ![p.ClusterName, `arn:aws:ecs:${region}:${account}:cluster/${p.ClusterName}`].includes(ingress.clusterArn) ||
+      legacySubnetIds.length < 2 || legacySubnetIds.length > 6 || new Set(legacySubnetIds).size !== legacySubnetIds.length ||
+      legacySubnetIds.some(id => !/^subnet-[a-f0-9]{8,17}$/.test(id) || privateSubnetIds.includes(id))) {
       throw Error("ECS_FIRST_OPEN_CELL_BINDING_CHANGED");
     }
   };
@@ -72,11 +81,17 @@ export async function bindFirstOpenRdsCell(input: {
     if (cluster.length !== 1 || ![cluster[0], `arn:aws:ecs:${region}:${account}:cluster/${cluster[0]}`].includes(ingress.clusterArn)) {
       throw Error("ECS_FIRST_OPEN_CELL_OUTPUT_UNVERIFIED");
     }
+    const legacySubnets = out("SubnetIds");
+    const privateSubnets = out(FIRST_OPEN_TENANT_PRIVATE_SUBNET_OUTPUT);
+    if (legacySubnets.length !== 1 || typeof legacySubnets[0] !== "string" || typeof parameters.SubnetIds !== "string" ||
+      splitSubnetIds(legacySubnets[0]).sort().join(",") !== splitSubnetIds(parameters.SubnetIds).sort().join(",") ||
+      privateSubnets.length !== 1 || privateSubnets[0] !== privateSubnetCsv) {
+      throw Error("ECS_FIRST_OPEN_CELL_OUTPUT_UNVERIFIED");
+    }
     for (const name of Object.keys(cellOutputParameters)) {
+      if (name === "SubnetIds") continue;
       const values = out(name), expected = parameters[name];
-      const sorted = (value: string) => value.split(",").map(v => v.trim()).sort().join(",");
-      if (values.length !== 1 || !values[0] || !expected ||
-        (name === "SubnetIds" ? sorted(values[0]) !== sorted(expected) : values[0] !== expected)) {
+      if (values.length !== 1 || !values[0] || !expected || values[0] !== expected) {
         throw Error("ECS_FIRST_OPEN_CELL_OUTPUT_UNVERIFIED");
       }
     }
@@ -113,7 +128,7 @@ export async function bindFirstOpenRdsCell(input: {
       database.Endpoint.Port !== 5432) throw Error("ECS_FIRST_OPEN_CELL_SECURITY_UNVERIFIED");
     check(signal);
     return sha256Hex({ cellStackId, templateSha256: pin.templateSha256, parametersSha256: pin.parametersSha256,
-      alb: loadBalancer, https, control, database });
+      privateSubnetIds, alb: loadBalancer, https, control, database });
   }
   const sharedCellSecurityPreflight: SharedCellSecurityPreflightPort = {
     async verify({ environment, binding, signal }) {

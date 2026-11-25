@@ -5,6 +5,7 @@ import { rootCertificates } from "node:tls";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { awsSandboxTenantStackName } from "../lib/deployments/cloudformation/tenant-stack.ts";
+import { FIRST_OPEN_TENANT_PRIVATE_SUBNET_OUTPUT } from "../lib/deployments/execution/first-open-tenant-network.ts";
 import { createFirstOpenInspectorSdk, readFirstOpenPrivateTechnical } from "../ops/platform-hosting-v1/first-open-inspector-sdk.ts";
 import { createFirstOpenRdsInspector } from "../ops/platform-hosting-v1/first-open-rds-inspector.ts";
 import { createTenantPostgresAdapter } from "../ops/platform-hosting-v1/first-open-tenant-postgres.mjs";
@@ -49,15 +50,28 @@ const tenant = { host, dbInstanceIdentifier, dbiResourceId: "db-" + "A".repeat(2
   databaseUrl: `postgresql://tenant_reader:synthetic@${host}/${databaseName}?sslmode=verify-full`, runtimeSecretArn };
 const ingress = { albArn: elb + "loadbalancer/" + albPath, dnsName: privateDns, httpsListenerArn: listener(443),
   controlListenerArn: listener(8443), vpcId: "vpc-" + "a".repeat(17), clusterArn: ecs + "cluster/ca-cell" };
+const privateSubnetIds = ["subnet-1234567890abcdef0", "subnet-89abcdef"];
+const approvedSubnets = privateSubnetIds.join(",");
+const outsideSubnet = "subnet-87abcdef";
 const sampling = { cellStackId: stack("techlong-sandbox-cell-sandbox-1"), platformStackId: stack("techlong-sandbox-platform-hosting-v1"),
   hostedZoneId: "ZFIXTURE001", apiHostname: approval.hostname,
-  cellOutputParameters: { HttpsListenerArn: "HttpsListenerArn", ControlListenerArn: "ControlListenerArn", ClusterName: "ClusterName" },
+  cellOutputParameters: { HttpsListenerArn: "HttpsListenerArn", ControlListenerArn: "ControlListenerArn", ClusterName: "ClusterName",
+    SubnetIds: FIRST_OPEN_TENANT_PRIVATE_SUBNET_OUTPUT },
   database: { kind: "instance", identifier: dbInstanceIdentifier, profile: "full_password", schemaVersion: "app-v1" },
   secrets: [{ arn: runtimeSecretArn, versionId }, { arn: controlSecretArn, versionId }],
   persistence: { bucket: "fixture-firstopen-media", providerVariable: "UPLOAD_PROVIDER", bucketVariable: "UPLOADS_BUCKET", verificationSha256: "c".repeat(64) } };
 const marker = { name: databaseName, roleName: tenant.applicationRole, ownershipMarker: ownerMarker, baselineDigest };
+const approvedMaterial = { stackName, sampling, privateSubnetIds, ingress, tenant, route53Endpoint };
+const serviceNetwork = { assignPublicIp: "DISABLED", subnets: [...privateSubnetIds].reverse() };
+const observedService = { serviceArn, clusterArn: ingress.clusterArn, taskDefinition: taskDefinitionArn,
+  networkConfiguration: { awsvpcConfiguration: serviceNetwork }, loadBalancers: [{ containerName: "speedfeast-backend" }] };
+const attachedEni = { type: "ElasticNetworkInterface", status: "ATTACHED", details: [
+  { name: "networkInterfaceId", value: "eni-1234567890abcdef0" }, { name: "subnetId", value: privateSubnetIds[0] },
+] };
+const observedTask = { taskArn, clusterArn: ingress.clusterArn, taskDefinitionArn, group: "service:fixture", lastStatus: "RUNNING",
+  attachments: [attachedEni] };
 function fixture({ patch = {}, secretVersions = { [versionId]: ["AWSCURRENT"] },
-  material = { stackName, sampling, ingress, tenant, route53Endpoint } } = {}) {
+  material = approvedMaterial, tenantSubnetValue = approvedSubnets, cellSubnetValues = [approvedSubnets] } = {}) {
   const calls = [], physicalResources = [
     ["TenantService", serviceArn, "AWS::ECS::Service"], ["TenantTaskDefinition", taskDefinitionArn, "AWS::ECS::TaskDefinition"],
     ["TenantTargetGroup", targetArn, "AWS::ElasticLoadBalancingV2::TargetGroup"],
@@ -65,7 +79,6 @@ function fixture({ patch = {}, secretVersions = { [versionId]: ["AWSCURRENT"] },
     ["TenantControlRule", ruleFor(8443, 2), "AWS::ElasticLoadBalancingV2::ListenerRule"],
     ["TenantControlRejectRule", ruleFor(8443, 3), "AWS::ElasticLoadBalancingV2::ListenerRule"],
   ].map(([LogicalResourceId, PhysicalResourceId, ResourceType]) => ({ LogicalResourceId, PhysicalResourceId, ResourceType, ResourceStatus: "CREATE_COMPLETE" }));
-  const service = { serviceArn, clusterArn: ingress.clusterArn, loadBalancers: [{ containerName: "speedfeast-backend" }] };
   const taskDefinition = { taskDefinitionArn, containerDefinitions: [{ name: "speedfeast-backend", image: `${repository}@${manifestDigest}`,
     environment: [{ name: "UPLOAD_PROVIDER", value: "s3" }, { name: "UPLOADS_BUCKET", value: sampling.persistence.bucket }],
     secrets: [{ valueFrom: `${runtimeSecretArn}:database_url::${versionId}` }, { valueFrom: `${controlSecretArn}:key::${versionId}` }] }] };
@@ -75,8 +88,8 @@ function fixture({ patch = {}, secretVersions = { [versionId]: ["AWSCURRENT"] },
       DBInstanceIdentifier: dbInstanceIdentifier, DbiResourceId: tenant.dbiResourceId, DBInstanceStatus: "available", Engine: "postgres",
       EngineVersion: "16.14", PubliclyAccessible: false, StorageEncrypted: true, Endpoint: { Address: host, Port: 5432 },
       DBSubnetGroup: { VpcId: ingress.vpcId } }] },
-    "ecs:describe-services": { services: [service] }, "ecs:describe-task-definition": { taskDefinition },
-    "ecs:list-tasks": { taskArns: [taskArn] }, "ecs:describe-tasks": { tasks: [{ taskArn }] },
+    "ecs:describe-services": { services: [observedService] }, "ecs:describe-task-definition": { taskDefinition },
+    "ecs:list-tasks": { taskArns: [taskArn] }, "ecs:describe-tasks": { tasks: [observedTask] },
     "elbv2:describe-listeners": { Listeners: [443, 8443].map(port => ({ ListenerArn: listener(port), LoadBalancerArn: ingress.albArn,
       Port: port, Protocol: "HTTPS", MutualAuthentication: { Mode: port === 8443 ? "verify" : "off" } })) },
     "elbv2:describe-load-balancers": { LoadBalancers: [{ LoadBalancerArn: ingress.albArn, DNSName: privateDns,
@@ -102,8 +115,9 @@ function fixture({ patch = {}, secretVersions = { [versionId]: ["AWSCURRENT"] },
             const values = { HttpsListenerArn: ingress.httpsListenerArn, ControlListenerArn: ingress.controlListenerArn,
               ClusterName: ingress.clusterArn, VpcId: ingress.vpcId };
             return { Stacks: [{ StackId: input.StackName, StackStatus: "CREATE_COMPLETE", CreationTime: new Date(now).toISOString(),
-              Parameters: Object.entries(values).map(([ParameterKey, ParameterValue]) => ({ ParameterKey, ParameterValue })),
-              Outputs: Object.entries(values).map(([OutputKey, OutputValue]) => ({ OutputKey, OutputValue })) }] };
+              Parameters: Object.entries({ ...values, SubnetIds: tenantSubnetValue }).map(([ParameterKey, ParameterValue]) => ({ ParameterKey, ParameterValue })),
+              Outputs: [...Object.entries(values).map(([OutputKey, OutputValue]) => ({ OutputKey, OutputValue })),
+                ...cellSubnetValues.map(OutputValue => ({ OutputKey: FIRST_OPEN_TENANT_PRIVATE_SUBNET_OUTPUT, OutputValue }))] }] };
           }
           if (key === "secretsmanager:describe-secret") return { ARN: input.SecretId, VersionIdsToStages: secretVersions };
           assert.ok(Object.hasOwn(readOnly, key), key);
@@ -126,8 +140,63 @@ test("T4.2 RDS Inspector samples one bound private tenant and forwards provider 
   assert.deepEqual(capture.database, marker);
   assert.equal(capture.facts.artifact.manifest, imageArtifact);
   assert.equal(capture.facts.databaseProfile, "full_password");
+  assert.deepEqual(capture.facts.service.networkConfiguration.awsvpcConfiguration, serviceNetwork);
+  assert.deepEqual(capture.facts.tasks, [observedTask]);
   assert.deepEqual(f.calls.slice(-3), ["readOnlySql", "/health", "/ready"]);
   await assert.rejects(f.capture(), /ECS_FIRST_OPEN_INSPECTOR_SCOPE/);
+});
+
+test("T4.2 RDS Inspector requires the sealed private subnet pair, the exact Cell output and tenant stack parameter", async () => {
+  for (const material of [
+    { ...approvedMaterial, privateSubnetIds: undefined },
+    { ...approvedMaterial, privateSubnetIds: [privateSubnetIds[0], privateSubnetIds[0]] },
+    { ...approvedMaterial, privateSubnetIds: [privateSubnetIds[0], "subnet-ABCDEF00"] },
+    { ...approvedMaterial, sampling: { ...sampling, cellOutputParameters: { ...sampling.cellOutputParameters, SubnetIds: "SubnetIds" } } },
+  ]) {
+    const f = fixture({ material });
+    await assert.rejects(f.capture(), /ECS_FIRST_OPEN_INSPECTOR_TENANT_NETWORK_SCOPE/);
+    assert.deepEqual(f.calls, []);
+  }
+  for (const cellSubnetValues of [[], [privateSubnetIds[0] + "," + outsideSubnet], [approvedSubnets, approvedSubnets]]) {
+    const f = fixture({ cellSubnetValues });
+    await assert.rejects(f.capture(), /ECS_FIRST_OPEN_INSPECTOR_TENANT_NETWORK_SCOPE/);
+    assert.ok(!f.calls.includes("ecs:describe-services"));
+  }
+  const f = fixture({ tenantSubnetValue: privateSubnetIds[0] + "," + outsideSubnet });
+  await assert.rejects(f.capture(), /RELEASE_CELL_REFERENCE_CHANGED/);
+  assert.ok(!f.calls.includes("ecs:describe-services"));
+});
+
+test("T4.2 RDS Inspector rejects service network drift before any task, SQL or health read", async () => {
+  for (const awsvpcConfiguration of [
+    { ...serviceNetwork, assignPublicIp: "ENABLED" }, { ...serviceNetwork, assignPublicIp: undefined },
+    { ...serviceNetwork, subnets: [privateSubnetIds[0], outsideSubnet] },
+    { ...serviceNetwork, subnets: [privateSubnetIds[0], privateSubnetIds[0]] },
+  ]) {
+    const f = fixture({ patch: { "ecs:describe-services": { services: [{ ...observedService, networkConfiguration: { awsvpcConfiguration } }] } } });
+    await assert.rejects(f.capture(), /ECS_FIRST_OPEN_INSPECTOR_TENANT_NETWORK_SCOPE/);
+    assert.equal(f.calls.at(-1), "ecs:describe-services");
+  }
+});
+
+test("T4.2 RDS Inspector rejects missing, misbound and unexpected ECS task ENIs before SQL or health", async () => {
+  const outsideEni = { ...attachedEni, details: [attachedEni.details[0], { name: "subnetId", value: outsideSubnet }] };
+  for (const patch of [
+    { "ecs:list-tasks": { taskArns: [] } },
+    { "ecs:list-tasks": { taskArns: [taskArn], nextToken: "unobserved-page" } },
+    ...[[], [{ ...observedTask, taskArn: ecs + "task/ca-cell/" + "a".repeat(32) }],
+      [{ ...observedTask, taskDefinitionArn: taskDefinitionArn.replace(":4", ":5") }],
+      [{ ...observedTask, group: "service:other" }], [{ ...observedTask, lastStatus: "STOPPED" }],
+      ...[[], [outsideEni], [attachedEni, attachedEni], [{ ...attachedEni, status: "DETACHING" }],
+        [{ ...attachedEni, details: [attachedEni.details[1]] }],
+        [{ ...attachedEni, details: [...attachedEni.details, attachedEni.details[1]] }],
+      ].map(attachments => [{ ...observedTask, attachments }]),
+    ].map(tasks => ({ "ecs:describe-tasks": { tasks } })),
+  ]) {
+    const f = fixture({ patch });
+    await assert.rejects(f.capture(), /ECS_FIRST_OPEN_INSPECTOR_TENANT_NETWORK_SCOPE/);
+    assert.ok(["ecs:list-tasks", "ecs:describe-tasks"].includes(f.calls.at(-1)));
+  }
 });
 
 test("T4.2 RDS Inspector proves the selected task Secret version independently of AWSCURRENT", async () => {

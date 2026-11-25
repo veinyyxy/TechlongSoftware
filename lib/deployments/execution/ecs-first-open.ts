@@ -12,6 +12,7 @@ import type { FirstOnboardingExpressComposition } from "./first-onboarding-expre
 import type { FirstOnboardingRuntimeReader } from "./first-onboarding-inspection.ts";
 import { assertEcsFirstOpenRdsApproval, ECS_FIRST_OPEN_RDS_ENVIRONMENT_ID,
   type DeploymentWorkerRuntimeConfig, type EcsFirstOpenRdsAuthority } from "./gates.ts";
+import { isFirstOpenRdsPrivateSubnetIds } from "./first-open-tenant-network.ts";
 import { createFirstOnboardingWorkloadStrategy, type FirstOpenRdsControlPublicKey, type FirstOpenRdsPersistence,
   type FirstOpenRdsSecretVersion, type FirstOpenRdsWorkload,
   type SupervisedCleanupReadinessPort } from "./single-tenant-workload-strategy.ts";
@@ -66,6 +67,7 @@ export interface EcsFirstOpenPorts extends ReviewPorts {
     rdsApplicationSecret?: FirstOpenRdsSecretVersion;
     rdsControlPublicKey?: FirstOpenRdsControlPublicKey;
     rdsPersistence?: FirstOpenRdsPersistence;
+    rdsPrivateSubnetIds?: readonly string[];
   };
   reader: FirstOnboardingRuntimeReader;
   lifecycle?: {
@@ -147,7 +149,8 @@ export async function runEcsFirstOpen(executionId: string, ports: EcsFirstOpenPo
   }
   const workerId = executionId;
   const leaseToken = `lease_${randomUUID().replaceAll("-", "")}`;
-  const { dependencies, cleanupReadiness, express, rdsAuthority, rdsApplicationSecret, rdsControlPublicKey, rdsPersistence } = ports.management;
+  const { dependencies, cleanupReadiness, express, rdsAuthority, rdsApplicationSecret, rdsControlPublicKey, rdsPersistence,
+    rdsPrivateSubnetIds } = ports.management;
   const config = { ...ports.management.config, firstOnboardingDeadline: approval.writeBefore, firstOnboardingHostname: approval.hostname,
     firstOpenRdsAuthority: rdsAuthority };
   if (config.workerEnabled || config.applyEnabled || !dependencies.tenantExternalOperationCoordinator ||
@@ -164,8 +167,9 @@ export async function runEcsFirstOpen(executionId: string, ports: EcsFirstOpenPo
       throw Error("ECS_FIRST_OPEN_RDS_SECRET_VERSION_REQUIRED");
     }
     if (!rdsPersistence) throw Error("ECS_FIRST_OPEN_RDS_PERSISTENCE_REQUIRED");
+    if (!isFirstOpenRdsPrivateSubnetIds(rdsPrivateSubnetIds)) throw Error("ECS_FIRST_OPEN_RDS_PRIVATE_SUBNETS_REQUIRED");
     rdsWorkload = Object.freeze({ application: Object.freeze({ ...rdsApplicationSecret }), control: Object.freeze({ ...rdsControlPublicKey }),
-      persistence: Object.freeze({ ...rdsPersistence }) });
+      persistence: Object.freeze({ ...rdsPersistence }), privateSubnetIds: Object.freeze([...rdsPrivateSubnetIds]) });
     const identity = await deriveTenantResourceIdentityFromPlan({ appInstanceId: scope.appInstanceId, workspaceId: scope.workspaceId,
       productId: scope.productId, environmentId: scope.environmentId, cellKey: plan.cellKey }, database);
     const expectedSecretName = deriveTenantRuntimeSecretName({ schemaVersion: 1, identity, generation: 1,
@@ -174,11 +178,12 @@ export async function runEcsFirstOpen(executionId: string, ports: EcsFirstOpenPo
       assertAwsSandboxTenantRuntimeSecretRef({ runtimeSecretRef: rdsWorkload.application.arn, expectedSecretName,
         accountId: scope.accountId, region: config.expectedRegion });
     } catch { throw Error("ECS_FIRST_OPEN_RDS_SECRET_SCOPE_CHANGED"); }
-  } else if (rdsAuthority || rdsApplicationSecret || rdsControlPublicKey || rdsPersistence) {
+  } else if (rdsAuthority || rdsApplicationSecret || rdsControlPublicKey || rdsPersistence || rdsPrivateSubnetIds) {
     throw Error("ECS_FIRST_OPEN_RDS_AUTHORITY_SCOPE");
   }
   const strategy = createFirstOnboardingWorkloadStrategy({ cleanupReadiness, express, rdsAuthority,
-    rdsApplicationSecret: rdsWorkload?.application, rdsControlPublicKey: rdsWorkload?.control, rdsPersistence: rdsWorkload?.persistence, scope: {
+    rdsApplicationSecret: rdsWorkload?.application, rdsControlPublicKey: rdsWorkload?.control, rdsPersistence: rdsWorkload?.persistence,
+    rdsPrivateSubnetIds: rdsWorkload?.privateSubnetIds, scope: {
     deploymentId: scope.deploymentId, appInstanceId: scope.appInstanceId, environmentId: scope.environmentId,
     planHash: scope.planHash, configurationHash: scope.configurationHash, artifactRef: scope.artifactRef,
   } });

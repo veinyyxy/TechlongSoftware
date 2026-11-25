@@ -30,7 +30,11 @@ const ingress = { albArn: elbPrefix + "loadbalancer/app/fixture/aaaaaaaaaaaaaaaa
 const secret = name => ({ arn: `arn:aws:secretsmanager:${region}:${account}:secret:${name}-abc123`, versionId: "d".repeat(32) });
 const trustStoreArn = elbPrefix + "truststore/fixture/cccccccccccccccc";
 const cellStackId = stackId("techlong-sandbox-cell-sandbox-1");
-const cellTemplate = { Resources: {} };
+const legacySubnets = "subnet-11111111,subnet-22222222";
+const privateSubnetIds = ["subnet-aaaaaaaa", "subnet-bbbbbbbb"];
+const privateOutput = "FirstOpenTenantPrivateSubnetIds";
+const cellTemplate = { Resources: {}, Outputs: { [privateOutput]: { Value: { "Fn::Join": [",",
+  [{ Ref: "FirstOpenPrivateSubnetA" }, { Ref: "FirstOpenPrivateSubnetB" }]] } } } };
 
 function pinEnv(name, value) {
   const json = JSON.stringify(value);
@@ -79,7 +83,7 @@ async function fixture() {
   const binding = { environmentId, status: "active", workerRoleArn: `arn:aws:iam::${account}:role/TechlongSandboxProvisionerRole`,
     cloudFormationRoleArn: `arn:aws:iam::${account}:role/TechlongSandboxCloudFormationExecutionRole`, tenantStackParameters: {
       VpcId: ingress.vpcId, HttpsListenerArn: ingress.httpsListenerArn, ControlListenerArn: ingress.controlListenerArn, ClusterName: clusterArn,
-      ControlPublicKeyValueFrom: controlPublicKey.arn, ControlIssuer: "https://techlong.cloud",
+      ControlPublicKeyValueFrom: controlPublicKey.arn, ControlIssuer: "https://techlong.cloud", SubnetIds: legacySubnets,
     } };
   const boundScope = { ...scope, deploymentId: held.deploymentId };
   const pin = { version: "techlong/ecs-first-open-resources/v2", selection, settings, scope: boundScope,
@@ -89,11 +93,13 @@ async function fixture() {
     inspector: { stackName: awsSandboxTenantStackName(appInstanceId), tenant, ingress, readSecret: secret("fixture/inspector-read"),
       route53Endpoint: "https://vpce-123456789-abc.route53.us-east-1.vpce.amazonaws.com", mediaPublicBaseUrl: "https://fixture.cloudfront.net",
       sampling: { cellStackId, platformStackId: stackId("techlong-sandbox-platform-hosting-v1"), apiHostname: hostname, hostedZoneId: "ZFIXTURE1",
-        cellOutputParameters: { HttpsListenerArn: "HttpsListenerArn", ControlListenerArn: "ControlListenerArn", ClusterName: "ClusterName" },
+        cellOutputParameters: { HttpsListenerArn: "HttpsListenerArn", ControlListenerArn: "ControlListenerArn", ClusterName: "ClusterName",
+          SubnetIds: privateOutput },
         database: { identifier: dbInstanceIdentifier, kind: "instance", profile: "full_password", schemaVersion: "fixture-v1" },
         secrets: [{ ...applicationSecret }, { ...controlPublicKey }], persistence: { bucket: "fixture-private-media", providerVariable: "IMAGE_STORAGE_PROVIDER",
           bucketVariable: "IMAGE_S3_BUCKET", verificationSha256: hex("3") } } },
     cell: { templateSha256: await sha256Hex(cellTemplate), parametersSha256: await sha256Hex(binding.tenantStackParameters), trustStoreArn,
+      privateSubnetIds: [...privateSubnetIds],
       cleanup: { scopeSha256: await sha256Hex(boundScope), reviewSha256: hex("4"), permissionsEvidenceSha256: hex("5"),
         observedAt: now() - 1_000, validUntil: now() + 120_000, expiresAt: now() + 900_000,
         responsibleCallerArn: `arn:aws:iam::${account}:user/techlong-sandbox-dev` } },
@@ -166,6 +172,7 @@ async function fixture() {
           calls.push(`${service}/${action}`);
           if (action === "describe-stacks") return { Stacks: [{ StackId: cellStackId, StackStatus: "CREATE_COMPLETE", Outputs: [
             ["VpcId", ingress.vpcId], ["HttpsListenerArn", ingress.httpsListenerArn], ["ControlListenerArn", ingress.controlListenerArn], ["ClusterName", clusterArn],
+            ["SubnetIds", legacySubnets], [privateOutput, privateSubnetIds.join(",")],
           ].map(([OutputKey, OutputValue]) => ({ OutputKey, OutputValue })) }] };
           if (action === "get-template") return { TemplateBody: JSON.stringify(cellTemplate) };
           if (action === "describe-load-balancers") return { LoadBalancers: [{ LoadBalancerArn: ingress.albArn, Scheme: "internal", DNSName: ingress.dnsName, VpcId: ingress.vpcId }] };
@@ -203,6 +210,9 @@ test("existing opening command refuses absent or drifted binding before writer, 
     pin => { pin.version = "techlong/ecs-first-open-resources/v1"; },
     pin => { pin.taskDefinitionArn = taskDefinitionArn; },
     pin => { pin.selection.executionId = missing.executionId; },
+    pin => { delete pin.cell.privateSubnetIds; },
+    pin => { pin.cell.privateSubnetIds[1] = pin.cell.privateSubnetIds[0]; },
+    pin => { pin.inspector.privateSubnetIds = [...privateSubnetIds]; },
   ]) {
     const f = await fixture();
     const pin = structuredClone(f.pin);
@@ -212,7 +222,8 @@ test("existing opening command refuses absent or drifted binding before writer, 
     assert.deepEqual(f.calls, ["image"]);
   }
   for (const change of [pin => { pin.selection.workspaceId = "other"; },
-    pin => { pin.inspector.sampling.secrets[0].versionId = "0".repeat(32); }, pin => { pin.inspector.tenant.databaseOid = "16000"; }]) {
+    pin => { pin.inspector.sampling.secrets[0].versionId = "0".repeat(32); }, pin => { pin.inspector.tenant.databaseOid = "16000"; },
+    pin => { pin.inspector.sampling.cellOutputParameters.SubnetIds = "SubnetIds"; }]) {
     const f = await fixture();
     const pin = structuredClone(f.pin);
     change(pin);

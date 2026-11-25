@@ -8,6 +8,7 @@ import { readEcsFirstOpenRelease } from "../../lib/deployments/execution/ecs-fir
 import { tenantExternalOperationHash } from "../../lib/deployments/execution/external-ownership-coordinator.ts";
 import { FIRST_OPEN_BASELINE_OBJECTS } from "../../lib/deployments/execution/first-onboarding-baseline-versions.ts";
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
+import { FIRST_OPEN_TENANT_PRIVATE_SUBNET_OUTPUT } from "../../lib/deployments/execution/first-open-tenant-network.ts";
 import { deriveTenantOwnershipMarker, deriveTenantResourceIdentityFromPlan } from "../../lib/deployments/execution/tenant-database.ts";
 import { createFirstOpenInspectorSdk, isFirstOpenRoute53Endpoint } from "./first-open-inspector-sdk.ts";
 import { bindFirstOpenRdsCell } from "./first-open-rds-cell.ts";
@@ -28,8 +29,9 @@ const shape = (v: unknown): v is Record<string, unknown> => Boolean(v) && typeof
 const same = (a: unknown, b: unknown) => canonicalJson(a) === canonicalJson(b);
 const missing = () => Error("ECS_FIRST_OPEN_RESOURCE_BINDING");
 const secretPrefix = `arn:aws:secretsmanager:${region}:${account}:secret:`;
-const mandatoryCellOutputs = ["ClusterName", "HttpsListenerArn", "ControlListenerArn"];
-const optionalCellOutputs = ["VpcId", "SubnetIds", "TaskSecurityGroupId"];
+const mandatoryCellOutputs = { ClusterName: "ClusterName", HttpsListenerArn: "HttpsListenerArn",
+  ControlListenerArn: "ControlListenerArn", SubnetIds: FIRST_OPEN_TENANT_PRIVATE_SUBNET_OUTPUT };
+const optionalCellOutputs = ["VpcId", "TaskSecurityGroupId"];
 const readEnvironmentBinding = `SELECT environment_id AS "environmentId", worker_role_arn AS "workerRoleArn",
   cloudformation_role_arn AS "cloudFormationRoleArn", tenant_stack_parameters::jsonb AS "tenantStackParameters", status
   FROM deployment_environment_bindings WHERE environment_id = $1 AND status = 'active'`;
@@ -99,8 +101,9 @@ export function createFirstOpenRdsResourceFactory(env: Env, {
       tenant.runtimeSecretArn !== applicationSecret.arn || sampling.database.kind !== "instance" || sampling.database.profile !== "full_password" ||
       sampling.database.identifier !== target.dbInstanceIdentifier || sampling.database.schemaVersion !== settings.databaseSchemaVersion ||
       !/^arn:aws:cloudformation:ca-central-1:402010193138:stack\/techlong-sandbox-platform-hosting-v1\/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(sampling.platformStackId) ||
-      !mandatoryCellOutputs.every(name => sampling.cellOutputParameters[name] === name) ||
-      Object.entries(sampling.cellOutputParameters).some(([key, value]) => key !== value || ![...mandatoryCellOutputs, ...optionalCellOutputs].includes(key)) ||
+      !Object.entries(mandatoryCellOutputs).every(([key, value]) => sampling.cellOutputParameters[key] === value) ||
+      Object.entries(sampling.cellOutputParameters).some(([key, value]) =>
+        !Object.hasOwn(mandatoryCellOutputs, key) && (key !== value || !optionalCellOutputs.includes(key))) ||
       sampling.secrets.length !== 2 ||
       ![applicationSecret, controlPublicKey].every(p => sampling.secrets.filter(s => s.arn === p.arn && s.versionId === p.versionId).length === 1) ||
       !["database", "host", "dbInstanceIdentifier", "owner", "databaseOid", "ownershipMarker"].every(key =>
@@ -136,7 +139,7 @@ export function createFirstOpenRdsResourceFactory(env: Env, {
     const reader = inspector({ approval: { ...approval, ...settings }, scope: { productId, environmentId }, release, identity, now,
       async material(signal) {
         const databaseUrl = secretField(await readSecret(inspected.readSecret, identity, signal), "database_url");
-        return { ...inspected, tenant: { ...tenant, databaseUrl } };
+        return { ...inspected, privateSubnetIds: pin.cell.privateSubnetIds, tenant: { ...tenant, databaseUrl } };
       },
     });
     const repository = createFirstOpenRdsRepository(repositorySql, { scope, approval, fence, writeBefore: settings.writeBefore, now });
@@ -177,6 +180,7 @@ export function createFirstOpenRdsResourceFactory(env: Env, {
       config: { workerEnabled: false, applyEnabled: false, confirmation: "", environmentKey: "aws-sandbox-ca-central-1",
         expectedAccountId: account, expectedRegion: region, workerRoleArn: taskRole, leaseDurationMs: 60_000, pollIntervalMs: 5_000 },
       databaseProfile: "full_password", rdsApplicationSecret: applicationSecret, rdsControlPublicKey: controlPublicKey,
+      rdsPrivateSubnetIds: pin.cell.privateSubnetIds,
       rdsPersistence: { ...sampling.persistence, providerVariable, bucketVariable, mediaPublicBaseUrl },
       cleanupReadiness: cell.cleanupReadiness,
       dependencies: { ...controlPorts, repository, now, applyRuntimeReady: false,

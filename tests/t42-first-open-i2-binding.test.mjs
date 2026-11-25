@@ -56,11 +56,13 @@ test("reviewed I2 installation binds a later Web execution to the one attested t
   let claims = 0;
   const rawResources = JSON.stringify({ version: "techlong/ecs-first-open-resources/v2", selection: wanted.selection, settings: {}, scope: {},
     management: { target: {}, fence: {} }, inspector: { tenant: {}, ingress: {}, sampling: {}, readSecret: {} },
-    ownershipTableArn: "fixture", cell: { cleanup: {} }, applicationSecret: {}, controlPublicKey: {}, control: { credentials: {} } });
+    ownershipTableArn: "fixture", cell: { cleanup: {}, privateSubnetIds: ["subnet-aaaaaaaa", "subnet-bbbbbbbb"] },
+    applicationSecret: {}, controlPublicKey: {}, control: { credentials: {} } });
   const digest = raw => createHash("sha256").update(raw).digest("hex");
   const resourcesEnv = { [FIRST_OPEN_RESOURCE_BINDING_ENV]: rawResources, [FIRST_OPEN_RESOURCE_BINDING_SHA_ENV]: digest(rawResources) };
   const pin = readFirstOpenRdsResourceBinding(resourcesEnv);
   assert.deepEqual(pin.selection, wanted.selection);
+  assert.deepEqual(pin.cell.privateSubnetIds, ["subnet-aaaaaaaa", "subnet-bbbbbbbb"]);
   assert.ok(!Object.hasOwn(pin, "taskDefinitionArn") && !Object.hasOwn(pin.selection, "executionId"));
   const launcherBinding = { taskDefinitionArn, platformImage, subnetIds: ["subnet-0123456789abcdef0"], securityGroupId: "sg-0123456789abcdef0",
     controlDatabaseHost: "fixture-control.abcdef.ca-central-1.rds.amazonaws.com", controlDatabaseName: "techlong_control",

@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
+import type { Service, Task as EcsTask } from "@aws-sdk/client-ecs";
 import { awsSandboxTenantStackName } from "../../lib/deployments/cloudformation/tenant-stack.ts";
 import type { EcsFirstOpenApproval } from "../../lib/deployments/execution/ecs-first-open.ts";
+import { FIRST_OPEN_TENANT_PRIVATE_SUBNET_OUTPUT, isFirstOpenRdsPrivateSubnetIds } from "../../lib/deployments/execution/first-open-tenant-network.ts";
 import type { FirstOnboardingRuntimeReader } from "../../lib/deployments/execution/first-onboarding-inspection.ts";
 import { canonicalJson } from "../../lib/deployments/execution/hash.ts";
 import type { InstanceBinding, SoftwareRelease } from "../../lib/deployments/releases/contract.ts";
@@ -17,6 +19,7 @@ type DatabaseObservation = Awaited<ReturnType<FirstOnboardingRuntimeReader["capt
 export interface FirstOpenRdsInspectorMaterial {
   stackName: string;
   sampling: ReleaseSamplingBinding;
+  privateSubnetIds: readonly string[];
   route53Endpoint: string;
   ingress: {
     albArn: string;
@@ -57,6 +60,7 @@ const elbArn = `arn:aws:elasticloadbalancing:${region}:${account}:`;
 const secretArn = `arn:aws:secretsmanager:${region}:${account}:secret:`;
 const ecrRepositoryPrefix = `${account}.dkr.ecr.${region}.amazonaws.com/`;
 const taskRoleSession = `arn:aws:sts::${account}:assumed-role/TechlongSandboxFirstOpenTaskRole/`;
+const tenantNetworkScope = "ECS_FIRST_OPEN_INSPECTOR_TENANT_NETWORK_SCOPE";
 
 function requireScope(assertion: unknown, code = "ECS_FIRST_OPEN_INSPECTOR_SCOPE"): asserts assertion {
   if (!assertion) throw Error(code);
@@ -72,8 +76,10 @@ function scopedStack(stackId: string, name: string) {
 }
 
 function bindMaterial(material: FirstOpenRdsInspectorMaterial, approval: Approval, stackId: string, databaseName: Database) {
-  const { stackName, sampling, ingress, tenant } = structuredClone(material);
+  const { stackName, sampling, privateSubnetIds, ingress, tenant } = structuredClone(material);
   requireScope(stackName === awsSandboxTenantStackName(approval.instanceId) && scopedStack(stackId, stackName));
+  requireScope(isFirstOpenRdsPrivateSubnetIds(privateSubnetIds) &&
+    sampling.cellOutputParameters?.SubnetIds === FIRST_OPEN_TENANT_PRIVATE_SUBNET_OUTPUT, tenantNetworkScope);
   requireScope(scopedStack(sampling.cellStackId, "techlong-sandbox-cell-sandbox-1") &&
     scopedStack(sampling.platformStackId, "techlong-sandbox-platform-hosting-v1") &&
     sampling.apiHostname === approval.hostname && /^[A-Z0-9]{4,32}$/.test(sampling.hostedZoneId) &&
@@ -105,7 +111,7 @@ function bindMaterial(material: FirstOpenRdsInspectorMaterial, approval: Approva
     [tenant.owner, tenant.username, tenant.applicationRole].every(role => name.test(role)) &&
     new Set([tenant.owner, tenant.username, tenant.applicationRole]).size === 3 &&
     /^tl_owner_[a-f0-9]{32}_g1$/.test(tenant.ownershipMarker));
-  return { sampling, ingress, tenant, route53Endpoint: material.route53Endpoint };
+  return { sampling, privateSubnetIds, ingress, tenant, route53Endpoint: material.route53Endpoint };
 }
 
 type BoundMaterial = ReturnType<typeof bindMaterial>;
@@ -125,7 +131,7 @@ function makeReadBoundary(input: {
   bound: BoundMaterial; approval: Approval; stackId: string; release: SoftwareRelease; cloud: Cloud;
   technical: Technical; signal: AbortSignal; now: () => number;
 }) {
-  const { bound: { sampling, ingress, tenant }, approval, stackId, release, cloud, technical, signal, now } = input;
+  const { bound: { sampling, privateSubnetIds, ingress, tenant }, approval, stackId, release, cloud, technical, signal, now } = input;
   const cluster = ingress.clusterArn.slice((ecsArn + "cluster/").length);
   let resources: ResourceRow[] = [], taskArns: string[] = [], observedDns: string | undefined, reads = 0;
   const checkWindow = () => {
@@ -185,6 +191,12 @@ function makeReadBoundary(input: {
       }
       const result = await cloud.read(service, operation, args, signal);
       checkWindow();
+      if (action === "cloudformation:describe-stacks" && args.StackName === sampling.cellStackId) {
+        const { Stacks = [], NextToken } = result as { Stacks?: { StackId?: string; Outputs?: { OutputKey?: string; OutputValue?: string }[] }[]; NextToken?: string };
+        const outputs = Stacks[0]?.Outputs?.filter(output => output.OutputKey === FIRST_OPEN_TENANT_PRIVATE_SUBNET_OUTPUT);
+        requireScope(Stacks.length === 1 && Stacks[0].StackId === sampling.cellStackId && !NextToken &&
+          outputs?.length === 1 && outputs[0].OutputValue === privateSubnetIds.join(","), tenantNetworkScope);
+      }
       if (action === "cloudformation:list-stack-resources") {
         const page = result as { StackResourceSummaries?: ResourceRow[]; NextToken?: string };
         requireScope(Array.isArray(page.StackResourceSummaries) && !page.NextToken && page.StackResourceSummaries.length <= 60);
@@ -205,10 +217,38 @@ function makeReadBoundary(input: {
       if (action === "ecs:list-tasks") {
         const page = result as { taskArns?: string[]; nextToken?: string };
         const prefix = `${ecsArn}task/${cluster}/`;
-        requireScope(Array.isArray(page.taskArns) && !page.nextToken && page.taskArns.length <= 2 &&
+        requireScope(Array.isArray(page.taskArns) && !page.nextToken && page.taskArns.length > 0 && page.taskArns.length <= 2 &&
           new Set(page.taskArns).size === page.taskArns.length &&
-          page.taskArns.every(arn => arn.startsWith(prefix) && /^[a-f0-9]{32}$/.test(arn.slice(prefix.length))));
+          page.taskArns.every(arn => typeof arn === "string" && arn.startsWith(prefix) && /^[a-f0-9]{32}$/.test(arn.slice(prefix.length))), tenantNetworkScope);
         taskArns = [...page.taskArns];
+      }
+      if (action === "ecs:describe-services") {
+        const { services = [], failures } = result as { services?: Service[]; failures?: unknown[] };
+        const observed = services[0];
+        const network = observed?.networkConfiguration?.awsvpcConfiguration;
+        requireScope(!failures?.length && services.length === 1 && observed.serviceArn === resource("TenantService") &&
+          observed.clusterArn === ingress.clusterArn && observed.taskDefinition === resource("TenantTaskDefinition") &&
+          network?.assignPublicIp === "DISABLED" && isFirstOpenRdsPrivateSubnetIds(network.subnets) &&
+          network.subnets.every(subnet => privateSubnetIds.includes(subnet)), tenantNetworkScope);
+      }
+      if (action === "ecs:describe-tasks") {
+        const { tasks = [], failures } = result as { tasks?: EcsTask[]; failures?: unknown[] };
+        const serviceName = resource("TenantService")?.split("/").at(-1);
+        requireScope(!failures?.length && same(tasks.map(task => task.taskArn).sort(), [...taskArns].sort()), tenantNetworkScope);
+        const observedEnis = new Set<string>();
+        for (const task of tasks) {
+          const enis = task.attachments?.filter(attachment => attachment.type === "ElasticNetworkInterface");
+          const eni = enis?.[0];
+          requireScope(task.clusterArn === ingress.clusterArn && task.taskDefinitionArn === resource("TenantTaskDefinition") &&
+            task.group === `service:${serviceName}` && task.lastStatus === "RUNNING" && enis?.length === 1 && eni?.status === "ATTACHED", tenantNetworkScope);
+          const subnets = eni.details?.filter(detail => detail.name === "subnetId");
+          const interfaces = eni.details?.filter(detail => detail.name === "networkInterfaceId");
+          const subnet = subnets?.[0]?.value, interfaceId = interfaces?.[0]?.value;
+          requireScope(subnets?.length === 1 && typeof subnet === "string" && privateSubnetIds.includes(subnet) &&
+            interfaces?.length === 1 && typeof interfaceId === "string" && /^eni-(?:[a-f0-9]{8}|[a-f0-9]{17})$/.test(interfaceId) &&
+            !observedEnis.has(interfaceId), tenantNetworkScope);
+          observedEnis.add(interfaceId);
+        }
       }
       if (action === "rds:describe-db-instances") {
         const { DBInstances = [], Marker } = result as { DBInstances?: {

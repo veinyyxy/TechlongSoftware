@@ -90,7 +90,8 @@ test("ECS first-open self-check requires the explicitly bound RDS database profi
   const control = { arn: "arn:aws:secretsmanager:ca-central-1:402010193138:secret:fixture-control-aBc123", versionId: "b".repeat(64), jsonKey: "key" };
   const persistence = { bucket: "techlong-sandbox-synthetic-media", providerVariable: "IMAGE_STORAGE_PROVIDER" as const,
     bucketVariable: "IMAGE_S3_BUCKET" as const, verificationSha256: "c".repeat(64), mediaPublicBaseUrl: "https://synthetic.cloudfront.net" };
-  const rds = { ...input, databaseProfile: "full_password" as const, rdsWorkload: { application, control, persistence } };
+  const rds = { ...input, databaseProfile: "full_password" as const,
+    rdsWorkload: { application, control, persistence, privateSubnetIds: ["subnet-aaaaaaaa", "subnet-bbbbbbbb"] } };
   await assert.rejects(inspectEcsFirstOpen({ ...rds, rdsWorkload: undefined }), /ECS_FIRST_OPEN_RDS_WORKLOAD_READBACK_MISMATCH/);
   const api = facts.taskDefinition.containerDefinitions![0];
   api.name = facts.service.loadBalancers![0].containerName = facts.tasks[0].containers![0].name = "speedfeast-backend";

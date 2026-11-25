@@ -435,7 +435,8 @@ async function rdsFirstOpenFixture() {
   const rdsControlPublicKey = { arn: context.binding!.tenantStackParameters.ControlPublicKeyValueFrom, versionId: "b".repeat(64) };
   const rdsPersistence = { bucket: "techlong-sandbox-synthetic-media", providerVariable: "IMAGE_STORAGE_PROVIDER" as const,
     bucketVariable: "IMAGE_S3_BUCKET" as const, verificationSha256: "c".repeat(64), mediaPublicBaseUrl: "https://synthetic.cloudfront.net" };
-  ports.management = { ...ports.management, rdsApplicationSecret, rdsControlPublicKey, rdsPersistence };
+  const rdsPrivateSubnetIds = ["subnet-fedcba98765432101", "subnet-1234abcd"] as const;
+  ports.management = { ...ports.management, rdsApplicationSecret, rdsControlPublicKey, rdsPersistence, rdsPrivateSubnetIds };
   const factory = ports.management.dependencies.awsFactory!;
   const awsRoles: string[] = [];
   ports.management.dependencies.awsFactory = async input => {
@@ -445,11 +446,12 @@ async function rdsFirstOpenFixture() {
     return { ...aws, getCallerIdentity: async () => ({ accountId: "402010193138",
       arn: "arn:aws:sts::402010193138:assumed-role/TechlongSandboxFirstOpenTaskRole/fixture-task" }) };
   };
-  return { ...fixture, scope, rdsApplicationSecret, rdsControlPublicKey, rdsPersistence, awsRoles };
+  return { ...fixture, scope, rdsApplicationSecret, rdsControlPublicKey, rdsPersistence, rdsPrivateSubnetIds, awsRoles };
 }
 
 test("ECS first open runs a single claim, real management and a fresh self-check in one command", async () => {
-  const { run, calls, context, executionId, ports } = await ecsFirstOpenFixture();
+  const { run, calls, context, executionId, ports, stack } = await ecsFirstOpenFixture();
+  const legacySubnetIds = context.binding!.tenantStackParameters.SubnetIds;
   const control = ports.management.dependencies.controlClient;
   const read = control.readConfiguration.bind(control);
   control.readConfiguration = async input => { calls.push("read-config"); return read(input); };
@@ -457,6 +459,12 @@ test("ECS first open runs a single claim, real management and a fresh self-check
   assert.equal(result.executionId, executionId);
   assert.equal(result.outcome, "SELF_CHECK_PASSED");
   assert.equal(result.runtime.instanceId, context.appInstance.id);
+  const { applied } = stack();
+  const resources = applied.template.Resources as Record<string, { Properties: { NetworkConfiguration: unknown } }>;
+  assert.equal(applied.parameters.SubnetIds, legacySubnetIds);
+  assert.deepEqual(resources.TenantService.Properties.NetworkConfiguration, {
+    AwsvpcConfiguration: { AssignPublicIp: "ENABLED", SecurityGroups: [{ Ref: "TaskSecurityGroupId" }], Subnets: { Ref: "SubnetIds" } },
+  });
   assert.deepEqual(calls, ["approval", "claim", "capacity", "prepare", "migrate", "capacity", "create", "capacity", "configure",
     "read-config", "inspect", "read-config"]);
   assert.equal(context.appInstance.status, "pending");
@@ -514,8 +522,32 @@ test("T4.2 RDS first-open role needs the matching runtime capability and never c
   assert.ok(!calls.includes("create") && !calls.includes("inspect"));
 });
 
-test("T4.2 RDS first-open renders and rereads exact workload Secret versions, TLS and persistence", async () => {
-  const { ports, scope, run, stack, calls, rdsApplicationSecret, rdsControlPublicKey, rdsPersistence } = await rdsFirstOpenFixture();
+test("T4.2 RDS first-open rejects missing and invalid private subnet IDs before claiming", async () => {
+  const { ports, scope, run, calls, rdsPrivateSubnetIds } = await rdsFirstOpenFixture();
+  ports.management.rdsAuthority = createEcsFirstOpenRdsAuthority(scope);
+  const [first, second] = rdsPrivateSubnetIds;
+  for (const subnetIds of [undefined, [], [first], [first, second, "subnet-2345abcd"], [first, first],
+    [first, "subnet-1234ABCD"], [first, "subnet-123abcd"]]) {
+    ports.management.rdsPrivateSubnetIds = subnetIds;
+    calls.length = 0;
+    await assert.rejects(run(), /ECS_FIRST_OPEN_RDS_PRIVATE_SUBNETS_REQUIRED/);
+    assert.deepEqual(calls, ["approval"]);
+  }
+});
+
+test("T4.2 RDS first-open rejects overlap with the legacy subnet binding before tenant management", async () => {
+  const { ports, scope, run, context, calls, rdsPrivateSubnetIds } = await rdsFirstOpenFixture();
+  ports.management.rdsAuthority = createEcsFirstOpenRdsAuthority(scope);
+  const [legacySubnetId] = context.binding!.tenantStackParameters.SubnetIds.split(",");
+  ports.management.rdsPrivateSubnetIds = [rdsPrivateSubnetIds[0], legacySubnetId];
+  await assert.rejects(run(), /ECS_FIRST_OPEN_RDS_PRIVATE_SUBNETS_SCOPE/);
+  assert.deepEqual(calls, ["approval", "claim"]);
+});
+
+test("T4.2 RDS first-open renders exact private subnet order, workload Secret versions, TLS and persistence", async () => {
+  const { ports, scope, run, stack, calls, context, rdsApplicationSecret, rdsControlPublicKey, rdsPersistence,
+    rdsPrivateSubnetIds } = await rdsFirstOpenFixture();
+  const legacySubnetIds = context.binding!.tenantStackParameters.SubnetIds;
   ports.management.rdsAuthority = createEcsFirstOpenRdsAuthority(scope);
   const originalReader = ports.reader;
   ports.reader = { async capture(target) {
@@ -532,6 +564,15 @@ test("T4.2 RDS first-open renders and rereads exact workload Secret versions, TL
     const parameters = applied.template.Parameters as Record<string, unknown>;
     assert.deepEqual(parameters.TenantRuntimeSecretArn, { Type: "String", Default: rdsApplicationSecret.arn,
       AllowedValues: [rdsApplicationSecret.arn] });
+    const privateSubnetIds = rdsPrivateSubnetIds.join(",");
+    assert.deepEqual(parameters.SubnetIds, { Type: "String", Default: privateSubnetIds, AllowedValues: [privateSubnetIds] });
+    assert.equal(applied.parameters.SubnetIds, privateSubnetIds);
+    assert.equal(context.binding!.tenantStackParameters.SubnetIds, legacySubnetIds);
+    const tenantService = resources.TenantService as { Properties: { NetworkConfiguration: unknown } };
+    assert.deepEqual(tenantService.Properties.NetworkConfiguration, {
+      AwsvpcConfiguration: { AssignPublicIp: "DISABLED", SecurityGroups: [{ Ref: "TaskSecurityGroupId" }],
+        Subnets: { "Fn::Split": [",", { Ref: "SubnetIds" }] } },
+    });
     assert.equal(applied.parameters.JwtExpiresIn, "7d");
     assert.equal(applied.parameters.MerchantJwtExpiresIn, "12h");
     const secretSelectors = Object.fromEntries(app.Secrets.map(secret => [secret.Name,

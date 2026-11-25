@@ -17,7 +17,8 @@ const selection = { jobId: "job_" + "e".repeat(24), instanceId: "app_launcher_fi
 // validation occurs independently in the configured task before claim.
 const resources = { version: "techlong/ecs-first-open-resources/v2", selection,
   settings: {}, scope: {}, management: { target: {}, fence: {} }, inspector: { tenant: {}, sampling: {}, ingress: {}, readSecret: {} },
-  ownershipTableArn: "fixture-authority-table", cell: { cleanup: {} }, control: { credentials: {} }, applicationSecret: {}, controlPublicKey: {} };
+  ownershipTableArn: "fixture-authority-table", cell: { cleanup: {}, privateSubnetIds: ["subnet-aaaaaaaa", "subnet-bbbbbbbb"] },
+  control: { credentials: {} }, applicationSecret: {}, controlPublicKey: {} };
 const digest = (value: string) => createHash("sha256").update(value).digest("hex");
 const resourcePayload = JSON.stringify(resources);
 const binding = {
