@@ -50,6 +50,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '22.19.0'
@@ -62,7 +63,7 @@ jobs:
       - name: Held first-onboarding and adjacent worker regression
         run: |
           node --experimental-strip-types --test --test-timeout=30000 tests/first-onboarding.test.ts tests/first-onboarding-run-once.test.ts tests/deployment-execution-foundation.test.ts tests/deployment-s3-worker.test.ts tests/tenant-database-lifecycle.test.ts
-          node node_modules/eslint/bin/eslint.js lib/deployments/first-onboarding.ts lib/deployments/management.ts lib/deployments/lease.ts lib/deployments/execution/neon-repository.ts lib/deployments/execution/worker.ts 'lib/deployments/execution/first-onboarding*.ts' lib/deployments/execution/aws-sdk-adapter.ts lib/deployments/execution/single-tenant-workload-strategy.ts tests/first-onboarding.test.ts tests/first-onboarding-postgres.test.mjs tests/first-onboarding-claim-postgres.test.mjs tests/first-onboarding-run-once.test.ts tests/first-onboarding-completion-postgres.test.mjs tests/deployment-s3-worker.test.ts --max-warnings 0
+          node node_modules/eslint/bin/eslint.js lib/deployments/first-onboarding.ts lib/deployments/management.ts lib/deployments/lease.ts lib/deployments/execution/neon-repository.ts lib/deployments/execution/worker.ts 'lib/deployments/execution/first-onboarding*.ts' lib/deployments/execution/aws-sdk-adapter.ts lib/deployments/execution/single-tenant-workload-strategy.ts tests/first-onboarding.test.ts tests/first-onboarding-postgres.test.mjs tests/first-onboarding-claim-postgres.test.mjs tests/first-onboarding-middle-source.mjs tests/first-onboarding-run-once.test.ts tests/first-onboarding-completion-postgres.test.mjs tests/deployment-s3-worker.test.ts --max-warnings 0
       - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
       - name: Sandbox registration scope and lint
         run: |
@@ -90,6 +91,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '22.19.0'

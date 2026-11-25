@@ -27,6 +27,7 @@ import { assertFirstOpenG1InspectedMetadata, firstOpenBaselineSource, firstOpenB
 import { observeFirstOpenTaggedG1 } from "../ops/aws-sandbox/first-open-paired-runtime.ts";
 import type { TenantExternalOperationFence } from "../lib/deployments/execution/contracts.ts";
 import { sandboxFirstOpenMiddleDdl } from "../ops/aws-sandbox/first-onboarding-middle-ddl.ts";
+import { firstOnboardingMiddleRepositorySource } from "./first-onboarding-middle-source.mjs";
 import { createSandboxFirstOpenMiddleRepository, FIRST_OPEN_MIDDLE_RPC, FIRST_OPEN_MIDDLE_WORKER,
   FIRST_OPEN_AUTHORITY_KEY, FIRST_OPEN_AUTHORITY_POLICY } from "../lib/deployments/execution/first-onboarding-middle.ts";
 import { cycleFixture } from "./instance-release-cycle-fixture.ts";
@@ -645,7 +646,7 @@ test("offline composition refuses to share a connection between completion and r
 test("first-open middle only sends fixed RPC calls; SQL candidate rejects a changed repository", async () => {
   const f = await fixture(), scope = { approvalSha256: await sha256Hex(f.approval), planHash: f.row.deployment.planHash,
     configurationHash: f.row.deployment.configurationHash, writeBefore, window: controlledWindow };
-  const source = readFileSync(new URL("../lib/deployments/execution/neon-repository.ts", import.meta.url), "utf8");
+  const source = firstOnboardingMiddleRepositorySource();
   const ddl = await sandboxFirstOpenMiddleDdl(scope, source);
   assert.match(ddl, /SECURITY DEFINER SET search_path TO pg_catalog,public,pg_temp/);
   assert.match(ddl, /WHEN 'activate_epoch' THEN/);

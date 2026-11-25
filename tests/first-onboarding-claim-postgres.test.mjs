@@ -7,6 +7,7 @@ import { FIRST_OPEN_CLAIM_ROLES as roles, sandboxFirstOpenClaimDdl, sandboxFirst
 import { SANDBOX_FIRST_OPEN as s } from "../lib/deployments/execution/first-onboarding-run-once.ts";
 import { sha256Hex } from "../lib/deployments/execution/hash.ts";
 import { sandboxFirstOpenMiddleDdl } from "../ops/aws-sandbox/first-onboarding-middle-ddl.ts";
+import { firstOnboardingMiddleRepositorySource } from "./first-onboarding-middle-source.mjs";
 import { bindSandboxFirstOpenMiddle, FIRST_OPEN_ARTIFACT, FIRST_OPEN_AUTHORITY_KEY, FIRST_OPEN_MIDDLE_ROLES,
   FIRST_OPEN_MIDDLE_RPC, FIRST_OPEN_MIDDLE_WORKER, FIRST_OPEN_SECRET_BASE_NAME } from "../lib/deployments/execution/first-onboarding-middle.ts";
 import { FIRST_OPEN_BASELINE_BINDING } from "../lib/deployments/execution/first-onboarding-baseline-versions.ts";
@@ -155,7 +156,7 @@ test("isolated PG: fixed first-open middle RPC and one DynamoDB g1/e1 CAS", { sk
   const job = { id: s.jobId, deploymentId: s.deploymentId, jobType: "apply", attempt: 1, maxAttempts: 1, leaseToken: token,
     leaseExpiresAt: writeBefore, payload: { ...held.payload, schemaVersion: 1, deploymentId: s.deploymentId, planHash } };
   const fromFile = path => readFileSync(new URL(path, import.meta.url), "utf8").replace(/\r\n/g, "\n");
-  const ddl = await sandboxFirstOpenMiddleDdl(scope, fromFile("../lib/deployments/execution/neon-repository.ts"));
+  const ddl = await sandboxFirstOpenMiddleDdl(scope, firstOnboardingMiddleRepositorySource());
   const stripTransaction = text => text.trim().replace(/^BEGIN;\s*/, "").replace(/\s*COMMIT;$/, "");
   await db.connect();
   await db.query("BEGIN");

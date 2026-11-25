@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {spawnSync} from 'node:child_process';
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {execFileSync,spawnSync} from 'node:child_process';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {dnsTrustChangeV5,dnsReleasePlanV5,DNS_RELEASE_V5 as V} from '../ops/cloud-worker/dns-release-v5.mjs';
 import {ROOT_CLOSURE_V5} from '../ops/cloud-worker/activation/runtime-v5.mjs';
-import {computeCloudClosureV5} from '../ops/cloud-worker/closure-v5.mjs';
 import {sha256Hex} from '../lib/deployments/execution/hash.ts';
 const capsule=JSON.parse(await readFile(new URL('../ops/cloud-worker/material/public-capsule-v5.json',import.meta.url),'utf8'));
 const source={commit:'a'.repeat(40),runtimeClosureSha256:ROOT_CLOSURE_V5},history={failedReviewPreserved:true},
@@ -38,7 +40,18 @@ test('changed source, stale foundation identity, broken parent chain or old clos
     {release:{...release,reusable:{...release.reusable,parent:'d'.repeat(40)}}}])
     await assert.rejects(dnsReleasePlanV5({...context,...changed}));
 });
-test('updated activation digest binds the actual 76-file closure without changing the installed binding',async()=>{
+test('updated activation digest binds the frozen 76-file closure without changing the installed binding',async t=>{
+  const frozenCommit='ca2b38d8c756dd8fb800a88ded596c93687f278f';
+  const prefix=path.join(tmpdir(),'techlong-cloud-worker-v5-'),dir=await mkdtemp(prefix);
+  t.after(async()=>{
+    assert(dir.startsWith(prefix)&&path.dirname(dir)===path.resolve(tmpdir()));
+    await rm(dir,{recursive:true,force:true});
+  });
+  const archive=path.join(dir,'frozen.tar');
+  execFileSync('git',['--no-replace-objects','archive','--format=tar','--output',archive,frozenCommit],
+    {cwd:new URL('../',import.meta.url),env:{...process.env,GIT_NO_LAZY_FETCH:'1'},timeout:30_000});
+  execFileSync('tar',['-xf',archive,'-C',dir],{timeout:30_000});
+  const {computeCloudClosureV5}=await import(pathToFileURL(path.join(dir,'ops/cloud-worker/closure-v5.mjs')).href);
   const c=await computeCloudClosureV5();assert.equal(c.pinCount,76);assert.equal(c.closureSha256,ROOT_CLOSURE_V5);
   assert.notEqual(ROOT_CLOSURE_V5,V.oldClosure);
   const binding=JSON.parse(await readFile(new URL('../ops/aws-sandbox/reviews/cloud-worker-v5.installed-binding.json',import.meta.url),'utf8'));
