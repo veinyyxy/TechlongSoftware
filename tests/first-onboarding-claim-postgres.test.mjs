@@ -171,7 +171,6 @@ test("isolated PG: fixed first-open middle RPC and one DynamoDB g1/e1 CAS", { sk
     await select("INSERT INTO public.workspaces(id,name,owner_id,created_at,updated_at) VALUES ($1,'Synthetic','usr_fixture',1,1)", [ws]);
     await select("INSERT INTO public.subscriptions(id,workspace_id,product_id,plan_id,template_version_id,status,current_period_start,current_period_end,created_by_user_id,created_at,updated_at) VALUES ($1,$2,$3,'pln_fixture','tplver_fixture','active',$4,$5,'usr_fixture',1,1)", [s.subscriptionId, ws, s.productId, now - 100_000, writeBefore + 50_000]);
     await select("INSERT INTO public.app_instances(id,workspace_id,product_id,subscription_id,template_version_id,status,provisioning_source,name,slug,access_url,tenant_key,created_by_user_id,created_at,updated_at) VALUES ($1,$2,$3,$4,'tplver_fixture','pending','payment_success','Synthetic',$5,'',$6,'usr_fixture',1,1)", [s.instanceId, ws, s.productId, s.subscriptionId, s.hostname.split(".")[0], tenantKey]);
-    await select("INSERT INTO public.deployment_environment_bindings(environment_id,worker_role_arn,cloudformation_role_arn,status,created_at,updated_at) VALUES ($1,$2,$3,'active',1,1)", [s.environmentId, s.workerRole, s.cfnRole]);
     await select("INSERT INTO public.app_instance_deployments(id,app_instance_id,subscription_id,environment_id,driver,workflow_version,cell_key,deployment_profile_key,mode,status,desired_plan,plan_hash,configuration_hash,idempotency_key,artifact_ref,created_at,updated_at) VALUES ($1,$2,$3,$4,'aws_ecs_cell','v1','cell-sandbox-1','standard-v1','aws_sandbox','planned',$5,$6,$7,'fixture',$8,1,1)", [s.deploymentId, s.instanceId, s.subscriptionId, s.environmentId, planText, planHash, scope.configurationHash, FIRST_OPEN_ARTIFACT]);
     await select("INSERT INTO public.deployment_jobs(id,deployment_id,job_type,dedupe_key,status,payload,attempts,max_attempts,available_at,created_at,updated_at) VALUES ($1,$2,'apply',$3,'pending',$4,0,1,$5,1,1)", [s.jobId,s.deploymentId,held.dedupeKey,JSON.stringify(held.payload),held.availableAt]);
     await select(stripTransaction(ddl));
@@ -205,6 +204,19 @@ test("isolated PG: fixed first-open middle RPC and one DynamoDB g1/e1 CAS", { sk
     const bound = bindSandboxFirstOpenMiddle(ports), repo = bound.repository, signal = new AbortController().signal;
     await assert.rejects(asRunner.query("SELECT * FROM public.deployment_jobs",[]), { code:"42501" });
     await assert.rejects(repo.loadContext(job), /FIRST_OPEN_MIDDLE_LEASE/);
+    await bound.verifyMiddleReadyBeforeClaim(signal);
+    await select("SAVEPOINT existing_environment_binding");
+    try {
+      await select(
+        "INSERT INTO public.deployment_environment_bindings(environment_id,worker_role_arn,cloudformation_role_arn,status,created_at,updated_at) VALUES ($1,$2,$3,'active',1,1)",
+        [s.environmentId, s.workerRole, s.cfnRole],
+      );
+      await assert.rejects(bound.verifyMiddleReadyBeforeClaim(signal), {
+        code: "P0001", message: "FIRST_OPEN_MIDDLE_PRECLAIM",
+      });
+    } finally {
+      await select("ROLLBACK TO SAVEPOINT existing_environment_binding; RELEASE SAVEPOINT existing_environment_binding");
+    }
     await bound.verifyMiddleReadyBeforeClaim(signal);
     await bound.verifyAuthorityVacantBeforeClaim(signal);
     assert.equal(puts,0);
