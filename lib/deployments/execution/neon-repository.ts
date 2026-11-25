@@ -1,8 +1,4 @@
-import {
-  neon,
-  type NeonQueryFunction,
-  type NeonQueryFunctionInTransaction,
-} from "@neondatabase/serverless";
+import { neon } from "@neondatabase/serverless";
 import {
   parseDeploymentEnvironmentPolicy,
   type DeploymentEnvironment,
@@ -47,9 +43,10 @@ import {
   requireActiveCleanupProvisionPredecessor,
 } from "./external-ownership.ts";
 
-type SqlClient = NeonQueryFunction<false, true>;
-type TransactionClient = NeonQueryFunctionInTransaction<false, true>;
 type SqlValues = Array<string | number | boolean | null | string[]>;
+type SqlClient = {
+  query(statement: string, values: SqlValues): PromiseLike<{ rows: Record<string, unknown>[] }>;
+};
 
 function parseObject(value: unknown): Record<string, unknown> {
   if (value && typeof value === "object" && !Array.isArray(value)) {
@@ -371,7 +368,7 @@ function hydrateCleanupPhaseReceipt(
 }
 
 async function query<T extends Record<string, unknown>>(
-  client: SqlClient | TransactionClient,
+  client: SqlClient,
   statement: string,
   values: SqlValues = [],
 ): Promise<T[]> {
@@ -570,14 +567,14 @@ export class NeonDeploymentExecutionRepository
   private readonly sql: SqlClient;
   private readonly claimScope: Readonly<SingleDeploymentClaimScope> | undefined;
 
-  constructor(databaseUrl: string, claimScope?: SingleDeploymentClaimScope,
+  constructor(connection: string | SqlClient, claimScope?: SingleDeploymentClaimScope,
     sqlFactory: (databaseUrl: string) => SqlClient = url => neon(url, { fullResults: true })) {
-    if (!/^postgres(?:ql)?:\/\//.test(databaseUrl)) {
+    if (typeof connection === "string" && !/^postgres(?:ql)?:\/\//.test(connection)) {
       throw new Error("Deployment worker requires a PostgreSQL DATABASE_URL.");
     }
     this.claimScope = claimScope === undefined ? undefined : isExpressDeploymentClaimScopeV1(claimScope)
       ? claimScope : validateSingleDeploymentScope(claimScope);
-    this.sql = sqlFactory(databaseUrl);
+    this.sql = typeof connection === "string" ? sqlFactory(connection) : connection;
   }
 
   /** Reference-only read for the separate supervised cleanup path. Never

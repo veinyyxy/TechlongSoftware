@@ -9,11 +9,16 @@ const READ_APPROVAL = `SELECT opened.id AS "executionId", opened.approved_by AS 
   opened.review_sha256 AS "reviewSha256", instance.slug || '.sandbox.techlong.cloud' AS hostname
   FROM first_open_executions opened JOIN app_instances instance ON instance.id = opened.instance_id
   WHERE opened.id = $1 AND opened.dispatch_token = opened.id AND opened.dispatch_outcome = 'acknowledged'
-    AND opened.dispatch_task_arn = $2`;
+    AND opened.dispatch_task_arn = $2 AND opened.dispatch_task_definition_arn = $3`;
 
 const READ_RELEASE = `SELECT document || jsonb_build_object('status', status) AS document
   FROM deployment_release.releases WHERE id = $1 AND status = 'ecr_verified' AND component = 'tenant_api'
     AND product_id = document->>'productId'`;
+
+export async function readEcsFirstOpenRelease(db: ApplicationDatabase, releaseId: string) {
+  const row = await db.prepare(READ_RELEASE).bind(releaseId).first<{ document: SoftwareRelease }>();
+  return row?.document ?? null;
+}
 
 // Keep the original held-job claim and lock the matching SaaS approval with it.
 const CLAIM_APPROVED = CLAIM_FIRST_ONBOARDING.replace("WITH eligible", `WITH approval AS MATERIALIZED (
@@ -22,7 +27,7 @@ const CLAIM_APPROVED = CLAIM_FIRST_ONBOARDING.replace("WITH eligible", `WITH app
   WHERE opened.id = $2 AND opened.job_id = $1 AND opened.deployment_id = $5 AND opened.instance_id = $10
     AND opened.dispatch_token = opened.id AND opened.dispatch_outcome = 'acknowledged' AND opened.dispatch_task_arn = $19
     AND opened.approved_by = $20 AND opened.approved_at = $21::bigint
-    AND opened.review_sha256 = $22 AND opened.release_id = $23
+    AND opened.review_sha256 = $22 AND opened.release_id = $23 AND opened.dispatch_task_definition_arn = $24
     AND opened.artifact_ref = ($8::jsonb)->>'artifactRef' AND $4::bigint <= opened.approved_at + 3600000
   FOR SHARE OF opened, actor
 ), eligible`).replace(SELECT_FIRST_ONBOARDING,
@@ -34,6 +39,7 @@ const WRITE_EVENT = `WITH scope AS MATERIALIZED (
   JOIN deployment_jobs job ON job.id = opened.job_id AND job.deployment_id = opened.deployment_id
   WHERE opened.id = $1 AND job.id = $2 AND opened.dispatch_token = opened.id
     AND opened.dispatch_outcome = 'acknowledged' AND opened.dispatch_task_arn = $3
+    AND opened.dispatch_task_definition_arn = $10
     AND job.status = 'running' AND job.attempts = 1 AND job.max_attempts = 1
     AND job.lease_owner = opened.id AND job.lease_token = $4
   FOR SHARE OF opened, job
@@ -56,15 +62,16 @@ export function createEcsFirstOpenTaskPorts(input: TaskSettings & {
   db: ApplicationDatabase;
   readDb: ApplicationDatabase;
   taskArn: string;
+  taskDefinitionArn: string;
   management: EcsFirstOpenPorts["management"];
   reader: EcsFirstOpenPorts["reader"];
 }): EcsFirstOpenPorts {
-  const { db, readDb, taskArn, management, reader, writeBefore, baselineDigest, databaseSchemaVersion, dnsTarget } = input;
+  const { db, readDb, taskArn, taskDefinitionArn, management, reader, writeBefore, baselineDigest, databaseSchemaVersion, dnsTarget } = input;
   return {
     management,
     reader,
     async readApproval(executionId) {
-      const row = await db.prepare(READ_APPROVAL).bind(executionId, taskArn)
+      const row = await db.prepare(READ_APPROVAL).bind(executionId, taskArn, taskDefinitionArn)
         .first<Omit<EcsFirstOpenApproval, keyof TaskSettings | "approvedAt"> & { approvedAt: number | string }>();
       if (!row) return null;
       const approvedAt = Number(row.approvedAt);
@@ -74,21 +81,18 @@ export function createEcsFirstOpenTaskPorts(input: TaskSettings & {
       if (sql !== SELECT_FIRST_ONBOARDING) throw Error("ECS_FIRST_OPEN_REVIEW_QUERY");
       return db.prepare(SELECT_FIRST_ONBOARDING).bind(...args).first<FirstOnboardingReviewRow>();
     },
-    async readRelease(releaseId) {
-      const row = await db.prepare(READ_RELEASE).bind(releaseId).first<{ document: SoftwareRelease }>();
-      return row?.document ?? null;
-    },
+    readRelease: releaseId => readEcsFirstOpenRelease(db, releaseId),
     async claimApproved(approval, sql, bindings) {
       if (sql !== CLAIM_FIRST_ONBOARDING) throw Error("ECS_FIRST_OPEN_CLAIM_QUERY");
       const claim = await db.prepare(CLAIM_APPROVED).bind(...bindings, taskArn, approval.approvedBy,
-        approval.approvedAt, approval.reviewSha256, approval.releaseId).first<{ jobId: string }>();
+        approval.approvedAt, approval.reviewSha256, approval.releaseId, taskDefinitionArn).first<{ jobId: string }>();
       return claim && { ...claim, executionId: approval.executionId };
     },
     lifecycle: {
       async record(approval, job, event) {
         const sequence = stepSequence[event.step] + (event.status === "started" ? 0 : 1);
         const updated = await db.prepare(WRITE_EVENT).bind(approval.executionId, job.id, taskArn, job.leaseToken,
-          approval.writeBefore, sequence, event.step, event.status, event.errorCode ?? null).first();
+          approval.writeBefore, sequence, event.step, event.status, event.errorCode ?? null, taskDefinitionArn).first();
         if (!updated) throw Error("ECS_FIRST_OPEN_PROGRESS_UNCONFIRMED");
       },
       complete: createEcsFirstOpenCompletion({ db, readDb }),

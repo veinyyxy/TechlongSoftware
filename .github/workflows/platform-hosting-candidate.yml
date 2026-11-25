@@ -52,13 +52,14 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '22.19.0'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
-      - name: Hosting contracts, liveness and unchanged cloud closure
+      - name: Hosting contracts, liveness and published cloud closure from its frozen source
         run: node --experimental-strip-types --test tests/platform-hosting-v1.test.mjs tests/platform-hosting-release.test.mjs tests/platform-hosted-control-v6.test.mjs
       - name: Typecheck and scoped lint
         run: |
@@ -68,9 +69,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           candidate_context=$(mktemp -d "${RUNNER_TEMP}/platform-hosting.XXXXXX")
-          git archive HEAD | tar -x -C "$candidate_context"
-          docker build --file "$candidate_context/ops/platform-hosting-v1/Dockerfile" --tag "techlong-platform-ci:${GITHUB_SHA}" "$candidate_context"
+          candidate_source=$(mktemp "${RUNNER_TEMP}/platform-hosting-source.XXXXXX")
+          trap 'rm -f "$candidate_source"' EXIT
+          git archive HEAD > "$candidate_source"
+          test "$(git get-tar-commit-id < "$candidate_source")" = "$GITHUB_SHA"
+          sha256sum "$candidate_source"
+          tar -xf "$candidate_source" -C "$candidate_context"
+          docker build --platform linux/amd64 --file "$candidate_context/ops/platform-hosting-v1/Dockerfile" --tag "techlong-platform-ci:${GITHUB_SHA}" "$candidate_context"
       - name: Non-root read-only container, anonymous GETs, network disabled
         shell: bash
         run: |

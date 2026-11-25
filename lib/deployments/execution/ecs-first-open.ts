@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   CLAIM_FIRST_ONBOARDING, SELECT_FIRST_ONBOARDING, firstOnboardingClaimBindings, loadFirstOnboardingReview,
 } from "../first-onboarding.ts";
+import { assertAwsSandboxTenantRuntimeSecretRef } from "../cloudformation/tenant-stack.ts";
 import type { SoftwareRelease } from "../releases/contract.ts";
 import type { ClaimedDeploymentJob, DeploymentExecutionContext } from "./contracts.ts";
 import type { EcsFirstOpenCompletionInput, createEcsFirstOpenCompletion } from "./ecs-first-open-completion.ts";
@@ -9,8 +10,12 @@ import { inspectEcsFirstOpen } from "./ecs-first-open-inspector.ts";
 import { FIRST_OPEN_BASELINE_BINDING } from "./first-onboarding-baseline-versions.ts";
 import type { FirstOnboardingExpressComposition } from "./first-onboarding-express.ts";
 import type { FirstOnboardingRuntimeReader } from "./first-onboarding-inspection.ts";
-import type { DeploymentWorkerRuntimeConfig } from "./gates.ts";
-import { createFirstOnboardingWorkloadStrategy, type SupervisedCleanupReadinessPort } from "./single-tenant-workload-strategy.ts";
+import { assertEcsFirstOpenRdsApproval, ECS_FIRST_OPEN_RDS_ENVIRONMENT_ID,
+  type DeploymentWorkerRuntimeConfig, type EcsFirstOpenRdsAuthority } from "./gates.ts";
+import { createFirstOnboardingWorkloadStrategy, type FirstOpenRdsControlPublicKey, type FirstOpenRdsPersistence,
+  type FirstOpenRdsSecretVersion, type FirstOpenRdsWorkload,
+  type SupervisedCleanupReadinessPort } from "./single-tenant-workload-strategy.ts";
+import { deriveTenantOwnershipMarker, deriveTenantResourceIdentityFromPlan, deriveTenantRuntimeSecretName } from "./tenant-database.ts";
 import { runFirstOnboardingManagement, type DeploymentWorkerDependencies } from "./worker.ts";
 
 const executionIdPattern = /^exec_[a-f0-9]{32}$/;
@@ -56,6 +61,11 @@ export interface EcsFirstOpenPorts extends ReviewPorts {
     config: DeploymentWorkerRuntimeConfig;
     cleanupReadiness: SupervisedCleanupReadinessPort;
     express?: FirstOnboardingExpressComposition;
+    databaseProfile?: "full_password";
+    rdsAuthority?: EcsFirstOpenRdsAuthority;
+    rdsApplicationSecret?: FirstOpenRdsSecretVersion;
+    rdsControlPublicKey?: FirstOpenRdsControlPublicKey;
+    rdsPersistence?: FirstOpenRdsPersistence;
   };
   reader: FirstOnboardingRuntimeReader;
   lifecycle?: {
@@ -66,6 +76,7 @@ export interface EcsFirstOpenPorts extends ReviewPorts {
 
 const selfCheckMismatches = new Set([
   "ECS_FIRST_OPEN_CONFIGURATION_EXPECTATION_INVALID", "ECS_FIRST_OPEN_CONFIGURATION_MISMATCH", "ECS_FIRST_OPEN_INSPECTION_SCOPE",
+  "ECS_FIRST_OPEN_RDS_WORKLOAD_READBACK_MISMATCH",
   "FIRST_ONBOARDING_INSPECTION_SCOPE_MISMATCH", "FIRST_ONBOARDING_INSPECTION_BINDING_MISMATCH", "RELEASE_ARTIFACT_MISMATCH",
   "RELEASE_PLATFORM_DIGEST_MISMATCH", "RELEASE_RESTORE_REQUIRED", "RELEASE_RUNTIME_BINDING_CHANGED", "RELEASE_RUNTIME_NOT_STABLE",
   "RELEASE_IMAGE_OR_COMPATIBILITY_CHANGED", "RELEASE_RUNNING_DIGEST_MISMATCH", "RELEASE_TARGETS_UNHEALTHY",
@@ -74,6 +85,10 @@ const selfCheckMismatches = new Set([
 
 function stepFailure(step: TaskStep, error: unknown): EcsFirstOpenTaskEvent {
   const details = error as { code?: unknown; name?: unknown; message?: unknown; retryable?: unknown } | null;
+  if (step === "database_initialization" &&
+      [details?.code, details?.message].includes("TENANT_POSTGRES_INITIALIZATION_UNCONFIRMED")) {
+    return { step, status: "unknown", errorCode: "RESULT_UNCONFIRMED" };
+  }
   let errorCode: TaskStepFailure | undefined;
   if ([details?.code, details?.name].some(code => code === "AccessDenied" || code === "AccessDeniedException")) {
     errorCode = "AccessDenied";
@@ -92,6 +107,7 @@ function stepFailure(step: TaskStep, error: unknown): EcsFirstOpenTaskEvent {
 export async function runEcsFirstOpen(executionId: string, ports: EcsFirstOpenPorts) {
   if (!isFirstOpenExecutionId(executionId)) throw Error("ECS_FIRST_OPEN_EXECUTION_ID");
   const now = ports.management.dependencies.now ?? Date.now;
+  const databaseProfile = ports.management.databaseProfile ?? "express_iam";
 
   // Worker: load the stored approval, compare the exact held job and release, then claim once.
   const approval = Object.freeze(structuredClone(await ports.readApproval(executionId)));
@@ -112,6 +128,7 @@ export async function runEcsFirstOpen(executionId: string, ports: EcsFirstOpenPo
   let release: SoftwareRelease | null = null;
   const review = row && await loadFirstOnboardingReview(approval.jobId, {
     readOne: async () => row,
+    databaseProfile,
     async readRelease(id) {
       if (id !== approval.releaseId) return null;
       const candidate = await ports.readRelease(id);
@@ -130,12 +147,38 @@ export async function runEcsFirstOpen(executionId: string, ports: EcsFirstOpenPo
   }
   const workerId = executionId;
   const leaseToken = `lease_${randomUUID().replaceAll("-", "")}`;
-  const { dependencies, cleanupReadiness, express } = ports.management;
-  const config = { ...ports.management.config, firstOnboardingDeadline: approval.writeBefore, firstOnboardingHostname: approval.hostname };
-  if (config.workerEnabled || config.applyEnabled || !dependencies.tenantExternalOperationCoordinator) {
+  const { dependencies, cleanupReadiness, express, rdsAuthority, rdsApplicationSecret, rdsControlPublicKey, rdsPersistence } = ports.management;
+  const config = { ...ports.management.config, firstOnboardingDeadline: approval.writeBefore, firstOnboardingHostname: approval.hostname,
+    firstOpenRdsAuthority: rdsAuthority };
+  if (config.workerEnabled || config.applyEnabled || !dependencies.tenantExternalOperationCoordinator ||
+    (databaseProfile === "full_password" && (express || !dependencies.tenantDatabase))) {
     throw Error("ECS_FIRST_OPEN_MANAGEMENT_DEPENDENCIES");
   }
-  const strategy = createFirstOnboardingWorkloadStrategy({ cleanupReadiness, express, scope: {
+  let rdsWorkload: FirstOpenRdsWorkload | undefined;
+  if (databaseProfile === "full_password") {
+    assertEcsFirstOpenRdsApproval(rdsAuthority, config, approval, now());
+    if (scope.environmentId !== ECS_FIRST_OPEN_RDS_ENVIRONMENT_ID) throw Error("ECS_FIRST_OPEN_RDS_AUTHORITY_SCOPE");
+    const plan = row.desiredPlan as DeploymentExecutionContext["deployment"]["desiredPlan"] | null;
+    const database = plan?.resources?.tenant?.database;
+    if (!rdsApplicationSecret || !rdsControlPublicKey || plan?.cellKey !== "cell-sandbox-1" || database?.isolation !== "tenant_database") {
+      throw Error("ECS_FIRST_OPEN_RDS_SECRET_VERSION_REQUIRED");
+    }
+    if (!rdsPersistence) throw Error("ECS_FIRST_OPEN_RDS_PERSISTENCE_REQUIRED");
+    rdsWorkload = Object.freeze({ application: Object.freeze({ ...rdsApplicationSecret }), control: Object.freeze({ ...rdsControlPublicKey }),
+      persistence: Object.freeze({ ...rdsPersistence }) });
+    const identity = await deriveTenantResourceIdentityFromPlan({ appInstanceId: scope.appInstanceId, workspaceId: scope.workspaceId,
+      productId: scope.productId, environmentId: scope.environmentId, cellKey: plan.cellKey }, database);
+    const expectedSecretName = deriveTenantRuntimeSecretName({ schemaVersion: 1, identity, generation: 1,
+      ownerDeploymentId: scope.deploymentId, ownershipMarker: deriveTenantOwnershipMarker(identity, 1) });
+    try {
+      assertAwsSandboxTenantRuntimeSecretRef({ runtimeSecretRef: rdsWorkload.application.arn, expectedSecretName,
+        accountId: scope.accountId, region: config.expectedRegion });
+    } catch { throw Error("ECS_FIRST_OPEN_RDS_SECRET_SCOPE_CHANGED"); }
+  } else if (rdsAuthority || rdsApplicationSecret || rdsControlPublicKey || rdsPersistence) {
+    throw Error("ECS_FIRST_OPEN_RDS_AUTHORITY_SCOPE");
+  }
+  const strategy = createFirstOnboardingWorkloadStrategy({ cleanupReadiness, express, rdsAuthority,
+    rdsApplicationSecret: rdsWorkload?.application, rdsControlPublicKey: rdsWorkload?.control, rdsPersistence: rdsWorkload?.persistence, scope: {
     deploymentId: scope.deploymentId, appInstanceId: scope.appInstanceId, environmentId: scope.environmentId,
     planHash: scope.planHash, configurationHash: scope.configurationHash, artifactRef: scope.artifactRef,
   } });
@@ -188,7 +231,7 @@ export async function runEcsFirstOpen(executionId: string, ports: EcsFirstOpenPo
     const signal = AbortSignal.timeout(Math.max(1, approval.writeBefore - now()));
     runtime = await inspectEcsFirstOpen({ ...managed, reader: ports.reader, now, signal,
       dnsTarget: approval.dnsTarget, databaseSchemaVersion: approval.databaseSchemaVersion,
-      baselineDigest: approval.baselineDigest, platformDigest: review.platformDigest,
+      databaseProfile, rdsWorkload, baselineDigest: approval.baselineDigest, platformDigest: review.platformDigest,
       readConfiguration: signal => dependencies.controlClient.readConfiguration({
         appInstanceId: scope.appInstanceId, hostname: approval.hostname, externalFence, signal,
       }),
@@ -199,7 +242,7 @@ export async function runEcsFirstOpen(executionId: string, ports: EcsFirstOpenPo
     throw error;
   }
   await record({ step: "self_check", status: "completed" });
-  const completion = await ports.lifecycle?.complete({ approval, job, context: managed.context, review, release,
+  const completion = await ports.lifecycle?.complete({ approval, job, context: managed.context, review, release, databaseProfile,
     target: { configuration: row.configuration, desiredPlan: row.desiredPlan }, runtime });
   return { executionId, jobId: job.id, instanceId: scope.appInstanceId, outcome: "SELF_CHECK_PASSED" as const, runtime,
     ...(completion && { completion }) };

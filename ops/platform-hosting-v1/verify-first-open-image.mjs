@@ -4,6 +4,7 @@ import {mkdtemp, rmdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
+import {checkRdsCaBundle} from './rds-ca.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const sha = /^sha256:[a-f0-9]{64}$/;
@@ -30,7 +31,9 @@ export async function buildFirstOpenImageFixture() {
   const [fixture] = result.output;
   assert(fixture.type === 'chunk' && fixture.imports.includes(`/app/${opening}`), 'T1_OPENING_FIXTURE_ENTRY');
   return `import {checkFirstOpenImageDependencies} from '/app/${opening}';\n` +
-    `console.log('${dependencyLine}' + JSON.stringify(await checkFirstOpenImageDependencies()));\n` + fixture.code;
+    "import {checkRdsCaBundle} from '/app/ops/platform-hosting-v1/rds-ca.mjs';\n" +
+    `console.log('${dependencyLine}' + JSON.stringify({...await checkFirstOpenImageDependencies(), rdsCa: await checkRdsCaBundle()}));\n` +
+    fixture.code;
 }
 
 function localEngine(engine, config) {
@@ -62,6 +65,7 @@ export async function verifyFirstOpenImage(digest, docker) {
   assert(!(inspected.Config.Env ?? []).some(value => /^(?:AWS_|CI=|GITHUB_|STRIPE_|DATABASE_URL=|NODE_OPTIONS=)/.test(value)), 'T1_IMAGE_RUNTIME_ENV');
 
   const fixture = await buildFirstOpenImageFixture();
+  const expectedCa = await checkRdsCaBundle(new URL('./amazon-rds-ca-central-1.crt', import.meta.url));
   const withContainer = (args, inspect) => {
     const id = docker(['container', 'create', ...isolated, ...args]).stdout.trim();
     assert(containerId.test(id), 'T1_CONTAINER_ID');
@@ -76,6 +80,7 @@ export async function verifyFirstOpenImage(digest, docker) {
   };
   const web = withContainer([digest], id => {
     docker(['container', 'start', id]);
+    docker(['container', 'exec', id, 'sh', '-c', '! command -v python3 && ! command -v python']);
     const result = docker(['container', 'exec', id, 'node', 'ops/platform-hosting-v1/smoke.mjs'], {timeout: 180_000});
     const evidence = JSON.parse(result.stdout.trim().split(/\r?\n/).at(-1));
     assert.equal(evidence.outcome, 'NODE_HOSTING_ANONYMOUS_SMOKE_PASSED', 'T1_WEB_SMOKE');
@@ -94,9 +99,11 @@ export async function verifyFirstOpenImage(digest, docker) {
     const dependency = lines.find(line => line.startsWith(dependencyLine));
     assert(dependency, 'T1_OPENING_DEPENDENCY_EVIDENCE');
     assert(lines.includes('# tests 3') && lines.includes('# pass 3') && lines.includes('# fail 0'), 'T1_OPENING_SYNTHETIC_CASES');
-    return {dependencies: JSON.parse(dependency.slice(dependencyLine.length)), testsPassed: 3};
+    const dependencies = JSON.parse(dependency.slice(dependencyLine.length));
+    assert.deepEqual(dependencies.rdsCa, expectedCa, 'T42_OPENING_RDS_CA');
+    return {dependencies, testsPassed: 3};
   });
-  return {outcome: 'T1_OFFLINE_SAME_IMAGE_PASSED', imageConfigDigest: digest, web, openingDirect, openingFixture};
+  return {outcome: 'T42_OFFLINE_SAME_IMAGE_PASSED', imageConfigDigest: digest, web, openingDirect, openingFixture};
 }
 
 async function main(args) {

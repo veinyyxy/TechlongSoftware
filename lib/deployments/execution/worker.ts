@@ -44,6 +44,7 @@ import type {
   TenantResourceFence,
 } from "./contracts.ts";
 import {
+  assertEcsFirstOpenRdsContext,
   assertExecutionGate,
   evaluateCleanupExecutionGate,
   evaluateAwsIdentityGate,
@@ -51,6 +52,7 @@ import {
   evaluateStaticExecutionGate,
   evaluateWorkerRuntimeGate,
   type DeploymentWorkerRuntimeConfig,
+  type EcsFirstOpenRdsAuthority,
 } from "./gates.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
 import { finalizeTenantStackForApply } from "./parameters.ts";
@@ -150,14 +152,18 @@ class DeploymentExecutionError extends Error {
 }
 
 type ReviewedLeaseConfig = DeploymentWorkerRuntimeConfig & { firstOnboardingDeadline?: number; firstOnboardingHostname?: string;
-  firstOnboardingSecondSlot?: FirstOpenSecondSlotApproval };
+  firstOnboardingSecondSlot?: FirstOpenSecondSlotApproval; firstOpenRdsAuthority?: EcsFirstOpenRdsAuthority };
 
 function assertFirstOnboardingGate(config: ReviewedLeaseConfig, context: DeploymentExecutionContext) {
-  const secondSlot = config.firstOnboardingSecondSlot;
+  const { firstOnboardingSecondSlot: secondSlot, firstOpenRdsAuthority: rds } = config;
   if (secondSlot && (context.job.id !== FIRST_OPEN_SECOND_SLOT.jobId || context.appInstance.id !== FIRST_OPEN_SECOND_SLOT.instanceId ||
     context.deployment.id !== FIRST_OPEN_SECOND_SLOT.deploymentId || context.activeCellCount !== 1 || context.activeTenantCount !== 1 ||
     !matchesFirstOpenSecondSlotEnvironment(secondSlot, context.environment))) throw Error("FIRST_OPEN_SECOND_SLOT_CONTEXT_CHANGED");
-  const gate = evaluatePersistedExecutionGate({ config, environment: context.environment, binding: context.binding, firstOpenSecondSlot: secondSlot });
+  if (rds && (secondSlot || config.workerRoleArn !== rds.roleArn || config.firstOnboardingDeadline !== rds.writeBefore)) {
+    throw Error("ECS_FIRST_OPEN_RDS_CONTEXT_SCOPE");
+  }
+  const gateConfig = rds ? { ...config, workerRoleArn: assertEcsFirstOpenRdsContext(rds, context).workerRoleArn } : config;
+  const gate = evaluatePersistedExecutionGate({ config: gateConfig, environment: context.environment, binding: context.binding, firstOpenSecondSlot: secondSlot });
   const intentionallyClosed = ["worker_disabled", "aws_apply_disabled", "database_apply_disabled", "execution_confirmation_missing"];
   if (config.workerEnabled || config.applyEnabled || context.environment.applyEnabled ||
     !isFirstOnboardingScope(context.environment, context.appInstance.productId, context.deployment.desiredPlan.deploymentProfileKey)) {
@@ -1086,12 +1092,14 @@ async function moveState(input: {
 async function validateIdentity(input: {
   dependencies: DeploymentWorkerDependencies;
   context: DeploymentExecutionContext;
-  config: DeploymentWorkerRuntimeConfig;
+  config: ReviewedLeaseConfig;
   workerId: string;
   aws: AwsDeploymentPort;
   phase?: "initial" | "prewrite";
 }): Promise<void> {
   if (!input.context.binding) throw new Error("Execution binding is missing.");
+  const rds = input.config.firstOpenRdsAuthority;
+  const binding = rds ? { ...assertEcsFirstOpenRdsContext(rds, input.context), workerRoleArn: rds.roleArn } : input.context.binding;
   const identity = await checkpoint({
     ...input,
     stepKey:
@@ -1101,7 +1109,7 @@ async function validateIdentity(input: {
     stepInput: {
       accountId: input.context.environment.expectedAccountId,
       region: input.context.environment.region,
-      workerRoleArn: input.context.binding.workerRoleArn,
+      workerRoleArn: binding.workerRoleArn,
     },
     execute: (signal) => input.aws.getCallerIdentity({ signal }),
   });
@@ -1109,7 +1117,7 @@ async function validateIdentity(input: {
     evaluateAwsIdentityGate({
       config: input.config,
       environment: input.context.environment,
-      binding: input.context.binding,
+      binding,
       identity,
       adapterRegion: input.aws.region,
     }),
@@ -1809,6 +1817,9 @@ export async function runFirstOnboardingManagement(input: {
     assertContextIntegrity(current, { destructive: false });
     await assertHashes(current, { configuration: true });
     assertFirstOnboardingContext(config, current);
+    if (config.firstOpenRdsAuthority && (window || workerId !== config.firstOpenRdsAuthority.executionId)) {
+      throw Error("ECS_FIRST_OPEN_RDS_CONTEXT_SCOPE");
+    }
     await input.assertScope?.(current);
     return current;
   };
@@ -1826,7 +1837,8 @@ export async function runFirstOnboardingManagement(input: {
   const base = { dependencies, config, workerId };
   await ensureExecutionCleanup({ ...base, context, now: now() });
   checkWindow();
-  const aws = await dependencies.awsFactory({ region: context.environment.region, workerRoleArn: context.binding!.workerRoleArn });
+  const aws = await dependencies.awsFactory({ region: context.environment.region,
+    workerRoleArn: config.firstOpenRdsAuthority?.roleArn ?? context.binding!.workerRoleArn });
   const applied = await handleApply({ ...base, context, aws, firstOnboarding: { baselineDigest, window, onWorkloadStart: input.onWorkloadStart } });
   if (!applied) throw Error("FIRST_ONBOARDING_CREATE_NOT_PROVED");
   await handleReconcile({ ...base, context: await reload(), aws, stack: applied.stack, firstOnboarding: { stackId: applied.stackId } });

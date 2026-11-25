@@ -1,1 +1,3 @@
 tests/fixtures/saas-control-1.2.json text eol=lf
+tests/fixtures/first-open-baseline-python/* -text
+ops/platform-hosting-v1/amazon-rds-ca-central-1.crt -text

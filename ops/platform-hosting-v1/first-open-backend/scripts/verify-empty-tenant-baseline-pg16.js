@@ -7,8 +7,9 @@ const net = require('node:net');
 const { spawn } = require('node:child_process');
 const { randomBytes, createHash } = require('node:crypto');
 const { Client } = require('pg');
+const { renderTenantBaselineVerification } = require('./render_tenant_baseline_verification');
+const { PROFILE } = require('./tenant_baseline_schema_profile');
 
-const PROFILE = 'speedfeast-empty-schema/2026-10-05/v1';
 const WORKSHOP = path.resolve('F:/ChatGPT_workshop');
 const DATABASE = 'sf_baseline_verification';
 const USER = 'baseline_verifier';
@@ -26,7 +27,7 @@ class VerificationError extends Error {
 
 function parseArguments(argv) {
   const args = Object.create(null);
-  const required = new Set(['--candidate-dir', '--pg-bin', '--python', '--output', '--archive-sha', '--manifest-sha']);
+  const required = new Set(['--candidate-dir', '--pg-bin', '--output', '--archive-sha', '--manifest-sha']);
   for (let index = 0; index < argv.length; index += 2) {
     const key = argv[index];
     if (!required.has(key) || args[key] || !argv[index + 1] || argv[index + 1].startsWith('--')) throw new VerificationError('input', 'INVALID_ARGUMENTS');
@@ -172,8 +173,12 @@ async function main(argv) {
   const verification = path.join(output, 'verify.sql');
   await fs.writeFile(toc, (await run(exe('pg_restore'), ['--list', archive], environment, 'offline-toc')).output, { flag: 'wx' });
   await fs.writeFile(schema, (await run(exe('pg_restore'), ['--schema-only', '--no-owner', '--no-privileges', '--no-comments', '--file=-', archive], environment, 'offline-schema')).output, { flag: 'wx' });
-  await run(path.resolve(args['--python']), [path.join(__dirname, 'render_tenant_baseline_verification.py'), manifestFile,
-    args['--archive-sha'], manifest.sourceDatabase, toc, verification, schema], environment, 'offline-policy');
+  try {
+    renderTenantBaselineVerification({ manifestPath: manifestFile, archiveSha256: args['--archive-sha'],
+      sourceDatabaseName: manifest.sourceDatabase, tocPath: toc, outputPath: verification, programSqlPath: schema });
+  } catch {
+    throw new VerificationError('offline-policy', 'MANIFEST_REJECTED');
+  }
 
   const dataDirectory = path.join(output, 'cluster');
   const passwordFile = path.join(output, 'bootstrap-password.tmp');

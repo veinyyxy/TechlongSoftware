@@ -887,6 +887,7 @@ export const firstOpenExecutions = pgTable("first_open_executions", {
 	dispatchStartedAt: bigint("dispatch_started_at", { mode: "number" }),
 	dispatchTaskArn: text("dispatch_task_arn").unique("first_open_executions_dispatch_task_arn_key"),
 	dispatchOutcome: text("dispatch_outcome"),
+	dispatchTaskDefinitionArn: text("dispatch_task_definition_arn"),
 }, (table) => [
 	check("first_open_executions_id_check", sql`${table.id} ~ '^exec_[a-f0-9]{32}$'`),
 	check("first_open_executions_release_id_check", sql`${table.releaseId} ~ '^release_[a-f0-9]{32}$'`),
@@ -901,6 +902,13 @@ export const firstOpenExecutions = pgTable("first_open_executions", {
 			OR (${table.dispatchOutcome} = 'acknowledged'
 				AND ${table.dispatchTaskArn} ~ '^arn:aws:ecs:[a-z0-9-]+:[0-9]{12}:task/[A-Za-z0-9_-]{1,255}/[0-9a-f]{32}$')
 		))
+	) IS TRUE`),
+	check("first_open_executions_dispatch_task_definition_check", sql`(
+		${table.dispatchTaskDefinitionArn} IS NULL
+		OR (${table.dispatchOutcome} = 'acknowledged' AND ${table.dispatchTaskArn} IS NOT NULL
+			AND ${table.dispatchTaskDefinitionArn} ~ '^arn:aws:ecs:[a-z0-9-]+:[0-9]{12}:task-definition/[A-Za-z0-9_-]{1,255}:[1-9][0-9]*$'
+			AND split_part(${table.dispatchTaskDefinitionArn}, ':', 4) = split_part(${table.dispatchTaskArn}, ':', 4)
+			AND split_part(${table.dispatchTaskDefinitionArn}, ':', 5) = split_part(${table.dispatchTaskArn}, ':', 5))
 	) IS TRUE`),
 ]);
 

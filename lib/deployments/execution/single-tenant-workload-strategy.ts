@@ -1,10 +1,12 @@
+import type { TaskDefinition } from "@aws-sdk/client-ecs";
 import { renderSingleTenantAcceptanceWorkload, renderSupervisedTenantWorkloadBase, assertSingleTenantWorkloadRender } from "../cloudformation/single-tenant-acceptance-workload.ts";
-import { assertAwsSandboxTenantRuntimeSecretRef, type AwsSandboxTenantStackInput } from "../cloudformation/tenant-stack.ts";
+import { assertAwsSandboxTenantRuntimeSecretRef, tenantRuntimeSecretJsonKeys, type AwsSandboxTenantStackInput } from "../cloudformation/tenant-stack.ts";
 import type { ApplyReadyTenantStack, AwsDeploymentPort, DeploymentExecutionBinding, DeploymentExecutionContext } from "./contracts.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
 import { validateExternalParameter } from "./parameters.ts";
 import { validateSingleDeploymentScope, type SingleDeploymentClaimScope } from "./single-deployment-scope.ts";
 import type { FirstOnboardingExpressComposition } from "./first-onboarding-express.ts";
+import { assertEcsFirstOpenRdsContext, ECS_FIRST_OPEN_RDS_ENVIRONMENT_ID, type EcsFirstOpenRdsAuthority } from "./gates.ts";
 import { FIRST_OPEN_BASELINE_BINDING } from "./first-onboarding-baseline-versions.ts";
 import { assertFirstOpenBuyerParameters } from "./first-open-buyer-binding.ts";
 import { freezeFirstOpenTemplate } from "./first-open-frozen-template.ts";
@@ -74,6 +76,127 @@ const externalNames = ["ClusterName", "VpcId", "SubnetIds", "TaskSecurityGroupId
 const scopedNames = externalNames.filter(k => k !== "OneShotTaskSecurityGroupId" && k !== "TaskRoleArn");
 const scopedBindings = new WeakMap<DeploymentExecutionBinding, string>();
 type ExpressBinding = Pick<FirstOnboardingExpressComposition, "controlRef" | "applicationRoleArn">;
+export type FirstOpenRdsSecretVersion = Readonly<{ arn: string; versionId: string }>;
+export type FirstOpenRdsControlPublicKey = FirstOpenRdsSecretVersion & Readonly<{ jsonKey?: string }>;
+export type FirstOpenRdsPersistence = Readonly<{
+  bucket: string;
+  providerVariable: "IMAGE_STORAGE_PROVIDER";
+  bucketVariable: "IMAGE_S3_BUCKET";
+  verificationSha256: string;
+  mediaPublicBaseUrl: string;
+}>;
+export type FirstOpenRdsWorkload = Readonly<{
+  application: FirstOpenRdsSecretVersion;
+  control: FirstOpenRdsControlPublicKey;
+  persistence: FirstOpenRdsPersistence;
+}>;
+const secretVersionId = /^[A-Za-z0-9-]{32,64}$/;
+const controlSecretArn = /^arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong\/sandbox\/[A-Za-z0-9/_+=.@-]+-[A-Za-z0-9]{6}$/;
+const secretJsonKey = /^[A-Za-z0-9_.-]{1,128}$/;
+
+function bindRdsWorkload(application: FirstOpenRdsSecretVersion | undefined, control: FirstOpenRdsControlPublicKey | undefined,
+  persistence: FirstOpenRdsPersistence | undefined): FirstOpenRdsWorkload {
+  if (!application || !control || typeof application.arn !== "string" || typeof application.versionId !== "string" ||
+      !secretVersionId.test(application.versionId) || typeof control.arn !== "string" || !controlSecretArn.test(control.arn) ||
+      typeof control.versionId !== "string" || !secretVersionId.test(control.versionId) || application.arn === control.arn ||
+      (control.jsonKey !== undefined && (typeof control.jsonKey !== "string" || !secretJsonKey.test(control.jsonKey)))) {
+    fail("ECS_FIRST_OPEN_RDS_SECRET_VERSION_REQUIRED");
+  }
+  if (!persistence || typeof persistence.bucket !== "string" || !/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(persistence.bucket) ||
+      persistence.providerVariable !== "IMAGE_STORAGE_PROVIDER" || persistence.bucketVariable !== "IMAGE_S3_BUCKET" ||
+      typeof persistence.verificationSha256 !== "string" || !/^[a-f0-9]{64}$/.test(persistence.verificationSha256) ||
+      typeof persistence.mediaPublicBaseUrl !== "string" || !/^https:\/\/[a-z0-9]+\.cloudfront\.net$/.test(persistence.mediaPublicBaseUrl)) {
+    fail("ECS_FIRST_OPEN_RDS_PERSISTENCE_REQUIRED");
+  }
+  return freeze({ application: { ...application }, control: { ...control }, persistence: { ...persistence } });
+}
+
+const rdsTlsEnvironment = {
+  PGSSLMODE: "verify-full",
+  PGSSL_REJECT_UNAUTHORIZED: "true",
+  PGSSLROOTCERT: "/usr/local/share/ca-certificates/aws-rds-global-bundle.pem",
+};
+const rdsSecretKeys = {
+  DATABASE_URL: tenantRuntimeSecretJsonKeys.databaseUrl,
+  HMAC_SECRET_KEY: tenantRuntimeSecretJsonKeys.hmacSecretKey,
+  JWT_SECRET_KEY: tenantRuntimeSecretJsonKeys.jwtSecretKey,
+  STRIPE_SECRET_KEY: tenantRuntimeSecretJsonKeys.stripeSecretKey,
+  STRIPE_WEBHOOK_SECRET: tenantRuntimeSecretJsonKeys.stripeWebhookSecret,
+};
+const rdsWorkloadEnvironment = (persistence: FirstOpenRdsPersistence) => ({
+  PG_DATABASE_PROFILE: "full_password",
+  IMAGE_STORAGE_PROVIDER: "s3",
+  IMAGE_S3_BUCKET: persistence.bucket,
+  IMAGE_PUBLIC_BASE_URL: persistence.mediaPublicBaseUrl,
+  ALLOW_EPHEMERAL_IMAGE_STORAGE: "false",
+});
+
+/** Compare the freshly described task definition with the same exact secret
+ * versions and PostgreSQL transport settings used to render its template. */
+export function assertFirstOpenRdsTaskDefinition(pins: FirstOpenRdsWorkload, task: TaskDefinition) {
+  const containers = task.containerDefinitions;
+  const app = containers?.length === 1 ? containers[0] : undefined;
+  const requiredEnvironment = { ...rdsTlsEnvironment, ...rdsWorkloadEnvironment(pins.persistence) };
+  const expected = Object.entries(rdsSecretKeys).map(([name, key]) => ({ name,
+    valueFrom: `${pins.application.arn}:${key}::${pins.application.versionId}` }));
+  expected.push({ name: "SAAS_CONTROL_PUBLIC_KEY", valueFrom: `${pins.control.arn}:${pins.control.jsonKey ?? ""}::${pins.control.versionId}` });
+  const byName = (a: { name?: string }, b: { name?: string }) => (a.name ?? "").localeCompare(b.name ?? "");
+  if (app?.name !== "speedfeast-backend" || !app.environment ||
+    canonicalJson([...(app.secrets ?? [])].sort(byName)) !== canonicalJson(expected.sort(byName)) ||
+    app.environment.some(entry => expected.some(secret => entry.name === secret.name)) ||
+    Object.entries(requiredEnvironment).some(([name, value]) => {
+      const matches = app.environment!.filter(entry => entry.name === name);
+      return matches.length !== 1 || matches[0].value !== value;
+    })) fail("ECS_FIRST_OPEN_RDS_WORKLOAD_READBACK_MISMATCH");
+}
+
+async function pinRdsWorkload(rendered: Rendered, input: AwsSandboxTenantStackInput, context: RenderContext, pins: FirstOpenRdsWorkload) {
+  if (input.runtimeSecretRef !== pins.application.arn || context.binding?.tenantStackParameters.ControlPublicKeyValueFrom !== pins.control.arn) {
+    fail("ECS_FIRST_OPEN_RDS_SECRET_SCOPE_CHANGED");
+  }
+  type Value = string | Record<string, string>;
+  const resources = rendered.template.Resources as Record<string, {
+    Type?: string;
+    Properties?: { ContainerDefinitions?: Array<{ Name: string; Environment: { Name: string; Value: Value }[];
+      Secrets: { Name: string; ValueFrom: Value }[] }> };
+  }>;
+  const task = resources.TenantTaskDefinition;
+  const containers = task?.Properties?.ContainerDefinitions;
+  if (task?.Type !== "AWS::ECS::TaskDefinition" || containers?.length !== 1 || containers[0].Name !== "speedfeast-backend") {
+    fail("ECS_FIRST_OPEN_RDS_WORKLOAD_TEMPLATE_CHANGED");
+  }
+  const container = containers[0];
+  if (container.Environment.some(item => item.Name === "PG_DATABASE_PROFILE") ||
+    Object.entries(rdsTlsEnvironment).some(([name, value]) => {
+      const matches = container.Environment.filter(item => item.Name === name);
+      return matches.length !== 1 || matches[0].Value !== value;
+    })) fail("ECS_FIRST_OPEN_RDS_WORKLOAD_TEMPLATE_CHANGED");
+
+  const keys = new Map(Object.entries(rdsSecretKeys));
+  if (container.Secrets.length !== keys.size + 1 || new Set(container.Secrets.map(secret => secret.Name)).size !== container.Secrets.length) {
+    fail("ECS_FIRST_OPEN_RDS_WORKLOAD_TEMPLATE_CHANGED");
+  }
+  for (const secret of container.Secrets) {
+    if (secret.Name === "SAAS_CONTROL_PUBLIC_KEY") {
+      if (canonicalJson(secret.ValueFrom) !== canonicalJson({ Ref: "ControlPublicKeyValueFrom" })) {
+        fail("ECS_FIRST_OPEN_RDS_WORKLOAD_TEMPLATE_CHANGED");
+      }
+      secret.ValueFrom = { "Fn::Sub": `\${ControlPublicKeyValueFrom}:${pins.control.jsonKey ?? ""}::${pins.control.versionId}` };
+      continue;
+    }
+    const key = keys.get(secret.Name);
+    if (!key || canonicalJson(secret.ValueFrom) !== canonicalJson({ "Fn::Sub": `\${TenantRuntimeSecretArn}:${key}::` })) {
+      fail("ECS_FIRST_OPEN_RDS_WORKLOAD_TEMPLATE_CHANGED");
+    }
+    secret.ValueFrom = { "Fn::Sub": `\${TenantRuntimeSecretArn}:${key}::${pins.application.versionId}` };
+  }
+  const rdsEnvironment = rdsWorkloadEnvironment(pins.persistence);
+  container.Environment = [...container.Environment.filter(item => !Object.hasOwn(rdsEnvironment, item.Name)),
+    ...Object.entries(rdsEnvironment).map(([Name, Value]) => ({ Name, Value }))];
+  rendered.templateBody = canonicalJson(rendered.template);
+  rendered.templateSha256 = await sha256Hex(rendered.template);
+}
+
 type RenderContext = Pick<DeploymentExecutionContext, "environment" | "binding"> & {
   appInstance: Pick<DeploymentExecutionContext["appInstance"], "id">;
   deployment: Pick<DeploymentExecutionContext["deployment"], "id" | "artifactRef">;
@@ -186,7 +309,7 @@ function finalizeRenderedStack(input: {
 
 async function renderFirstOnboardingStack(input: AwsSandboxTenantStackInput, context: RenderContext, reviewedImage: string,
   express?: ExpressBinding & { render(input: AwsSandboxTenantStackInput): ReturnType<FirstOnboardingExpressComposition["render"]> },
-  window?: FirstOpenExecutionWindow) {
+  window?: FirstOpenExecutionWindow, rdsWorkload?: FirstOpenRdsWorkload) {
   if ((context.binding && scopedBindings.has(context.binding) && !window) || input.imageUri !== reviewedImage || input.resourceGeneration !== 1 ||
     !/^402010193138\.dkr\.ecr\.ca-central-1\.amazonaws\.com\/techlong-sandbox-speedfeast@sha256:[a-f0-9]{64}$/.test(reviewedImage) ||
     input.environment.policy.budgetLimitCents !== 5000 || input.environment.policy.maxTaskCount !== 1 ||
@@ -198,6 +321,7 @@ async function renderFirstOnboardingStack(input: AwsSandboxTenantStackInput, con
   const rendered = express
     ? { ...await express.render(input), protocol: "single-tenant-supervised-workload" as const }
     : await renderSupervisedTenantWorkloadBase(input);
+  if (rdsWorkload) await pinRdsWorkload(rendered, input, context, rdsWorkload);
   if (window) {
     // The supervised template has no scheduler. Retag only this first-open
     // output; the immutable requestedAt and legacy renderers stay untouched.
@@ -216,9 +340,9 @@ async function renderFirstOnboardingStack(input: AwsSandboxTenantStackInput, con
     rendered.templateSha256 = await sha256Hex(rendered.template);
   }
   const finalizedStack = finalizeRenderedStack({ rendered, context, express, expectedRuntimeSecretName: input.runtimeSecretName });
-  if (!window || !context.binding || !scopedBindings.has(context.binding)) return finalizedStack;
-  // The renderer has two built-in String defaults not supplied by the
-  // protected environment. Freeze those too, so DescribeStacks agrees.
+  if (!rdsWorkload && (!window || !context.binding || !scopedBindings.has(context.binding))) return finalizedStack;
+  // Include the two defaults in the exact parameter readback. The fixed
+  // definitions expose only the two already-approved Secret ARN references.
   const parameters = { JwtExpiresIn: "7d", MerchantJwtExpiresIn: "12h", ...finalizedStack.parameters,
     SubnetIds: finalizedStack.parameters.SubnetIds.split(",").map(s => s.trim()).join(",") };
   const template = freezeFirstOpenTemplate(finalizedStack.template, parameters);
@@ -248,14 +372,23 @@ export function createFirstOnboardingWorkloadStrategy(input: {
   scope: SingleDeploymentClaimScope; cleanupReadiness: SupervisedCleanupReadinessPort;
   express?: FirstOnboardingExpressComposition; window?: FirstOpenExecutionWindow;
   secondSlot?: FirstOpenSecondSlotApproval;
+  rdsAuthority?: EcsFirstOpenRdsAuthority;
+  rdsApplicationSecret?: FirstOpenRdsSecretVersion;
+  rdsControlPublicKey?: FirstOpenRdsControlPublicKey;
+  rdsPersistence?: FirstOpenRdsPersistence;
 }): TenantWorkloadExecutionStrategy {
+  if (input.rdsAuthority && (input.express || input.window || input.secondSlot ||
+      input.scope.environmentId !== ECS_FIRST_OPEN_RDS_ENVIRONMENT_ID ||
+      input.scope.appInstanceId !== input.rdsAuthority.instanceId)) fail("ECS_FIRST_OPEN_RDS_CONTEXT_SCOPE");
+  if (!input.rdsAuthority && (input.rdsApplicationSecret || input.rdsControlPublicKey || input.rdsPersistence)) fail("ECS_FIRST_OPEN_RDS_CONTEXT_SCOPE");
+  const rdsWorkload = input.rdsAuthority ? bindRdsWorkload(input.rdsApplicationSecret, input.rdsControlPublicKey, input.rdsPersistence) : undefined;
   return createSupervisedStrategy(Object.freeze(structuredClone(input.scope)), input.cleanupReadiness, true, input.express, input.window,
-    input.secondSlot === undefined ? undefined : structuredClone(input.secondSlot));
+    input.secondSlot === undefined ? undefined : structuredClone(input.secondSlot), input.rdsAuthority, rdsWorkload);
 }
 
 function createSupervisedStrategy(scope: Readonly<SingleDeploymentClaimScope>, cleanup: SupervisedCleanupReadinessPort,
   firstOnboarding: boolean, express?: FirstOnboardingExpressComposition, window?: FirstOpenExecutionWindow,
-  secondSlot?: FirstOpenSecondSlotApproval): TenantWorkloadExecutionStrategy {
+  secondSlot?: FirstOpenSecondSlotApproval, rdsAuthority?: EcsFirstOpenRdsAuthority, rdsWorkload?: FirstOpenRdsWorkload): TenantWorkloadExecutionStrategy {
   if (!cleanup || typeof cleanup.verify !== "function") fail("SUPERVISED_CLEANUP_VERIFIER_MISSING");
   if (secondSlot !== undefined) {
     assertFirstOpenSecondSlot(secondSlot);
@@ -265,6 +398,11 @@ function createSupervisedStrategy(scope: Readonly<SingleDeploymentClaimScope>, c
     }
   }
   const assertScope = (context: DeploymentExecutionContext) => {
+    if (rdsAuthority) assertEcsFirstOpenRdsContext(rdsAuthority, context);
+    if (rdsWorkload && (context.binding?.tenantStackParameters.ControlPublicKeyValueFrom !== rdsWorkload.control.arn ||
+        (context.tenantResources?.runtimeSecretRef && context.tenantResources.runtimeSecretRef !== rdsWorkload.application.arn))) {
+      fail("ECS_FIRST_OPEN_RDS_SECRET_SCOPE_CHANGED");
+    }
     if (secondSlot && (context.job.id !== FIRST_OPEN_SECOND_SLOT.jobId || context.activeCellCount !== 1 || context.activeTenantCount !== 1 ||
       !matchesFirstOpenSecondSlotEnvironment(secondSlot, context.environment))) fail("FIRST_OPEN_SECOND_SLOT_CONTEXT_CHANGED");
     if (firstOnboarding && ((context.job.id === FIRST_OPEN_BASELINE_BINDING.jobId) !== Boolean(window) ||
@@ -315,7 +453,7 @@ function createSupervisedStrategy(scope: Readonly<SingleDeploymentClaimScope>, c
       const reviewedStackInput = secondSlot ? { ...stackInput, listenerPriority: secondSlot.listenerPriority } : stackInput;
       if (firstOnboarding) return renderFirstOnboardingStack(reviewedStackInput, context, scope.artifactRef,
         express && { controlRef: express.controlRef, applicationRoleArn: express.applicationRoleArn,
-          render: x => express.render(x, context) }, window);
+          render: x => express.render(x, context) }, window, rdsWorkload);
       return finalizeSupervisedTenantStack({ rendered: await renderSingleTenantAcceptanceWorkload(stackInput), context,
         expectedRuntimeSecretName: stackInput.runtimeSecretName });
     },

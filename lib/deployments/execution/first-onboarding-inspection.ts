@@ -35,13 +35,15 @@ export async function verifyFirstOnboardingRuntime(input: {
     appInstance: Pick<DeploymentExecutionContext["appInstance"], "id">;
     deployment: Pick<DeploymentExecutionContext["deployment"], "id" | "artifactRef" | "configurationHash">;
   }; stack: WorkerTenantStack; stackId: string; dnsTarget: string; databaseSchemaVersion: string;
+  databaseProfile?: "express_iam" | "full_password";
   baselineDigest: string; platformDigest: string; reader: FirstOnboardingRuntimeReader; now: () => number; signal: AbortSignal;
   completion?: Pick<Parameters<typeof buildFirstOnboardingBinding>[0], "approved" | "review" | "release">;
 }) {
   const { context, stack, stackId, reader, signal, now } = input;
   const hostname = stack.parameters.TenantHostname;
   const resource = context.tenantResources;
-  if (!("protocol" in stack) || !resource || resource.generation !== 1 ||
+  const databaseProfile = input.databaseProfile ?? "express_iam";
+  if ((input.completion && databaseProfile !== "express_iam") || !("protocol" in stack) || !resource || resource.generation !== 1 ||
     resource.lifecycleStatus !== "verified" || resource.baselineDigest !== input.baselineDigest ||
     !stackId.startsWith(`arn:aws:cloudformation:${stack.region}:${stack.accountId}:stack/${stack.stackName}/`)) {
     throw Error("FIRST_ONBOARDING_INSPECTION_SCOPE_MISMATCH");
@@ -65,7 +67,7 @@ export async function verifyFirstOnboardingRuntime(input: {
   // The ordinary D2 verifier still requires persistent uploads by default.
   const runtime = await assertFirstOnboardingTechnicalRuntime({ selection: { instanceId: context.appInstance.id }, changeSet: { StackName: stackId },
     templateSha256: stack.templateSha256, configurationSha256, desiredCount: 1, image,
-    compatibility: { databaseProfile: "express_iam", databaseSchemaVersion: input.databaseSchemaVersion, applicationPort: 3000 },
+    compatibility: { databaseProfile, databaseSchemaVersion: input.databaseSchemaVersion, applicationPort: 3000 },
   }, facts, startedAt, now());
   return { runtime, initialBindingText: input.completion
     ? await buildFirstOnboardingBinding({ ...input.completion, runtime, facts, sampling, hostname })

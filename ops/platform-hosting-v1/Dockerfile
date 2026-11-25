@@ -45,7 +45,7 @@ ENV NODE_ENV=production PORT=3000
 COPY --from=first-open-pg /first-open-pg/pg_restore /usr/bin/pg_restore
 COPY --from=first-open-pg /first-open-pg/libpq.so.5 /usr/local/lib/libpq.so.5
 COPY --from=first-open-pg /first-open-pg/apk-dependencies /tmp/first-open-apk-dependencies
-RUN xargs apk add --no-cache ca-certificates python3 < /tmp/first-open-apk-dependencies \
+RUN xargs apk add --no-cache ca-certificates < /tmp/first-open-apk-dependencies \
     && rm /tmp/first-open-apk-dependencies
 COPY --from=first-open-backend /app/first-open-backend/ ./first-open-backend/
 # vinext currently lives in devDependencies; retain the locked runtime graph for
@@ -55,6 +55,9 @@ COPY --from=build --chown=node:node /app/package.json ./package.json
 COPY --from=build --chown=node:node /app/dist-platform ./dist-platform
 COPY --from=build --chown=node:node /app/dist/first-open/ ./ops/platform-hosting-v1/
 COPY --from=build --chown=node:node /app/ops/platform-hosting-v1/contract.mjs /app/ops/platform-hosting-v1/ingress.mjs /app/ops/platform-hosting-v1/control-runtime.mjs /app/ops/platform-hosting-v1/start.mjs /app/ops/platform-hosting-v1/smoke.mjs /app/ops/platform-hosting-v1/https-smoke.mjs /app/ops/platform-hosting-v1/hosted-smoke.mjs ./ops/platform-hosting-v1/
+# Pin the public regional trust bundle separately from the system trust store.
+COPY --from=build /app/ops/platform-hosting-v1/amazon-rds-ca-central-1.crt /app/certs/amazon-rds.pem
+COPY --from=build /app/ops/platform-hosting-v1/rds-ca.mjs ./ops/platform-hosting-v1/rds-ca.mjs
 # Public TypeScript and binding contracts are shared with the bundled controller.
 # Node24 loads them directly; no repository dotenv, private key or full source tree.
 COPY --from=build --chown=node:node /app/lib/deployments/controller-v6/configuration.ts /app/lib/deployments/controller-v6/contract.ts /app/lib/deployments/controller-v6/installed-binding.ts ./lib/deployments/controller-v6/
@@ -64,7 +67,7 @@ COPY --from=build --chown=node:node /app/lib/purchases/sandbox-first-purchase-co
 COPY --from=build --chown=node:node /app/ops/platform-recovery-control-v1/binding.mjs ./ops/platform-recovery-control-v1/
 COPY --from=build --chown=node:node /app/ops/platform-cloud-v6/contract.mjs ./ops/platform-cloud-v6/
 USER node
-RUN --network=none node --input-type=module -e 'import {checkFirstOpenImageDependencies} from "./ops/platform-hosting-v1/first-open.mjs"; await checkFirstOpenImageDependencies()'
+RUN --network=none node --input-type=module -e 'import {checkRdsCaBundle} from "./ops/platform-hosting-v1/rds-ca.mjs"; import {checkFirstOpenImageDependencies} from "./ops/platform-hosting-v1/first-open.mjs"; await checkRdsCaBundle(); await checkFirstOpenImageDependencies()'
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 CMD ["node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"]
 CMD ["node", "ops/platform-hosting-v1/start.mjs"]

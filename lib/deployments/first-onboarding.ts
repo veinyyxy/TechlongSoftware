@@ -114,7 +114,8 @@ export interface FirstOnboardingReviewFacts {
 }
 
 /** Prepares material for review only, never claims a row or admits cloud execution. */
-export async function reviewFirstOnboarding(facts: FirstOnboardingReviewFacts, taskRelease?: FirstOpenTaskRelease) {
+export async function reviewFirstOnboarding(facts: FirstOnboardingReviewFacts, taskRelease?: FirstOpenTaskRelease,
+  databaseProfile: SoftwareRelease["compatibility"]["databaseProfiles"][number] = "express_iam") {
   const expected = await buildFirstOnboardingJob(facts.scope);
   const { deployment: d, job: j, release: r } = facts;
   if (!expected || !facts.instancePendingFirstOpen || !facts.subscriptionActiveAndCurrent || !facts.scopeStillEligible || !facts.noOtherDeploymentOrTenantGeneration ||
@@ -128,14 +129,15 @@ export async function reviewFirstOnboarding(facts: FirstOnboardingReviewFacts, t
   // task-only document must come independently from the protected approval.
   if (taskRelease !== undefined) {
     await verifyFirstOpenTaskRelease(taskRelease);
-    if (j.id !== taskRelease.firstOpenScope.jobId || facts.scope.appInstanceId !== taskRelease.firstOpenScope.instanceId ||
+    if (databaseProfile !== "express_iam" || j.id !== taskRelease.firstOpenScope.jobId ||
+      facts.scope.appInstanceId !== taskRelease.firstOpenScope.instanceId ||
       canonicalJson(r) !== canonicalJson(taskRelease)) return null;
   }
   if (!r || r.id !== facts.scope.releaseId || r.productId !== productId || r.component !== "tenant_api" ||
     r.status !== (taskRelease ? "candidate" : "ecr_verified") ||
     `${r.image.repository}@${r.image.manifestDigest}` !== facts.scope.artifactRef || r.image.runtimePlatform !== "linux/amd64" ||
     !/^sha256:[a-f0-9]{64}$/.test(r.image.platformDigest) || !digest.test(r.image.verificationSha256) ||
-    !r.compatibility.databaseProfiles.includes("express_iam") || r.compatibility.requiresMigration || r.compatibility.startupWrites) return null;
+    !r.compatibility.databaseProfiles.includes(databaseProfile) || r.compatibility.requiresMigration || r.compatibility.startupWrites) return null;
   const material = { payload: expected.payload, jobId: j.id, catalogSha256: await sha256Hex(r), platformDigest: r.image.platformDigest };
   return { ...material, reviewSha256: await sha256Hex(material), cloudExecutionAuthorized: false as const };
 }
@@ -175,6 +177,7 @@ export type FirstOnboardingReviewRow = Omit<FirstOnboardingReviewFacts, "scope" 
 export async function loadFirstOnboardingReview(jobId: string, ports: {
   readOne: (sql: string, parameters: [string]) => Promise<FirstOnboardingReviewRow | null>;
   readRelease: (id: string) => Promise<SoftwareRelease | null>;
+  databaseProfile?: SoftwareRelease["compatibility"]["databaseProfiles"][number];
 }) {
   if (!/^job_[a-f0-9]{24}$/.test(jobId)) return null;
   const row = await ports.readOne(SELECT_FIRST_ONBOARDING, [jobId]);
@@ -188,7 +191,7 @@ export async function loadFirstOnboardingReview(jobId: string, ports: {
   const expected = await buildFirstOnboardingJob(scope);
   if (!expected || job.status !== "pending" || job.attempts !== 0 || canonicalJson(job.payload) !== canonicalJson(expected.payload) ||
     !row.instancePendingFirstOpen || !row.subscriptionActiveAndCurrent || !row.scopeStillEligible || !row.noOtherDeploymentOrTenantGeneration) return null;
-  return reviewFirstOnboarding({ ...row, scope, release: await ports.readRelease(releaseId) });
+  return reviewFirstOnboarding({ ...row, scope, release: await ports.readRelease(releaseId) }, undefined, ports.databaseProfile);
 }
 
 export type FirstOnboardingReview = NonNullable<Awaited<ReturnType<typeof loadFirstOnboardingReview>>>;

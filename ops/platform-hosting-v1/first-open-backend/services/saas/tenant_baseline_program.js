@@ -4,6 +4,8 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const {createHash,randomBytes}=require('node:crypto');
 const {run,cleanEnvironment}=require('../../scripts/verify-empty-tenant-baseline-pg16');
+const {renderTenantBaselineVerification}=require('../../scripts/render_tenant_baseline_verification');
+const {PROFILE}=require('../../scripts/tenant_baseline_schema_profile');
 const {TenantLifecycleContractError}=require('./tenant_lifecycle_service');
 const compiledPrograms=new WeakSet();
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -83,7 +85,7 @@ function atomicRestoreSql(rendered,key) {
   return output.join('\n\n')+'\n';
 }
 
-async function compileTenantBaselineProgram({archiveBytes,manifestBytes,archiveSha256,manifestSha256,pgRestorePath,pythonPath,workspace}) {
+async function compileTenantBaselineProgram({archiveBytes,manifestBytes,archiveSha256,manifestSha256,pgRestorePath,workspace}) {
   if(!Buffer.isBuffer(archiveBytes)||archiveBytes.length<5||archiveBytes.length>64*1024*1024||
     archiveBytes.subarray(0,5).toString()!=='PGDMP'||!Buffer.isBuffer(manifestBytes)||manifestBytes.length>1_000_000||
     ![archiveSha256,manifestSha256].every(value=>/^[a-f0-9]{64}$/.test(value)))fail();
@@ -91,11 +93,11 @@ async function compileTenantBaselineProgram({archiveBytes,manifestBytes,archiveS
   if(digest(archive)!==archiveSha256||digest(manifest)!==manifestSha256)fail();
   let value;try{value=JSON.parse(manifest.toString('utf8'));}catch{fail();}
   if(value.format!=='speedfeast-database-migration-manifest/v1'||value.purpose!=='tenant_bootstrap'||value.dataPolicy!=='schema_only'||
-    value.schemaProfile!=='speedfeast-empty-schema/2026-10-05/v1'||value.archiveSha256!==archiveSha256||
+    value.schemaProfile!==PROFILE||value.archiveSha256!==archiveSha256||
     !/^[A-Za-z_][A-Za-z0-9_$]{0,62}$/.test(value.sourceDatabase)||!Array.isArray(value.tables)||!value.tables.length||value.tables.length>1000||
     value.tables.some(table=>table.schema!=='public'||table.rows!==0||!/^[A-Za-z_][A-Za-z0-9_$]{0,62}$/.test(table.table)))fail();
   const tables=value.tables.map(table=>table.table).sort();
-  if(new Set(tables).size!==tables.length||!path.isAbsolute(workspace)||!path.isAbsolute(pgRestorePath)||!path.isAbsolute(pythonPath))fail();
+  if(new Set(tables).size!==tables.length||!path.isAbsolute(workspace)||!path.isAbsolute(pgRestorePath))fail();
   const environment=cleanEnvironment();
   try{
     if(!require('./tenant_postgres_tools').isPgRestore16_14((await run(pgRestorePath,['--version'],environment,'baseline-compiler-version')).output))fail();
@@ -109,8 +111,8 @@ async function compileTenantBaselineProgram({archiveBytes,manifestBytes,archiveS
     const tocFile=path.join(workspace,'baseline.toc.txt'),sqlFile=path.join(workspace,'baseline.rendered.sql');
     const verificationFile=path.join(workspace,'baseline.verification.sql');
     await fs.writeFile(tocFile,toc,{flag:'wx'});await fs.writeFile(sqlFile,rendered,{flag:'wx'});
-    await run(pythonPath,[path.join(__dirname,'../../scripts/render_tenant_baseline_verification.py'),manifestFile,
-      archiveSha256,value.sourceDatabase,tocFile,verificationFile,sqlFile],environment,'baseline-compiler-profile');
+    renderTenantBaselineVerification({manifestPath:manifestFile,archiveSha256,sourceDatabaseName:value.sourceDatabase,
+      tocPath:tocFile,outputPath:verificationFile,programSqlPath:sqlFile});
     const info=await fs.stat(verificationFile);if(info.size<1||info.size>1_000_000)fail();
     const verificationSql=(await fs.readFile(verificationFile,'utf8')).replace(/\r\n/g,'\n');
     const restoreSql=atomicRestoreSql(rendered,key);

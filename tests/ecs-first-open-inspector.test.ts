@@ -84,6 +84,36 @@ test("ECS first-open self-check rejects a healthy target with the wrong app conf
   assert.deepEqual(steps, ["runtime", "configuration"]);
 });
 
+test("ECS first-open self-check requires the explicitly bound RDS database profile", async t => {
+  const { input, facts, steps } = await fixture(t);
+  const application = { arn: "arn:aws:secretsmanager:ca-central-1:402010193138:secret:fixture-app-aBc123", versionId: "a".repeat(64) };
+  const control = { arn: "arn:aws:secretsmanager:ca-central-1:402010193138:secret:fixture-control-aBc123", versionId: "b".repeat(64), jsonKey: "key" };
+  const persistence = { bucket: "techlong-sandbox-synthetic-media", providerVariable: "IMAGE_STORAGE_PROVIDER" as const,
+    bucketVariable: "IMAGE_S3_BUCKET" as const, verificationSha256: "c".repeat(64), mediaPublicBaseUrl: "https://synthetic.cloudfront.net" };
+  const rds = { ...input, databaseProfile: "full_password" as const, rdsWorkload: { application, control, persistence } };
+  await assert.rejects(inspectEcsFirstOpen({ ...rds, rdsWorkload: undefined }), /ECS_FIRST_OPEN_RDS_WORKLOAD_READBACK_MISMATCH/);
+  const api = facts.taskDefinition.containerDefinitions![0];
+  api.name = facts.service.loadBalancers![0].containerName = facts.tasks[0].containers![0].name = "speedfeast-backend";
+  api.environment = Object.entries({ PG_DATABASE_PROFILE: "full_password", PGSSLMODE: "verify-full", PGSSL_REJECT_UNAUTHORIZED: "true",
+    PGSSLROOTCERT: "/usr/local/share/ca-certificates/aws-rds-global-bundle.pem", IMAGE_STORAGE_PROVIDER: "s3", IMAGE_S3_BUCKET: persistence.bucket,
+    IMAGE_PUBLIC_BASE_URL: persistence.mediaPublicBaseUrl, ALLOW_EPHEMERAL_IMAGE_STORAGE: "false" }).map(([name, value]) => ({ name, value }));
+  api.secrets = Object.entries({ DATABASE_URL: "database_url", HMAC_SECRET_KEY: "hmac_secret_key", JWT_SECRET_KEY: "jwt_secret_key",
+    STRIPE_SECRET_KEY: "stripe_secret_key", STRIPE_WEBHOOK_SECRET: "stripe_webhook_secret" })
+    .map(([name, key]) => ({ name, valueFrom: `${application.arn}:${key}::${application.versionId}` }));
+  api.secrets.push({ name: "SAAS_CONTROL_PUBLIC_KEY", valueFrom: `${control.arn}:key::${control.versionId}` });
+  await assert.rejects(inspectEcsFirstOpen(rds), /RELEASE_IMAGE_OR_COMPATIBILITY_CHANGED/);
+  assert.deepEqual(steps, ["runtime"]);
+  facts.databaseProfile = "full_password";
+  const database = api.secrets[0], exact = database.valueFrom;
+  database.valueFrom = `${application.arn}:database_url::`;
+  await assert.rejects(inspectEcsFirstOpen(rds), /ECS_FIRST_OPEN_RDS_WORKLOAD_READBACK_MISMATCH/);
+  database.valueFrom = `${application.arn}:different_key::${application.versionId}`;
+  await assert.rejects(inspectEcsFirstOpen(rds), /ECS_FIRST_OPEN_RDS_WORKLOAD_READBACK_MISMATCH/);
+  database.valueFrom = exact;
+  assert.equal((await inspectEcsFirstOpen(rds)).databaseProfile, "full_password");
+  assert.deepEqual(steps, ["runtime", "runtime", "runtime", "runtime", "configuration"]);
+});
+
 test("ECS first-open self-check stops before reading app configuration when the running image is wrong", async t => {
   const { input, facts, steps } = await fixture(t);
   facts.tasks[0].containers![0].imageDigest = "sha256:" + "5".repeat(64);

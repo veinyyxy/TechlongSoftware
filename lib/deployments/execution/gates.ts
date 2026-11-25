@@ -5,8 +5,10 @@ import {
 import type {
   AwsCallerIdentity,
   DeploymentExecutionBinding,
+  DeploymentExecutionContext,
 } from "./contracts.ts";
-import type { FirstOpenSecondSlotApproval } from "./first-open-second-slot.ts";
+import { FIRST_OPEN_BASELINE_BINDING } from "./first-onboarding-baseline-versions.ts";
+import { FIRST_OPEN_SECOND_SLOT, type FirstOpenSecondSlotApproval } from "./first-open-second-slot.ts";
 
 export const AWS_SANDBOX_CONFIRMATION_PHRASE =
   "I_ACKNOWLEDGE_AWS_SANDBOX_COST_AND_TTL";
@@ -14,6 +16,74 @@ export const AWS_SANDBOX_PROVISIONER_ROLE_NAME =
   "TechlongSandboxProvisionerRole";
 export const AWS_SANDBOX_CLOUDFORMATION_ROLE_NAME =
   "TechlongSandboxCloudFormationExecutionRole";
+
+const ecsFirstOpenAccount = "402010193138";
+const ecsFirstOpenRegion = "ca-central-1";
+const ecsFirstOpenEnvironmentKey = "aws-sandbox-ca-central-1";
+export const ECS_FIRST_OPEN_RDS_ENVIRONMENT_ID = "env_aws_sandbox_ca_central_1";
+const ecsFirstOpenRdsRole = `arn:aws:iam::${ecsFirstOpenAccount}:role/TechlongSandboxFirstOpenTaskRole`;
+const ecsFirstOpenSharedRole = `arn:aws:iam::${ecsFirstOpenAccount}:role/${AWS_SANDBOX_PROVISIONER_ROLE_NAME}`;
+const ecsFirstOpenAuthorityBrand: unique symbol = Symbol("ecs-first-open-rds");
+const ecsFirstOpenAuthorities = new WeakSet<object>();
+
+type EcsFirstOpenExecutionScope = Readonly<{
+  executionId: string;
+  jobId: string;
+  instanceId: string;
+  workspaceId: string;
+  writeBefore: number;
+}>;
+type EcsFirstOpenTaskScope = Readonly<{ taskArn: string; taskDefinitionArn: string; roleArn: string }>;
+export type EcsFirstOpenRdsAuthority = EcsFirstOpenExecutionScope & EcsFirstOpenTaskScope &
+  { readonly [ecsFirstOpenAuthorityBrand]: true };
+
+/** Only the prepared ECS entry calls this after local task attestation, the
+ * exact durable dispatch ACK and reviewed resource binding. */
+export function createEcsFirstOpenRdsAuthority(input: EcsFirstOpenExecutionScope & EcsFirstOpenTaskScope): EcsFirstOpenRdsAuthority {
+  const { taskArn, taskDefinitionArn, roleArn, executionId, jobId, instanceId, workspaceId, writeBefore } = input;
+  if (roleArn !== ecsFirstOpenRdsRole ||
+      !/^arn:aws:ecs:ca-central-1:402010193138:task\/techlong-sandbox-platform\/[a-f0-9]{32}$/.test(taskArn) ||
+      !/^arn:aws:ecs:ca-central-1:402010193138:task-definition\/techlong-sandbox-first-open-v1:[1-9][0-9]{0,8}$/.test(taskDefinitionArn) ||
+      !/^exec_[a-f0-9]{32}$/.test(executionId) || !/^job_[a-f0-9]{24}$/.test(jobId) ||
+      jobId === FIRST_OPEN_BASELINE_BINDING.jobId || jobId === FIRST_OPEN_SECOND_SLOT.jobId ||
+      ![taskArn, taskDefinitionArn, executionId, jobId, instanceId, workspaceId].every(value => typeof value === "string" && value.trim() === value) ||
+      ![instanceId, workspaceId].every(value => /^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/.test(value)) ||
+      !Number.isSafeInteger(writeBefore) || writeBefore <= 0) throw Error("ECS_FIRST_OPEN_RDS_AUTHORITY_SCOPE");
+  const authority: EcsFirstOpenRdsAuthority = Object.freeze({
+    taskArn, taskDefinitionArn, roleArn, executionId, jobId, instanceId, workspaceId, writeBefore,
+    [ecsFirstOpenAuthorityBrand]: true as const,
+  });
+  ecsFirstOpenAuthorities.add(authority);
+  return authority;
+}
+
+export function assertEcsFirstOpenRdsApproval(authority: EcsFirstOpenRdsAuthority | undefined,
+  config: DeploymentWorkerRuntimeConfig, approval: EcsFirstOpenExecutionScope, now: number) {
+  if (!authority || !ecsFirstOpenAuthorities.has(authority) || config.workerEnabled !== false || config.applyEnabled !== false ||
+      config.expectedAccountId !== ecsFirstOpenAccount || config.expectedRegion !== ecsFirstOpenRegion ||
+      config.environmentKey !== ecsFirstOpenEnvironmentKey || config.workerRoleArn !== authority.roleArn ||
+      !Number.isSafeInteger(now) || authority.writeBefore <= now || authority.writeBefore > now + 3_600_000 ||
+      authority.executionId !== approval.executionId || authority.jobId !== approval.jobId ||
+      authority.instanceId !== approval.instanceId || authority.workspaceId !== approval.workspaceId ||
+      authority.writeBefore !== approval.writeBefore) throw Error("ECS_FIRST_OPEN_RDS_AUTHORITY_REQUIRED");
+  return authority;
+}
+
+/** Preserve the stored environment binding for ordinary and Express workers. */
+export function assertEcsFirstOpenRdsContext(authority: EcsFirstOpenRdsAuthority, context: DeploymentExecutionContext) {
+  const { environment, binding, job, deployment, appInstance, workspace } = context;
+  if (!ecsFirstOpenAuthorities.has(authority) || environment.id !== ECS_FIRST_OPEN_RDS_ENVIRONMENT_ID ||
+      environment.key !== ecsFirstOpenEnvironmentKey || environment.kind !== "aws_sandbox" ||
+      environment.expectedAccountId !== ecsFirstOpenAccount || environment.region !== ecsFirstOpenRegion ||
+      environment.cellKey !== "cell-sandbox-1" || environment.applyEnabled !== false || environment.status !== "active" ||
+      binding?.environmentId !== environment.id || binding.status !== "active" || binding.workerRoleArn !== ecsFirstOpenSharedRole ||
+      job.id !== authority.jobId || job.jobType !== "apply" || job.attempt !== 1 || job.maxAttempts !== 1 ||
+      job.leaseExpiresAt !== authority.writeBefore || !job.leaseToken || deployment.id !== job.deploymentId ||
+      deployment.environmentId !== environment.id || deployment.appInstanceId !== authority.instanceId ||
+      appInstance.id !== authority.instanceId || appInstance.workspaceId !== authority.workspaceId ||
+      workspace.id !== authority.workspaceId) throw Error("ECS_FIRST_OPEN_RDS_CONTEXT_SCOPE");
+  return binding;
+}
 
 export interface DeploymentWorkerRuntimeConfig {
   workerEnabled: boolean;

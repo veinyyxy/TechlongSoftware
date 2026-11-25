@@ -221,7 +221,7 @@ export async function verifyFirstOpenT3(t, pgBin, helpers) {
       const createTaskPorts = helpers.createTaskPorts ?? createEcsFirstOpenTaskPorts;
       const command = () => helpers.runFirstOpenCommand(launches[0].overrides.containerOverrides[0].command.slice(2),
         async () => createTaskPorts({
-          db: taskDb, readDb: completionReadDb, taskArn, writeBefore, baselineDigest, databaseSchemaVersion, dnsTarget, reader,
+          db: taskDb, readDb: completionReadDb, taskArn, taskDefinitionArn, writeBefore, baselineDigest, databaseSchemaVersion, dnsTarget, reader,
           management: { dependencies, config: options.config, cleanupReadiness: options.cleanupReadiness },
         }));
       if (scenario.fault === "launch" || scenario.fault === "migration" || scenario.fault === "self_check") {
@@ -264,6 +264,7 @@ export async function verifyFirstOpenT3(t, pgBin, helpers) {
       assert.equal(after.executions.length, 1);
       assert.equal(after.executions[0].dispatch_token, executionId);
       assert.equal(after.executions[0].dispatch_task_arn, scenario.fault === "launch" ? null : taskArn);
+      assert.equal(after.executions[0].dispatch_task_definition_arn, scenario.fault === "launch" ? null : placement.taskDefinitionArn);
       assert.equal(after.executions[0].dispatch_outcome, scenario.fault === "launch" ? "unknown" : "acknowledged");
       for (const [collection, id] of [["instances", b.id], ["deployments", b.deploymentId], ["jobs", b.jobId]]) {
         assert.deepEqual(after[collection].find(row => row.id === id), before[collection].find(row => row.id === id));

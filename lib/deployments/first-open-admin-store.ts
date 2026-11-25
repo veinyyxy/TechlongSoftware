@@ -34,11 +34,24 @@ export interface FirstOpenInstanceSummary {
 
 export interface FirstOpenInstanceView extends FirstOpenInstanceSummary {
   events: FirstOpenLogEvent[];
+  /** Present only when the caller requested the exact approved execution. */
+  dispatch?: FirstOpenDispatchObservation;
+}
+
+export type FirstOpenDispatchObservation = {
+  state: "reservation_not_observed" | "reserved" | "acknowledged" | "failed" | "result_unknown" | "inconsistent";
+  reservedAt: number | null;
+  taskArn: string | null;
+};
+
+export interface FirstOpenApprovalOptions {
+  databaseProfile: "full_password";
+  afterCommit(executionId: string): Promise<void>;
 }
 
 export interface FirstOpenAdminStore {
-  approve(instanceId: string, actorId: string): Promise<FirstOpenExecutionView | null>;
-  read(instanceId: string, actorId: string): Promise<FirstOpenInstanceView | null>;
+  approve(instanceId: string, actorId: string, options?: FirstOpenApprovalOptions): Promise<FirstOpenExecutionView | null>;
+  read(instanceId: string, actorId: string, executionId?: string): Promise<FirstOpenInstanceView | null>;
   listSummaries(instanceIds: readonly string[], actorId: string): Promise<FirstOpenInstanceSummary[]>;
 }
 
@@ -144,11 +157,16 @@ const SUMMARY_TABLES = `FROM app_instances instance
 const READ_SUMMARY = `SELECT ${SUMMARY_COLUMNS} ${SUMMARY_TABLES} WHERE instance.id = $2`;
 const LIST_SUMMARIES = `SELECT ${SUMMARY_COLUMNS} ${SUMMARY_TABLES}
   WHERE instance.id IN (SELECT jsonb_array_elements_text($2::jsonb))`;
-const READ_LOG = `SELECT ${SUMMARY_COLUMNS}, coalesce((
+const LOG_COLUMNS = `${SUMMARY_COLUMNS}, coalesce((
     SELECT jsonb_agg(jsonb_build_object('step', event.step, 'status', event.status, 'at', event.at,
       'errorCode', event.error_code) ORDER BY event.sequence)
     FROM first_open_execution_events event WHERE event.execution_id = opened.id
-  ), '[]'::jsonb) AS events ${SUMMARY_TABLES} WHERE instance.id = $2`;
+  ), '[]'::jsonb) AS events`;
+const READ_LOG = `SELECT ${LOG_COLUMNS} ${SUMMARY_TABLES} WHERE instance.id = $2`;
+const READ_DISPATCH_LOG = `SELECT ${LOG_COLUMNS},
+  opened.dispatch_token AS "dispatchToken", opened.dispatch_started_at AS "dispatchStartedAt",
+  opened.dispatch_outcome AS "dispatchOutcome", opened.dispatch_task_arn AS "dispatchTaskArn"
+  ${SUMMARY_TABLES} WHERE instance.id = $2 AND opened.id = $3`;
 
 interface SummaryRow {
   instanceId: string;
@@ -157,6 +175,40 @@ interface SummaryRow {
   approvedAt: number | string | null;
   status: FirstOpenStatus;
   step: FirstOpenStep;
+}
+
+type FirstOpenLogRow = SummaryRow & { events: Omit<FirstOpenLogEvent, "reason">[] };
+type FirstOpenDispatchLogRow = FirstOpenLogRow & {
+  dispatchToken: string | null;
+  dispatchStartedAt: number | string | null;
+  dispatchOutcome: string | null;
+  dispatchTaskArn: string | null;
+};
+
+export function isFirstOpenDispatchLookupId(value: string) {
+  return value.length === 37 && /^exec_[a-f0-9]{32}$/.test(value);
+}
+
+function dispatchObservation(row: FirstOpenDispatchLogRow): FirstOpenDispatchObservation {
+  const { executionId, dispatchToken, dispatchStartedAt, dispatchOutcome, dispatchTaskArn } = row;
+  if (dispatchStartedAt === null && dispatchToken === null && dispatchOutcome === null && dispatchTaskArn === null) {
+    // The DB snapshot cannot prove that a Web notification was not delivered.
+    return { state: "reservation_not_observed", reservedAt: null, taskArn: null };
+  }
+  const reservedAt = Number(dispatchStartedAt);
+  const approvedAt = Number(row.approvedAt);
+  if (dispatchToken === executionId && Number.isSafeInteger(approvedAt) && approvedAt > 0 &&
+      Number.isSafeInteger(reservedAt) && reservedAt >= approvedAt) {
+    if (dispatchOutcome === "acknowledged" && typeof dispatchTaskArn === "string" &&
+        /^arn:aws:ecs:[a-z0-9-]+:[0-9]{12}:task\/[A-Za-z0-9_-]{1,255}\/[0-9a-f]{32}$/.test(dispatchTaskArn)) {
+      return { state: "acknowledged", reservedAt, taskArn: dispatchTaskArn };
+    }
+    if (dispatchTaskArn === null && (dispatchOutcome === null || dispatchOutcome === "failed" || dispatchOutcome === "unknown")) {
+      return { state: dispatchOutcome === null ? "reserved" : dispatchOutcome === "unknown" ? "result_unknown" : "failed",
+        reservedAt, taskArn: null };
+    }
+  }
+  return { state: "inconsistent", reservedAt: null, taskArn: null };
 }
 
 function summary(row: SummaryRow): FirstOpenInstanceSummary {
@@ -179,12 +231,17 @@ export function createFirstOpenAdminStore(db: ApplicationDatabase): FirstOpenAdm
       const { results } = await db.prepare(LIST_SUMMARIES).bind(actorId, JSON.stringify(instanceIds)).all<SummaryRow>();
       return results.map(summary);
     },
-    async read(instanceId: string, actorId: string): Promise<FirstOpenInstanceView | null> {
-      const row = await db.prepare(READ_LOG).bind(actorId, instanceId)
-        .first<SummaryRow & { events: Omit<FirstOpenLogEvent, "reason">[] }>();
+    async read(instanceId: string, actorId: string, executionId?: string): Promise<FirstOpenInstanceView | null> {
+      if (executionId !== undefined) {
+        if (!isFirstOpenDispatchLookupId(executionId)) return null;
+        const row = await db.prepare(READ_DISPATCH_LOG).bind(actorId, instanceId, executionId).first<FirstOpenDispatchLogRow>();
+        if (!row || row.instanceId !== instanceId || row.executionId !== executionId) return null;
+        return { ...summary(row), events: row.events.map(logEvent), dispatch: dispatchObservation(row) };
+      }
+      const row = await db.prepare(READ_LOG).bind(actorId, instanceId).first<FirstOpenLogRow>();
       return row ? { ...summary(row), events: row.events.map(logEvent) } : null;
     },
-    async approve(instanceId: string, actorId: string): Promise<FirstOpenExecutionView | null> {
+    async approve(instanceId: string, actorId: string, options?: FirstOpenApprovalOptions): Promise<FirstOpenExecutionView | null> {
       const readLatest = () => db.prepare(READ_SUMMARY).bind(actorId, instanceId);
       const readExecution = async () => {
         const row = await readLatest().first<SummaryRow>();
@@ -200,6 +257,7 @@ export function createFirstOpenAdminStore(db: ApplicationDatabase): FirstOpenAdm
       if (!target) return readExecution();
       let release: SoftwareRelease | null = null;
       const review = await loadFirstOnboardingReview(jobId, {
+        databaseProfile: options?.databaseProfile,
         readOne: async () => target,
         async readRelease(id) {
           const row = await db.prepare(READ_RELEASE).bind(id).first<{ document: SoftwareRelease }>();
@@ -214,6 +272,10 @@ export function createFirstOpenAdminStore(db: ApplicationDatabase): FirstOpenAdm
         executionId, review.reviewSha256, canonicalJson({ configuration, desiredPlan, deployment, job, purchaseOrderId }),
         canonicalJson(release)), readLatest()]);
       const [row] = current.results;
+      if (options && row?.executionId === executionId) {
+        try { await options.afterCommit(executionId); }
+        catch { console.error("FIRST_OPEN_WEB_INVOKE_UNCONFIRMED"); }
+      }
       return row ? summary(row).execution : null;
     },
   };

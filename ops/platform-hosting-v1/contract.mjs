@@ -14,7 +14,8 @@ export function assertRuntimeEnvironment(env){
   must(FORBIDDEN.every(k=>!env[k])&&env.NODE_TLS_REJECT_UNAUTHORIZED!=='0'&&
     !Object.keys(env).some(k=>/^AWS_ENDPOINT_URL/.test(k))&&Object.entries(CLOSED_BINDINGS).every(([k,v])=>!env[k]||env[k]===v),'CLOSED_RUNTIME_REQUIRED');
   if(env.TECHLONG_SANDBOX_FIRST_PURCHASE==='true') {
-    must(readSandboxPurchaseConfiguration(env)&&CLOSED_BINDINGS.TECHLONG_PLATFORM_CONTROL_HOSTED===(env.TECHLONG_PLATFORM_CONTROL_HOSTED??'false'),'FIRST_PURCHASE_SCOPE');
+    must(env.TECHLONG_SAAS_CONTROL_DATABASE_MODE!=='rds-postgresql'&&readSandboxPurchaseConfiguration(env)&&
+      CLOSED_BINDINGS.TECHLONG_PLATFORM_CONTROL_HOSTED===(env.TECHLONG_PLATFORM_CONTROL_HOSTED??'false'),'FIRST_PURCHASE_SCOPE');
   } else {
     must(SANDBOX_PURCHASE_BINDINGS.filter(k=>k.startsWith('TECHLONG_SANDBOX_')&&k!=='TECHLONG_SANDBOX_FIRST_PURCHASE').every(k=>!env[k]),'FIRST_PURCHASE_DISABLED');
   }

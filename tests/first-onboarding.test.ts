@@ -97,6 +97,18 @@ test("an unverified, revoked, swapped, or incompatible release is never ready to
   ]) assert.equal(await reviewFirstOnboarding({ ...facts, release }), null);
 });
 
+test("the first-open review accepts a standard RDS release only for that explicit profile", async () => {
+  const { facts } = await fixture();
+  const release = facts.release!;
+  const rds = { ...facts, release: { ...release,
+    compatibility: { ...release.compatibility, databaseProfiles: ["full_password" as const] } } };
+  assert.equal(await reviewFirstOnboarding(rds), null);
+  assert.equal(await reviewFirstOnboarding(facts, undefined, "full_password"), null);
+  const review = await reviewFirstOnboarding(rds, undefined, "full_password");
+  assert.equal(review?.catalogSha256, await sha256Hex(rds.release));
+  assert.equal(review?.cloudExecutionAuthorized, false);
+});
+
 test("ordinary claims explicitly exclude held jobs independently of their availability timestamp", () => {
   const args = { workerId: "worker:test", now: 1000, leaseDurationMs: 5000, leaseToken: `lease_${"a".repeat(32)}` };
   const sql = buildDeploymentClaimStatement({ ...args, jobType: "apply" }).sql;

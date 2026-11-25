@@ -10,6 +10,7 @@ export interface EcsFirstOpenCompletionInput {
   context: DeploymentExecutionContext;
   review: FirstOnboardingReview;
   release: SoftwareRelease;
+  databaseProfile?: InstanceReleaseObservation["databaseProfile"];
   target: { configuration: unknown; desiredPlan: unknown };
   runtime: InstanceReleaseObservation;
 }
@@ -189,6 +190,7 @@ WHERE x.id=$1 ON CONFLICT DO NOTHING RETURNING execution_id AS "executionId"`;
 
 async function completionRequest(input: EcsFirstOpenCompletionInput) {
   const { approval, context, job, review, release, runtime, target } = input;
+  const databaseProfile = input.databaseProfile ?? "express_iam";
   const scope = review.payload.scope;
   const resource = context.tenantResources;
   const fence = context.tenantExternalOperation;
@@ -203,7 +205,7 @@ async function completionRequest(input: EcsFirstOpenCompletionInput) {
     approval.reviewSha256 !== review.reviewSha256 || approval.releaseId !== scope.releaseId ||
     release.id !== scope.releaseId || release.productId !== scope.productId || release.status !== "ecr_verified" ||
     await sha256Hex(release) !== review.catalogSha256 ||
-    release.compatibility.applicationPort !== 3000 || !release.compatibility.databaseProfiles.includes("express_iam") ||
+    release.compatibility.applicationPort !== 3000 || !release.compatibility.databaseProfiles.includes(databaseProfile) ||
     !release.compatibility.schemaVersions.includes(approval.databaseSchemaVersion) ||
     !resource || resource.generation !== 1 || resource.lifecycleStatus !== "verified" ||
     resource.ownerDeploymentId !== scope.deploymentId || resource.baselineDigest !== approval.baselineDigest ||
@@ -213,7 +215,7 @@ async function completionRequest(input: EcsFirstOpenCompletionInput) {
     runtime.instanceId !== scope.appInstanceId || runtime.imageUri !== scope.artifactRef ||
     runtime.imageUri !== `${release.image.repository}@${release.image.manifestDigest}` ||
     runtime.platformDigest !== review.platformDigest || runtime.platformDigest !== release.image.platformDigest ||
-    runtime.databaseSchemaVersion !== approval.databaseSchemaVersion || runtime.databaseProfile !== "express_iam" ||
+    runtime.databaseSchemaVersion !== approval.databaseSchemaVersion || runtime.databaseProfile !== databaseProfile ||
     runtime.state !== "RUNNING" || !runtime.servicePresent || !runtime.albPresent || !runtime.databaseAvailable ||
     runtime.operationInProgress || runtime.desiredCount !== 1 || runtime.runningCount !== 1 || runtime.pendingCount !== 0 ||
     !Number.isSafeInteger(runtime.observedAt) || runtime.observedAt < approval.approvedAt || runtime.observedAt >= approval.writeBefore) {

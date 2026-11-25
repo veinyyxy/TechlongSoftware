@@ -26,9 +26,10 @@ test("PostgreSQL migration checksums are stable across Windows line endings", ()
 });
 
 test("runtime uses Neon PostgreSQL through the server-only DATABASE_URL", async () => {
-  const [databaseEntry, adapter, example, homepage] = await Promise.all([
+  const [databaseEntry, adapter, neon, example, homepage] = await Promise.all([
     read("db/index.ts"),
     read("db/postgres.ts"),
+    read("db/postgres-neon.ts"),
     read(".env.example"),
     read("app/page.tsx"),
   ]);
@@ -36,7 +37,8 @@ test("runtime uses Neon PostgreSQL through the server-only DATABASE_URL", async 
   assert.match(databaseEntry, /getPostgresDatabase/);
   assert.match(databaseEntry, /export function getDatabase/);
   assert.doesNotMatch(databaseEntry, /drizzle-orm\/d1/);
-  assert.match(adapter, /@neondatabase\/serverless/);
+  assert.match(neon, /@neondatabase\/serverless/);
+  assert.match(adapter, /createNeonPostgresDatabase/);
   assert.match(adapter, /DATABASE_URL/);
   assert.match(example, /^DATABASE_URL=/m);
   assert.doesNotMatch(example, /neondb_owner|npg_/);

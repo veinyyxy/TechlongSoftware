@@ -1,15 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {spawnSync} from 'node:child_process';
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {execFileSync,spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {createServer,request} from 'node:http';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {buildEnvironment,assertBuildChildEnvironment,assertRuntimeEnvironment,serverOptions,CLOSED_BINDINGS,FORBIDDEN} from '../ops/platform-hosting-v1/contract.mjs';
 import {makeBuildConfig} from '../ops/platform-hosting-v1/config.mjs';
-import {platformClosureV6} from '../ops/platform-cloud-v6/closure.mjs';
 import {INSTALLED_BINDING_V6 as B} from '../lib/deployments/controller-v6/installed-binding.ts';
 import {load} from 'js-yaml';
 import {PUBLIC_ORIGIN,ingressPolicy,checkIngress,ingressHandler,installIngress} from '../ops/platform-hosting-v1/ingress.mjs';
 import {firstOpenBuyerWire} from '../lib/buyer-forward/wire.mjs';
+import {checkRdsCaBundle} from '../ops/platform-hosting-v1/rds-ca.mjs';
 
 const albPolicy=ingressPolicy({TECHLONG_PLATFORM_INGRESS:'alb-https-v1',TECHLONG_PLATFORM_PUBLIC_ORIGIN:PUBLIC_ORIGIN},{port:3000,host:'0.0.0.0'});
 const albHeaders={host:'console.sandbox.techlong.cloud','x-forwarded-proto':'https','x-forwarded-port':'443'};
@@ -204,23 +208,54 @@ test('pinned non-root container has explicit source COPY, no secret build args a
   assert.match(source,/FROM node:24\.18\.0-alpine3\.24@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS base/);
   assert.match(source,/RUN apk upgrade --no-cache/);
   assert.match(source,/FROM base AS build/);assert.match(source,/FROM base AS candidate/);
-  assert.match(source,/USER node/);assert.doesNotMatch(source,/COPY \. |ARG .*SECRET|migrate|aws login/);
+  assert.match(source,/USER node/);assert.doesNotMatch(source,/COPY \. |ARG .*SECRET|migrate|aws login|\bpython3?\b/);
   assert.match(source,/COPY --from=build --chown=node:node \/app\/dist\/first-open\/ \.\/ops\/platform-hosting-v1\//);
   assert.match(source,/FROM postgres:16\.14-alpine3\.24@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777 AS first-open-pg/);
   assert.match(source,/COPY --from=first-open-pg \/first-open-pg\/pg_restore \/usr\/bin\/pg_restore/);
+  assert.match(source,/xargs apk add --no-cache ca-certificates < \/tmp\/first-open-apk-dependencies/);
   assert.match(source,/COPY --from=first-open-backend \/app\/first-open-backend\/ \.\/first-open-backend\//);
   assert.match(source,/RUN --network=none .*await checkFirstOpenImageDependencies\(\)/);
+  assert.match(source,/COPY --from=build \/app\/ops\/platform-hosting-v1\/amazon-rds-ca-central-1\.crt \/app\/certs\/amazon-rds\.pem/);
+  assert.match(source,/RUN --network=none .*await checkRdsCaBundle\(\)/);
   assert.match(source,/CMD \["node", "ops\/platform-hosting-v1\/start.mjs"\]/);
   const ignore=await readFile(new URL('../ops/platform-hosting-v1/Dockerfile.dockerignore',import.meta.url),'utf8');assert(ignore.includes('**/.env*')&&ignore.includes('**/*.pem'));
+});
+test('RDS trust bundle pins the three official Canada Central roots',async()=>{
+  const root=new URL('../ops/platform-hosting-v1/',import.meta.url);
+  const evidence=await checkRdsCaBundle(new URL('amazon-rds-ca-central-1.crt',root));
+  assert.equal(evidence.region,'ca-central-1');
+  assert.equal(evidence.rootCount,3);
+  await assert.rejects(checkRdsCaBundle(new URL('Dockerfile',root)),/PLATFORM_IMAGE_RDS_CA_DIGEST/);
 });
 test('CI has no AWS/OIDC/Secrets/deployment authority; tests actual built image without external network',async()=>{
   const y=load(await readFile(new URL('../.github/workflows/platform-hosting-candidate.yml',import.meta.url),'utf8'));
   assert.deepEqual(y.permissions,{contents:'read'});assert.equal(y.jobs.candidate.environment,undefined);
+  const checkout=y.jobs.candidate.steps.find(s=>s.uses?.startsWith('actions/checkout@'));
+  assert.deepEqual(checkout.with,{'persist-credentials':false,'fetch-depth':0});
   const steps=y.jobs.candidate.steps.map(s=>s.run??'').join('\n');
-  for(const expected of ['git archive HEAD','docker build','--network none','--read-only','smoke.mjs','https-smoke.mjs','TECHLONG_PLATFORM_INGRESS=alb-https-v1'])assert(steps.includes(expected));
+  for(const expected of ['test "$(git rev-parse HEAD)" = "$GITHUB_SHA"','git archive HEAD','git get-tar-commit-id',
+    'sha256sum "$candidate_source"','tar -xf "$candidate_source"','docker build --platform linux/amd64','--network none',
+    '--read-only','smoke.mjs','https-smoke.mjs','TECHLONG_PLATFORM_INGRESS=alb-https-v1'])assert(steps.includes(expected));
   assert.doesNotMatch(steps,/configure-aws|aws sts|docker push|workflow_dispatch|secrets\./);
 });
-test('published tenant deployment execution closure remains byte-identical',async()=>{
+test('published tenant deployment execution closure is verified from its frozen Git source',async t=>{
+  const frozenCommit='ca2b38d8c756dd8fb800a88ded596c93687f278f';
+  assert.equal(B.publisher.frozenSourceCommit,frozenCommit);
+  const binding=await readFile(new URL('../lib/deployments/controller-v6/installed-binding.ts',import.meta.url),'utf8');
+  assert.equal(createHash('sha256').update(binding.replaceAll('\r\n','\n')).digest('hex'),
+    '40348c45fbe39722190921ae6ce624d5c11b9c39010c2fff4f0d6510b2d3331f');
+
+  const prefix=path.join(tmpdir(),'techlong-published-closure-'),dir=await mkdtemp(prefix);
+  t.after(async()=>{
+    assert(dir.startsWith(prefix)&&path.dirname(dir)===path.resolve(tmpdir()));
+    await rm(dir,{recursive:true,force:true});
+  });
+  const archive=path.join(dir,'frozen.tar');
+  execFileSync('git',['--no-replace-objects','archive','--format=tar','--output',archive,frozenCommit],
+    {cwd:new URL('../',import.meta.url),env:{...process.env,GIT_NO_LAZY_FETCH:'1'},timeout:30_000});
+  execFileSync('tar',['-xf',archive,'-C',dir],{timeout:30_000});
+  const {platformClosureV6}=await import(pathToFileURL(path.join(dir,'ops/platform-cloud-v6/closure.mjs')).href);
   const c=await platformClosureV6();assert.equal(c.closureSha256,B.platform.closureSha256);assert.equal(c.pinCount,81);
+  assert.equal(c.legacyClosureSha256,'70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac');
   assert(!c.pins.some(p=>p.file.includes('platform-hosting-v1')));
 });

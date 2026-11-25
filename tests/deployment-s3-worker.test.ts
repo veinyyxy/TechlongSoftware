@@ -23,6 +23,8 @@ import type {
 } from "../lib/deployments/execution/contracts.ts";
 import {
   AWS_SANDBOX_CONFIRMATION_PHRASE,
+  createEcsFirstOpenRdsAuthority,
+  evaluateWorkerRuntimeGate,
   type DeploymentWorkerRuntimeConfig,
 } from "../lib/deployments/execution/gates.ts";
 import { canonicalJson, sha256Hex } from "../lib/deployments/execution/hash.ts";
@@ -48,7 +50,7 @@ import { FIRST_ACCEPTANCE_APP_IMAGE } from "../lib/deployments/execution/single-
 import { createFirstOnboardingWorkloadStrategy, createSingleTenantWorkloadStrategy, type SupervisedTenantStack, type SupervisedWorkloadAwsPort } from "../lib/deployments/execution/single-tenant-workload-strategy.ts";
 import { attachFirstOpenTaskBinding, finalizeSupervisedTenantStack } from "../lib/deployments/execution/single-tenant-workload-strategy.ts";
 import { renderSingleTenantAcceptanceWorkload } from "../lib/deployments/cloudformation/single-tenant-acceptance-workload.ts";
-import { buildFirstOnboardingJob, CLAIM_FIRST_ONBOARDING, SELECT_FIRST_ONBOARDING, firstOnboardingExpressNames, reviewFirstOnboarding, type FirstOnboardingReview, type FirstOnboardingReviewRow } from "../lib/deployments/first-onboarding.ts";
+import { buildFirstOnboardingJob, CLAIM_FIRST_ONBOARDING, SELECT_FIRST_ONBOARDING, firstOnboardingExpressNames, loadFirstOnboardingReview, reviewFirstOnboarding, type FirstOnboardingReview, type FirstOnboardingReviewRow } from "../lib/deployments/first-onboarding.ts";
 import type { InstanceReleaseObservation } from "../lib/deployments/releases/contract.ts";
 import { offlineHandoffTitle, offlineRuntimeObservationSha, rebuildOfflineFirstOpenBinding } from "../ops/aws-sandbox/first-open-oidc-offline.ts";
 import { firstOpenGitHubHandoff } from "../ops/aws-sandbox/first-open-github-handoff.ts";
@@ -412,6 +414,40 @@ async function ecsFirstOpenFixture() {
   return { ...fixture, ports, executionId, approval, row, run: () => runFirstOpenCommand([executionId], async () => ports) };
 }
 
+async function rdsFirstOpenFixture() {
+  const fixture = await ecsFirstOpenFixture();
+  const { ports, approval, release, row, context } = fixture;
+  const identity = {
+    taskArn: "arn:aws:ecs:ca-central-1:402010193138:task/techlong-sandbox-platform/" + "a".repeat(32),
+    taskDefinitionArn: "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-first-open-v1:17",
+    roleArn: "arn:aws:iam::402010193138:role/TechlongSandboxFirstOpenTaskRole",
+  };
+  ports.management.databaseProfile = "full_password";
+  ports.management.config = { ...ports.management.config, workerRoleArn: identity.roleArn };
+  release.compatibility.databaseProfiles = ["full_password"];
+  const review = await loadFirstOnboardingReview(approval.jobId, {
+    databaseProfile: "full_password", readOne: async () => row, readRelease: async () => release,
+  });
+  assert.ok(review);
+  approval.reviewSha256 = review.reviewSha256;
+  const scope = { ...identity, ...approval };
+  const rdsApplicationSecret = { arn: tenantRuntimeSecretRef, versionId: "a".repeat(64) };
+  const rdsControlPublicKey = { arn: context.binding!.tenantStackParameters.ControlPublicKeyValueFrom, versionId: "b".repeat(64) };
+  const rdsPersistence = { bucket: "techlong-sandbox-synthetic-media", providerVariable: "IMAGE_STORAGE_PROVIDER" as const,
+    bucketVariable: "IMAGE_S3_BUCKET" as const, verificationSha256: "c".repeat(64), mediaPublicBaseUrl: "https://synthetic.cloudfront.net" };
+  ports.management = { ...ports.management, rdsApplicationSecret, rdsControlPublicKey, rdsPersistence };
+  const factory = ports.management.dependencies.awsFactory!;
+  const awsRoles: string[] = [];
+  ports.management.dependencies.awsFactory = async input => {
+    awsRoles.push(input.workerRoleArn);
+    assert.equal(input.workerRoleArn, identity.roleArn);
+    const aws = await factory(input);
+    return { ...aws, getCallerIdentity: async () => ({ accountId: "402010193138",
+      arn: "arn:aws:sts::402010193138:assumed-role/TechlongSandboxFirstOpenTaskRole/fixture-task" }) };
+  };
+  return { ...fixture, scope, rdsApplicationSecret, rdsControlPublicKey, rdsPersistence, awsRoles };
+}
+
 test("ECS first open runs a single claim, real management and a fresh self-check in one command", async () => {
   const { run, calls, context, executionId, ports } = await ecsFirstOpenFixture();
   const control = ports.management.dependencies.controlClient;
@@ -426,6 +462,102 @@ test("ECS first open runs a single claim, real management and a fresh self-check
   assert.equal(context.appInstance.status, "pending");
   assert.equal(context.deployment.status, "verifying");
   await assert.rejects(run(), /ECS_FIRST_OPEN_CLAIM_UNCONFIRMED/);
+  assert.equal(calls.filter(call => call === "create").length, 1);
+});
+
+test("T4.2 RDS first-open role needs the matching runtime capability and never changes the shared worker role", async () => {
+  const { run, ports, scope, context, calls, rdsApplicationSecret, rdsControlPublicKey, rdsPersistence, awsRoles } = await rdsFirstOpenFixture();
+  const authority = createEcsFirstOpenRdsAuthority(scope);
+  assert.throws(() => createEcsFirstOpenRdsAuthority({ ...scope, roleArn: context.binding!.workerRoleArn }),
+    /ECS_FIRST_OPEN_RDS_AUTHORITY_SCOPE/);
+  assert.ok(evaluateWorkerRuntimeGate(ports.management.config).failures.includes("runtime_worker_role_invalid"));
+  await assert.rejects(run(), /ECS_FIRST_OPEN_RDS_AUTHORITY_REQUIRED/);
+  ports.management.rdsAuthority = structuredClone(authority);
+  await assert.rejects(run(), /ECS_FIRST_OPEN_RDS_AUTHORITY_REQUIRED/);
+  ports.management.rdsAuthority = createEcsFirstOpenRdsAuthority({ ...scope, instanceId: "app_other" });
+  await assert.rejects(run(), /ECS_FIRST_OPEN_RDS_AUTHORITY_REQUIRED/);
+  ports.management.rdsAuthority = authority;
+  ports.management.rdsApplicationSecret = undefined;
+  await assert.rejects(run(), /ECS_FIRST_OPEN_RDS_SECRET_VERSION_REQUIRED/);
+  ports.management.rdsApplicationSecret = { ...rdsApplicationSecret, arn: rdsApplicationSecret.arn.replace("/g1-", "/g2-") };
+  await assert.rejects(run(), /ECS_FIRST_OPEN_RDS_SECRET_SCOPE_CHANGED/);
+  ports.management.rdsApplicationSecret = { ...rdsApplicationSecret, versionId: "AWSCURRENT" };
+  await assert.rejects(run(), /ECS_FIRST_OPEN_RDS_SECRET_VERSION_REQUIRED/);
+  ports.management.rdsApplicationSecret = rdsApplicationSecret;
+  ports.management.rdsControlPublicKey = undefined;
+  await assert.rejects(run(), /ECS_FIRST_OPEN_RDS_SECRET_VERSION_REQUIRED/);
+  ports.management.rdsControlPublicKey = rdsControlPublicKey;
+  ports.management.rdsPersistence = undefined;
+  await assert.rejects(run(), /ECS_FIRST_OPEN_RDS_PERSISTENCE_REQUIRED/);
+  ports.management.rdsPersistence = rdsPersistence;
+  assert.ok(!calls.includes("claim"));
+
+  const expectedSharedRole = context.binding!.workerRoleArn;
+  const events: Parameters<NonNullable<EcsFirstOpenPorts["lifecycle"]>["record"]>[2][] = [];
+  ports.lifecycle = {
+    async record(_approval, _job, event) { events.push(event); },
+    async complete() { return assert.fail("unconfirmed database cannot complete"); },
+  };
+  ports.management.dependencies.tenantDatabase!.migrateTenantDatabase = async () => {
+    throw Object.assign(Error("TENANT_POSTGRES_INITIALIZATION_UNCONFIRMED"), {
+      code: "TENANT_POSTGRES_INITIALIZATION_UNCONFIRMED", retryable: false,
+    });
+  };
+  await assert.rejects(run(), /TENANT_POSTGRES_INITIALIZATION_UNCONFIRMED/);
+  assert.deepEqual(events, [
+    { step: "database_initialization", status: "started" },
+    { step: "database_initialization", status: "unknown", errorCode: "RESULT_UNCONFIRMED" },
+  ]);
+  assert.deepEqual(awsRoles, [scope.roleArn]);
+  assert.equal(context.binding!.workerRoleArn, expectedSharedRole);
+  assert.equal(calls.filter(call => call === "claim").length, 1);
+  assert.ok(!calls.includes("create") && !calls.includes("inspect"));
+});
+
+test("T4.2 RDS first-open renders and rereads exact workload Secret versions, TLS and persistence", async () => {
+  const { ports, scope, run, stack, calls, rdsApplicationSecret, rdsControlPublicKey, rdsPersistence } = await rdsFirstOpenFixture();
+  ports.management.rdsAuthority = createEcsFirstOpenRdsAuthority(scope);
+  const originalReader = ports.reader;
+  ports.reader = { async capture(target) {
+    const result = await originalReader.capture(target);
+    const { facts } = result;
+    const { applied } = stack();
+    const resources = applied.template.Resources as Record<string, unknown>;
+    const resource = resources.TenantTaskDefinition as { Properties: { ContainerDefinitions: Array<{
+      Name: string; Environment: { Name: string; Value: string | object }[];
+      Secrets: { Name: string; ValueFrom: { "Fn::Sub": string } }[];
+    }> } };
+    const [app] = resource.Properties.ContainerDefinitions;
+    assert.equal(app.Name, "speedfeast-backend");
+    const parameters = applied.template.Parameters as Record<string, unknown>;
+    assert.deepEqual(parameters.TenantRuntimeSecretArn, { Type: "String", Default: rdsApplicationSecret.arn,
+      AllowedValues: [rdsApplicationSecret.arn] });
+    assert.equal(applied.parameters.JwtExpiresIn, "7d");
+    assert.equal(applied.parameters.MerchantJwtExpiresIn, "12h");
+    const secretSelectors = Object.fromEntries(app.Secrets.map(secret => [secret.Name,
+      secret.ValueFrom["Fn::Sub"].replace(/\$\{([^}]+)\}/g, (_, key) => applied.parameters[key])]));
+    assert.deepEqual(secretSelectors, {
+      DATABASE_URL: `${rdsApplicationSecret.arn}:database_url::${rdsApplicationSecret.versionId}`,
+      HMAC_SECRET_KEY: `${rdsApplicationSecret.arn}:hmac_secret_key::${rdsApplicationSecret.versionId}`,
+      JWT_SECRET_KEY: `${rdsApplicationSecret.arn}:jwt_secret_key::${rdsApplicationSecret.versionId}`,
+      STRIPE_SECRET_KEY: `${rdsApplicationSecret.arn}:stripe_secret_key::${rdsApplicationSecret.versionId}`,
+      STRIPE_WEBHOOK_SECRET: `${rdsApplicationSecret.arn}:stripe_webhook_secret::${rdsApplicationSecret.versionId}`,
+      SAAS_CONTROL_PUBLIC_KEY: `${rdsControlPublicKey.arn}:::${rdsControlPublicKey.versionId}`,
+    });
+    const renderedEnv = Object.fromEntries(app.Environment.map(entry => [entry.Name, entry.Value]));
+    assert.equal(renderedEnv.PG_DATABASE_PROFILE, "full_password");
+    assert.equal(renderedEnv.PGSSLROOTCERT, "/usr/local/share/ca-certificates/aws-rds-global-bundle.pem");
+    assert.equal(renderedEnv.IMAGE_S3_BUCKET, rdsPersistence.bucket);
+    assert.equal(renderedEnv.DATABASE_URL, undefined);
+    facts.databaseProfile = "full_password";
+    const describedApp = facts.taskDefinition.containerDefinitions![0];
+    describedApp.name = facts.tasks[0].containers![0].name = facts.service.loadBalancers![0].containerName = app.Name;
+    describedApp.environment = app.Environment.filter((entry): entry is { Name: string; Value: string } => typeof entry.Value === "string")
+      .map(({ Name, Value }) => ({ name: Name, value: Value }));
+    describedApp.secrets = Object.entries(secretSelectors).map(([name, valueFrom]) => ({ name, valueFrom }));
+    return result;
+  } };
+  assert.equal((await run()).outcome, "SELF_CHECK_PASSED");
   assert.equal(calls.filter(call => call === "create").length, 1);
 });
 

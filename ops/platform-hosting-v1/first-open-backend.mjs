@@ -4,7 +4,8 @@ import { createRequire } from "node:module";
 import { isAbsolute, join, relative, sep } from "node:path";
 
 const backendCommit = "b9ca2138738900afc23a6a2ddce141b37a1f0a31";
-const manifestSha256 = "e4b1d2a13741fdbf128e5690bc262128efb567cf947eb059dca3e97452828a01";
+const manifestSha256 = "7ca7b4e7a4907eedc7b35d163b4d1d090bbf61bc31c18776aca03d0b3edb0ba5";
+const previousManifestSha256 = "e4b1d2a13741fdbf128e5690bc262128efb567cf947eb059dca3e97452828a01";
 const sha256 = bytes => createHash("sha256").update(bytes).digest("hex");
 const invalid = () => { throw Error("ECS_FIRST_OPEN_BACKEND_INTEGRITY"); };
 
@@ -16,7 +17,8 @@ export async function verifyFirstOpenBackend(directory) {
   const manifestBytes = await readFile(manifestFile);
   if (sha256(manifestBytes) !== manifestSha256) invalid();
   const manifest = JSON.parse(manifestBytes.toString("utf8"));
-  if (manifest.schema !== "techlong/first-open-backend/v1" || manifest.source.commit !== backendCommit) invalid();
+  if (manifest.schema !== "techlong/first-open-backend/v2" || manifest.source.commit !== backendCommit ||
+    manifest.source.previousManifestSha256 !== previousManifestSha256) invalid();
   const entries = Object.entries(manifest.files);
   const inspected = new Set();
   const expectedDirectories = new Set(entries.map(([path]) => path.slice(0, path.lastIndexOf("/"))).filter(Boolean));
@@ -65,4 +67,14 @@ export async function loadFirstOpenBackend(directory) {
   const { isPgRestore16_14 } = load("./services/saas/tenant_postgres_tools.js");
   const programs = loadSaasPrograms().map(({ name, sha256 }) => ({ name, sha256 }));
   return { ...provenance, atsRootCount: loadAtsRoots().length, programs, isPgRestore16_14 };
+}
+
+export async function loadFirstOpenTenantPostgresPrograms(directory) {
+  await verifyFirstOpenBackend(directory);
+  const load = createRequire(join(directory, "package.json"));
+  const { EMPTY_SQL } = load("./services/saas/tenant_baseline_restore_provider.js");
+  const { BASELINE_CATALOG_PINS, baselineCatalogIdentity } = load("./services/saas/tenant_baseline_catalog.js");
+  const { compileTenantBaselineProgram } = load("./services/saas/tenant_baseline_program.js");
+  const { loadSaasPrograms } = load("./services/saas/tenant_saas_transaction_provider.js");
+  return { EMPTY_SQL, BASELINE_CATALOG_PINS, baselineCatalogIdentity, compileTenantBaselineProgram, loadSaasPrograms };
 }

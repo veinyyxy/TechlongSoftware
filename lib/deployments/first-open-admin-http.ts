@@ -1,5 +1,5 @@
 import { apiError, apiSuccess } from "../api/response.ts";
-import type { FirstOpenAdminStore } from "./first-open-admin-store.ts";
+import { isFirstOpenDispatchLookupId, type FirstOpenAdminStore, type FirstOpenApprovalOptions } from "./first-open-admin-store.ts";
 
 export interface FirstOpenAdminActor {
   id: string;
@@ -27,6 +27,7 @@ const notFound = () => json(apiError("APP_INSTANCE_NOT_FOUND", "没有找到该�
 export function createFirstOpenAdminHandlers(input: {
   authorize: () => Promise<Authorization>;
   store: () => Pick<FirstOpenAdminStore, "read" | "approve">;
+  approvalOptions?: () => FirstOpenApprovalOptions | undefined;
 }) {
   async function handle(request: Request, context: Context, approve: boolean) {
     if (approve) {
@@ -54,12 +55,16 @@ export function createFirstOpenAdminHandlers(input: {
       if (!/^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/.test(instanceId)) return notFound();
 
       if (approve) {
-        const execution = await input.store().approve(instanceId, actor.id);
+        const execution = await input.store().approve(instanceId, actor.id, input.approvalOptions?.());
         return execution ? json(apiSuccess(execution)) :
           json(apiError("FIRST_OPEN_NOT_ELIGIBLE", "该实例目前无法批准开通。请刷新后核对付款和任务状态。"), 409);
       }
 
-      const view = await input.store().read(instanceId, actor.id);
+      const ids = new URL(request.url).searchParams.getAll("executionId");
+      if (ids.length > 1 || (ids.length === 1 && !isFirstOpenDispatchLookupId(ids[0]))) {
+        return json(apiError("FIRST_OPEN_EXECUTION_ID_INVALID", "只读核对需要准确的开通执行编号。"), 400);
+      }
+      const view = await input.store().read(instanceId, actor.id, ids[0]);
       return view ? json(apiSuccess(view)) : notFound();
     } catch {
       return approve ?

@@ -1,11 +1,42 @@
 import { isFirstOpenExecutionId } from "./ecs-first-open.ts";
 
+export interface FirstOpenDispatchSelection {
+  readonly jobId: string;
+  readonly instanceId: string;
+  readonly workspaceId: string;
+  readonly releaseId: string;
+  readonly reviewSha256: string;
+  readonly hostname: string;
+}
+
+const selectionPatterns: Record<keyof FirstOpenDispatchSelection, RegExp> = {
+  jobId: /^job_[a-f0-9]{24}$/,
+  instanceId: /^[A-Za-z0-9_-]{3,128}$/,
+  workspaceId: /^[A-Za-z0-9_-]{3,128}$/,
+  releaseId: /^release_[a-f0-9]{32}$/,
+  reviewSha256: /^[a-f0-9]{64}$/,
+  hostname: /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.sandbox\.techlong\.cloud$/,
+};
+
+export function isFirstOpenDispatchSelection(value: unknown): value is FirstOpenDispatchSelection {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const fields = value as Record<string, unknown>;
+  const patterns = Object.entries(selectionPatterns);
+  return Reflect.ownKeys(fields).length === patterns.length &&
+    patterns.every(([field, pattern]) => {
+      const item = Object.getOwnPropertyDescriptor(fields, field);
+      return item?.enumerable === true && typeof item.value === "string" &&
+        item.value.trim() === item.value && pattern.test(item.value);
+    });
+}
+
 export interface FirstOpenEcsPlacement {
   clusterArn: string;
   taskDefinitionArn: string;
   containerName: string;
   subnetIds: readonly string[];
   securityGroupIds: readonly string[];
+  selection?: FirstOpenDispatchSelection;
 }
 
 export interface FirstOpenEcsRunTaskRequest {
@@ -33,8 +64,8 @@ export type FirstOpenDispatchOutcome = { status: "acknowledged"; taskArn: string
 export type FirstOpenDispatchState = FirstOpenDispatchOutcome | { status: "waiting"; taskArn: null };
 
 export interface FirstOpenDispatchStore {
-  begin(executionId: string): Promise<boolean>;
-  finish(executionId: string, outcome: FirstOpenDispatchOutcome): Promise<boolean>;
+  begin(executionId: string, selection?: FirstOpenDispatchSelection): Promise<boolean>;
+  finish(executionId: string, outcome: FirstOpenDispatchOutcome, taskDefinitionArn?: string): Promise<boolean>;
   read(executionId: string): Promise<FirstOpenDispatchState | null>;
 }
 
@@ -42,6 +73,8 @@ export type FirstOpenDispatchResult = { executionId: string } &
   (FirstOpenDispatchState | { status: "not_found"; taskArn: null });
 
 const unknownOutcome = { status: "unknown", taskArn: null } as const;
+export const firstOpenTaskDefinitionArnPattern =
+  /^(arn:aws:ecs:[a-z0-9-]+:[0-9]{12}):task-definition\/[A-Za-z0-9_-]{1,255}:[1-9][0-9]*$/;
 
 function validIds(values: readonly string[], pattern: RegExp, limit: number): boolean {
   return values.length > 0 && values.length <= limit && new Set(values).size === values.length &&
@@ -49,12 +82,13 @@ function validIds(values: readonly string[], pattern: RegExp, limit: number): bo
 }
 
 function prepareRequest(executionId: string, placement: FirstOpenEcsPlacement) {
-  const { clusterArn, taskDefinitionArn, containerName, subnetIds, securityGroupIds } = placement;
+  const { clusterArn, taskDefinitionArn, containerName, subnetIds, securityGroupIds, selection } = placement;
   const cluster = /^(arn:aws:ecs:[a-z0-9-]+:[0-9]{12}):cluster\/([A-Za-z0-9_-]{1,255})$/.exec(clusterArn);
-  const taskDefinition = /^(arn:aws:ecs:[a-z0-9-]+:[0-9]{12}):task-definition\/[A-Za-z0-9_-]{1,255}:[1-9][0-9]*$/.exec(taskDefinitionArn);
+  const taskDefinition = firstOpenTaskDefinitionArnPattern.exec(taskDefinitionArn);
   if (!isFirstOpenExecutionId(executionId) || !cluster || !taskDefinition || cluster[1] !== taskDefinition[1] ||
     !/^[A-Za-z0-9_-]{1,255}$/.test(containerName) || !validIds(subnetIds, /^subnet-(?:[0-9a-f]{8}|[0-9a-f]{17})$/, 16) ||
-    !validIds(securityGroupIds, /^sg-(?:[0-9a-f]{8}|[0-9a-f]{17})$/, 5)) {
+    !validIds(securityGroupIds, /^sg-(?:[0-9a-f]{8}|[0-9a-f]{17})$/, 5) ||
+    (selection !== undefined && !isFirstOpenDispatchSelection(selection))) {
     throw Error("ECS_FIRST_OPEN_DISPATCH_SCOPE");
   }
 
@@ -69,7 +103,8 @@ function prepareRequest(executionId: string, placement: FirstOpenEcsPlacement) {
     },
     overrides: { containerOverrides: [{ name: containerName, command: ["node", "ops/platform-hosting-v1/first-open.mjs", executionId] }] },
   };
-  return { request, scope: { clusterArn, taskDefinitionArn, taskArnPrefix: `${cluster[1]}:task/${cluster[2]}/` } };
+  return { request, selection: selection && Object.freeze({ ...selection }),
+    scope: { clusterArn, taskDefinitionArn, taskArnPrefix: `${cluster[1]}:task/${cluster[2]}/` } };
 }
 
 function interpretResult(response: unknown, { clusterArn, taskDefinitionArn, taskArnPrefix }: ReturnType<typeof prepareRequest>["scope"]): FirstOpenDispatchOutcome {
@@ -92,7 +127,7 @@ function interpretResult(response: unknown, { clusterArn, taskDefinitionArn, tas
 /** Reserve the single dispatch before calling the injected port. A reserved dispatch is never replayed. */
 export async function dispatchEcsFirstOpen(executionId: string, placement: FirstOpenEcsPlacement,
   { store, ecs }: { store: FirstOpenDispatchStore; ecs: FirstOpenEcsDispatchPort }): Promise<FirstOpenDispatchResult> {
-  const { request, scope } = prepareRequest(executionId, placement);
+  const { request, scope, selection } = prepareRequest(executionId, placement);
   const read = async () => {
     try {
       const state = await store.read(executionId);
@@ -103,7 +138,7 @@ export async function dispatchEcsFirstOpen(executionId: string, placement: First
   };
 
   try {
-    if (!await store.begin(executionId)) return await read();
+    if (!await store.begin(executionId, selection)) return await read();
   } catch {
     // The reservation itself might have committed before its reply was lost.
     return { executionId, ...unknownOutcome };
@@ -116,7 +151,8 @@ export async function dispatchEcsFirstOpen(executionId: string, placement: First
     outcome = unknownOutcome;
   }
   try {
-    if (await store.finish(executionId, outcome)) return { executionId, ...outcome };
+    const definition = outcome.status === "acknowledged" ? scope.taskDefinitionArn : undefined;
+    if (await store.finish(executionId, outcome, definition)) return { executionId, ...outcome };
   } catch {
     // A fresh read can confirm a terminal result after the persistence reply is lost.
   }

@@ -2,12 +2,11 @@ import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { mkdtemp, realpath, rm } from "node:fs/promises";
-import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import pg from "pg";
-import ts from "typescript";
+import { createNeonPostgresDatabase } from "../db/postgres-neon.ts";
 import {
   buildFirstOnboardingJob, firstOnboardingInsertBindings, INSERT_FIRST_ONBOARDING,
 } from "../lib/deployments/first-onboarding.ts";
@@ -99,13 +98,6 @@ async function withDisposablePostgres(pgBin, check) {
   }
 }
 
-// Use the real placeholder and result handling from the application's PostgreSQL
-// adapter. The only substituted transport forwards its statements to this test DB.
-const pgAdapterJs = ts.transpileModule(read("../db/postgres.ts"), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-}).outputText;
-const requireModule = createRequire(import.meta.url);
-
 function postgresTransport(client) {
   const query = (text, parameters) => client.query(text, parameters);
   return {
@@ -127,13 +119,7 @@ function postgresTransport(client) {
 }
 
 function applicationDb(client) {
-  const compiled = { exports: {} };
-  new Function("require", "exports", "module", pgAdapterJs)((name) => {
-    if (name === "cloudflare:workers") return { env: { DATABASE_URL: "local-fixture-transport" } };
-    if (name === "@neondatabase/serverless") return { neon: () => postgresTransport(client) };
-    return requireModule(name);
-  }, compiled.exports, compiled);
-  return compiled.exports.getPostgresDatabase();
+  return createNeonPostgresDatabase("local-fixture-transport", () => postgresTransport(client));
 }
 
 const productId = "prd_restaurant_order_system";
@@ -146,7 +132,7 @@ const ownerB = { id: "usr_t2_owner_b", status: "active", isPlatformAdmin: false 
 async function seedDatabase(db, target) {
   let schema = read("../db/postgres-schema.sql").replaceAll("\r\n", "\n");
   const migrations = readdirSync(new URL("../db/postgres-migrations/", import.meta.url))
-    .filter(name => name.startsWith("0011_") || name.startsWith("0012_")).sort()
+    .filter(name => /^001[1-3]_/.test(name)).sort()
     .map(file => read(`../db/postgres-migrations/${file}`).replaceAll("\r\n", "\n").trim());
   for (const sql of migrations) {
     assert.equal(schema.split(sql).length, 2, "baseline contains the exact first-open migration");

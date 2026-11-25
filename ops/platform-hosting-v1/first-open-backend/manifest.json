@@ -1,8 +1,9 @@
 {
-  "schema": "techlong/first-open-backend/v1",
+  "schema": "techlong/first-open-backend/v2",
   "source": {
     "commit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
-    "packageLockBlob": "5912d1d623a42302d8980d1b5d7f9d210357d33b"
+    "packageLockBlob": "5912d1d623a42302d8980d1b5d7f9d210357d33b",
+    "previousManifestSha256": "e4b1d2a13741fdbf128e5690bc262128efb567cf947eb059dca3e97452828a01"
   },
   "files": {
     ".gitattributes": {
@@ -32,20 +33,34 @@
       "bytes": 332,
       "sha256": "b26dc3ced5a8ca445e042c7ac5e8a14356a708a24670d8f56c7477c66fd5ceab"
     },
-    "scripts/render_tenant_baseline_verification.py": {
-      "bytes": 26038,
-      "sha256": "09a3f6f28f3b0292fb19967893d2a928fe33cfab6ba893d8984edfedd465b9e8",
-      "gitBlob": "d563cb80f06c4761c3f6095f636c108b146dfee8"
+    "scripts/render_tenant_baseline_verification.js": {
+      "bytes": 22743,
+      "sha256": "e2533cdd252ac327d1c98d40ef4e575b5480123f1ad3a1490ddbc606b7171d1f",
+      "derivedFrom": [
+        "scripts/render_tenant_baseline_verification.py"
+      ]
     },
-    "scripts/tenant_baseline_schema_profile.py": {
-      "bytes": 8070,
-      "sha256": "beb82a963987d214156fe41aa6a86dc1f5ec135cb211639075af74198065c8cf",
-      "gitBlob": "696d188d2fc44e06dcc6a0204852bf834b7a5fa0"
+    "scripts/tenant_baseline_text.js": {
+      "bytes": 10980,
+      "sha256": "c835414ccb56c57014f2eb005e3757805c91cc57b32e55cb2f346648618fa5d7",
+      "derivedFrom": [
+        "scripts/render_tenant_baseline_verification.py",
+        "scripts/tenant_baseline_schema_profile.py"
+      ]
+    },
+    "scripts/tenant_baseline_schema_profile.js": {
+      "bytes": 8006,
+      "sha256": "ed692a226a73b6fdc9ed37dc52bb9e0353c32fc9f148bd8abbf8a6ac09b9d544",
+      "derivedFrom": [
+        "scripts/tenant_baseline_schema_profile.py"
+      ]
     },
     "scripts/verify-empty-tenant-baseline-pg16.js": {
-      "bytes": 15437,
-      "sha256": "3919aaa32526d692dc11ce39233390e42600bf0d44bfe65c6beace7834c4b834",
-      "gitBlob": "a6da3854f5590fef2f5d6631a2937cf81e8d44d8"
+      "bytes": 15612,
+      "sha256": "b3901de1931d292e8cf4258ce910ad16337c8778a924afd0c840a3a9dc541a61",
+      "derivedFrom": [
+        "scripts/verify-empty-tenant-baseline-pg16.js"
+      ]
     },
     "services/saas/aurora-express-bootstrap-v3.cjs": {
       "bytes": 5357,
@@ -103,9 +118,11 @@
       "gitBlob": "e10cccac003229b44667a63cdae8534fa38ed337"
     },
     "services/saas/tenant_baseline_program.js": {
-      "bytes": 8544,
-      "sha256": "cf39cdd6573e61c71de34852e63b4f83c65d5650a4fd0c09bd31745448b87067",
-      "gitBlob": "3af74c3cf149ca65c5cb33dd80ea2f9d28124907"
+      "bytes": 8609,
+      "sha256": "bd30b773186c1b3672cd71eacb07601f273c34111eb82a1ccb71d97ad5407353",
+      "derivedFrom": [
+        "services/saas/tenant_baseline_program.js"
+      ]
     },
     "services/saas/tenant_baseline_restore_provider.js": {
       "bytes": 10213,
