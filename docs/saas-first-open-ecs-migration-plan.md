@@ -120,7 +120,7 @@
 | T1 离线镜像与入口 | M4；用模拟资源装配单进程三个步骤，不动 AWS。 | 代码提交、镜像自检和顺序回归；同一构建启动 Web 与开通入口，缺批准/缺依赖不能执行。 | **已完成**（2026-11-24）。同一 Linux/amd64 镜像配置摘要 `sha256:9e0f63d1f15149026c0630e4bb6863dc6d67c3f1d1a24feb46c2abe661c29572` 通过双入口断网验收。见下方完成记录。 |
 | T2 离线按钮、状态与日志 | M1、M2、M5；用两条实例验证只批准 A、不影响 B。可与 T1 分开开发。 | 双人并发点击、执行中再点、越权点按钮／查日志、查看失败日志且无副作用的测试结果。 | **已完成**（2026-11-24）。隔离 PostgreSQL 的 A/B 双会话审批、原进度回读、越权和只读日志验收通过。见下方完成记录。 |
 | T3 离线串联一单 | T1＋T2，接 M3、M6。用模拟 ECS 从按钮走到自检、激活和页面读回。 | 正常轨迹：一个执行编号、一次启动、一份结果；失败轨迹：启动响应丢失、迁移失败、自检不符或提交回读失败均显示正确状态。 | **已完成**（2026-11-24）。模拟 ECS 与回环 PostgreSQL 16.14 通过正常流程和规定的故障场景。见下方完成记录。 |
-| T4 准备并另批安装 | T3 通过，完成 I1–I5 差异。审批前仅准备；安装与客户开通是两件事。 | 分别填写“待批准的差异”和“批准后实际安装及权限核验回执”。只有草案或只通过 CI，不能标记已安装。 | **进行中**（2026-11-24）。已核对停费基线、Web 入口和网络费用候选，待收口出站限制与安装差异。 |
+| T4 准备并另批安装 | T3 通过，完成 I1–I5 差异。审批前仅准备；安装与客户开通是两件事。 | 分别填写“待批准的差异”和“批准后实际安装及权限核验回执”。只有草案或只通过 CI，不能标记已安装。 | **进行中**（2026-11-24）。基础费用已确认。出站规则与路由候选通过离线核对，待绑定实际依赖及另审增量费用。 |
 | T5 单实例真实技术验收 | T4 已安装并核验；另行确认准确 Sandbox 任务，禁用该任务的旧执行来源，管理员在这一行点一次。 | 同一实例的执行编号、唯一 task ARN、数据库关键日志、实际 API／镜像摘要、初始版本绑定与页面结果、task 退出记录；无 GitHub 客户开通依赖。 | 待验证／— |
 
 #### T1 本轮记录（2026-11-24，温尼伯）
@@ -185,6 +185,14 @@
 - **费用** `ca-central-1` 官方目录核得 NAT 为 USD 0.05／小时和 USD 0.05／GB，EIP 为 USD 0.005／小时。仅 NAT 和 EIP 常驻 730 小时约 USD 40.15。若两者保留 2 小时、NAT 处理 1 GB 且 Fargate 0.5 vCPU／1 GiB 运行 1 小时，基础网络和计算约 USD 0.19。示例不含目的地隔离、日志、证据存储、互联网传输及现有资源费用。NAT 部分小时按整小时计。任务退出后 NAT 和 EIP 继续计费，未来启用须将精确时段、单独批准的清理及回读范围一并审查。[区域 NAT 价目表](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/ca-central-1/index.csv) · [AWS VPC 计费](https://aws.amazon.com/vpc/pricing/) · [AWS Fargate 计费](https://aws.amazon.com/fargate/pricing/)
 - **证据** 核对了原模板重建、命令删除和命令漂移拒绝、固定子网与可用区、7 项新增边界、独立路由关联、无入站和关闭公网 IP，以及费用重算。候选文件 SHA-256 `0f34cbb172e872d271a4a3357fddb9cd0c86feac7228f436acd15fd60aff460b`。AWS 账户 API、生产库连接、网络或 IAM 安装、恢复和任务启动均为 0。公开价格文件使用未登录的 AWS 公共目录。
 - **剩余项与下一步** T4 保持进行中。NAT 基础差异尚缺当前 VPC／子网 CIDR、NAT/EIP 安装权限和可验证的目的地限制。先离线收口实际运行端口的准确目标和出站约束，确保 HTTPS 通用出站不会使 GitHub 可达，再合并必要的定向补核及完整费用。镜像发布、数据库授权、实际运行适配、连通性及安装均待审。T5 状态保持待验证。
+
+#### T4 出站依赖、规则与隔离费用记录（2026-11-24，温尼伯）
+
+- **完成项** 用户确认上一轮基础网络及计算费用，本轮离线核对 Fargate 冷启动、开通管理及自检的出站依赖。已从源码与停费回执中的 endpoint SHA-256 绑定 Express writer。保留的平台 ECR registry 和日志端点可按现有范围列入核验；ECR/S3 实际镜像层主机、Neon HTTPS SQL、确切 AWS API、S3 版本与租户主机须随真实适配器绑定。Web 和启动器的依赖按其自身边界审批。[出站候选差异](../ops/aws-sandbox/reviews/saas-first-open-t4-egress.prepared.json)
+- **隔离候选** 任务、Firewall endpoint、zonal NAT 采用原平台 VPC 同一可用区三个专用子网及独立路由表。任务出站先经 Firewall 到 NAT，NAT 回程按任务子网 CIDR 经过同一 Firewall endpoint。任务继续关闭公网 IP，现有 VPC 主路由、Web 和 Cell 路由及 IGW 关联保持原样。专用任务子网需收口内部直通流量。Route 53 Resolver 的新空规则组在 VPC 级关联，防火墙解析验证仅限任务源地址范围。该关联、区域与可用区支持性、DNS 原配置和端点回读须另审。[AWS 对称路由](https://aws.amazon.com/blogs/networking-and-content-delivery/deployment-models-for-aws-network-firewall-with-vpc-routing-enhancements/) · [解析验证边界](https://docs.aws.amazon.com/network-firewall/latest/developerguide/route53-resolved-ip-validation-how-it-works.html)
+- **规则和离线证据** 编译器输出严格顺序、默认拒绝的候选规则。TCP 443 和 8443 同时要求精确 TLS SNI 和该主机的 Resolver 目标；已知 GitHub 域及其他未获准出站被拒。固定 `pg 8.16.3` 的内存连接先发 PostgreSQL `SSLRequest`，收到 `S` 后才发带 writer SNI 的 TLS ClientHello，因此 TCP 5432 只按精确 writer 解析目标匹配，由程序执行 IAM 和 TLS 验证。8443 保留端到端 mTLS。新增规则测试 2 项和启动边界回归 2 项通过，定向 ESLint、路由和费用合同检查通过。候选 SHA-256 `9c78e2a5c7a51d58e08e600214b49a506a7f74a3502d863fe8fbf08e1c8e8760`。现有证据覆盖生成的规则，供应商解析、实际连接和拦截日志仍待验。[规则编译](../ops/aws-sandbox/first-open-egress-policy.mjs) · [规则测试](../tests/first-open-egress-policy.test.mjs) · [AWS 精确解析规则](https://docs.aws.amazon.com/network-firewall/latest/developerguide/route53-resolved-ip-validation-rules.html)
+- **新增费用待审** 加拿大中部区标准 Firewall endpoint 为 USD 0.395／小时、USD 0.065／GB。沿用已确认的 2 小时、1 GB 和 1 小时 Fargate 示例，符合相同路径 NAT 抵扣时基础小计约 USD 0.89，无抵扣时约 USD 1.04，均未含 DNS、日志、传输及额外探测时长。仅 Firewall 与 EIP 常驻 730 小时约 USD 292，限时 Sandbox 候选应单独批准计费时段和清理回读。以上增量未纳入此前费用确认。[加拿大中部区官方目录](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSNetworkFirewall/current/ca-central-1/index.json) · [Network Firewall 计费及抵扣](https://aws.amazon.com/network-firewall/pricing/)
+- **剩余项与下一步** T4 继续标为进行中。实际 `loadRuntime` 仍关闭。下一步只离线绑定实际运行适配器和准确启动及运行主机集合，再合并必要的子网、DNS 和安装身份定向补核。后续验收须同时得到镜像冷启动和必要连接通过，以及从同一受控位置阻断 GitHub、直连地址与错配 SNI 的证据。实际安装、连通性、增量费用与 T5 另审。本轮 AWS 账户 API、生产库连接、安装、恢复和任务运行均为 0。
 
 **判断进度：** T1–T3 通过只能说“代码已离线接通”；T4 有实际安装回执才能说“环境已具备执行条件”；只有 T5 的整条真实记录通过，才能说“这一单已由 SaaS 在 AWS 内开通”。T5 不通过就记录卡在哪个内部步骤，不用重新付款或重复跑整单来证明进度。
 

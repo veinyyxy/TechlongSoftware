@@ -4,7 +4,7 @@
 
 ## 当前主线状态：SaaS 租户首开 T4 安装准备（2026-11-24，温尼伯）
 
-**当前唯一继续点为 T4 离线收口出站目的地。** 已核对停费原模板、Web 默认入口、单可用区 NAT 基础差异和区域价格。关闭公网 IP 的开通任务仍需按实际运行依赖落实目的地限制和 GitHub 不可达的验收条件。实际安装、恢复和 T5 仍按准确范围分别确认。[方案第 6.1 节](saas-first-open-ecs-migration-plan.md#61-跟踪表每次推进更新哪一行)
+**当前唯一继续点为 T4 离线绑定实际开通适配器与依赖。** 基础费用已获用户确认。独立防火墙路由和精确出站规则已通过离线核对，Express writer 已由停费回执绑定；实际 Fargate 启动及运行所需的准确主机集合、AWS 拒绝流量实证、防火墙增量费用和实际安装仍待审。停费设置继续保留，T5 另审。[方案第 6.1 节](saas-first-open-ecs-migration-plan.md#61-跟踪表每次推进更新哪一行)
 
 T1 同镜像双入口、T2 实例级审批和 T3 模拟 ECS 串联的离线验收均已通过。[T1 完成记录](saas-first-open-ecs-migration-plan.md#t1-完成记录2026-11-24-164542温尼伯) · [T2 完成记录](saas-first-open-ecs-migration-plan.md#t2-完成记录2026-11-24温尼伯) · [T3 完成记录](saas-first-open-ecs-migration-plan.md#t3-完成记录2026-11-24温尼伯)
 
