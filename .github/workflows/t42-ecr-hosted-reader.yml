@@ -1,0 +1,35 @@
+name: T4.2 protected ECR reader
+run-name: t42-ecr-reader-${{ inputs.approved_sha256 }}
+on:
+  workflow_dispatch:
+    inputs:
+      review_text:
+        type: string
+        required: true
+      approved_sha256:
+        type: string
+        required: true
+      source_text:
+        type: string
+        required: true
+      source_sha256:
+        type: string
+        required: true
+      source_commit:
+        type: string
+        required: true
+permissions: {}
+jobs:
+  reader:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && github.actor_id == '14145707' && inputs.source_commit == '84ebfd4541c533331ef8fc44d76d6ba451c89c43'
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    uses: veinyyxy/TechlongSoftware/.github/workflows/t42-ecr-hosted-reader-job.yml@84ebfd4541c533331ef8fc44d76d6ba451c89c43
+    with:
+      review_text: ${{ inputs.review_text }}
+      approved_sha256: ${{ inputs.approved_sha256 }}
+      source_text: ${{ inputs.source_text }}
+      source_sha256: ${{ inputs.source_sha256 }}
+      source_commit: '84ebfd4541c533331ef8fc44d76d6ba451c89c43'
