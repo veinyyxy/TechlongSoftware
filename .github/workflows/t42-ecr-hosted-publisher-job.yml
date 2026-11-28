@@ -1,0 +1,103 @@
+name: Protected T4.2 ECR publisher
+on:
+  workflow_call:
+    inputs:
+      review_text: { type: string, required: true }
+      approved_sha256: { type: string, required: true }
+      source_text: { type: string, required: true }
+      source_sha256: { type: string, required: true }
+      source_commit: { type: string, required: true }
+permissions: {}
+jobs:
+  publisher:
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      github.run_attempt == '1' && github.repository == 'veinyyxy/TechlongSoftware' &&
+      github.repository_id == '1323312747' && github.repository_owner_id == '14145707' &&
+      github.actor_id == '14145707' &&
+      inputs.review_text == github.event.inputs.review_text && inputs.source_text == github.event.inputs.source_text &&
+      inputs.approved_sha256 == github.event.inputs.approved_sha256 &&
+      inputs.source_sha256 == github.event.inputs.source_sha256 && inputs.source_commit == github.event.inputs.source_commit
+    environment: techlong-sandbox-deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    concurrency:
+      group: t42-ecr-hosted-publisher
+      cancel-in-progress: false
+    env:
+      TECHLONG_T42_ECR_APPROVAL_SHA: ${{ inputs.approved_sha256 }}
+      TECHLONG_T42_ECR_SOURCE_SHA: ${{ inputs.source_sha256 }}
+      TECHLONG_T42_ECR_RUNTIME_COMMIT: ${{ inputs.source_commit }}
+    steps:
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+      - name: Verify the reviewed immutable reusable workflow before checkout
+        id: revision
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto';
+          import { appendFileSync, readFileSync } from 'node:fs';
+          const e = process.env, role = 'publisher', environment = 'techlong-sandbox-deploy';
+          const repo = 'veinyyxy/TechlongSoftware', owner = '14145707', repoId = '1323312747', branch = 'refs/heads/main';
+          const fail = () => { throw Error('T42_ECR_IMMUTABLE_CHECKOUT_REFUSED'); };
+          const require = condition => { if (!condition) fail(); };
+          const matches = (text, hash, cap) => typeof text === 'string' && Buffer.byteLength(text) <= cap &&
+            /^[a-f0-9]{64}$/.test(hash) && createHash('sha256').update(text).digest('hex') === hash;
+          try {
+            const { inputs } = JSON.parse(readFileSync(e.GITHUB_EVENT_PATH, 'utf8'));
+            const sha = e.TECHLONG_T42_ECR_RUNTIME_COMMIT;
+            require(inputs && /^[a-f0-9]{40}$/.test(sha) && inputs.source_commit === sha &&
+              inputs.approved_sha256 === e.TECHLONG_T42_ECR_APPROVAL_SHA && inputs.source_sha256 === e.TECHLONG_T42_ECR_SOURCE_SHA &&
+              matches(inputs.review_text, inputs.approved_sha256, 20_000) && matches(inputs.source_text, inputs.source_sha256, 16_383));
+            const review = JSON.parse(inputs.review_text), lane = JSON.parse(inputs.source_text).workflows[role];
+            const path = '.github/workflows/t42-ecr-hosted-' + role + '-job.yml';
+            const callerRef = repo + '/' + lane.callerPath + '@' + branch;
+            require(review.sourceBindingSha256 === inputs.source_sha256 && lane.reusablePath === path &&
+              lane.reusableCommit === sha && lane.callerCommit === e.GITHUB_SHA && callerRef === e.GITHUB_WORKFLOW_REF &&
+              Date.parse(review.startsAt) <= Date.now() && Date.now() < Date.parse(review.expiresAt));
+            const url = new URL(e.ACTIONS_ID_TOKEN_REQUEST_URL);
+            require(e.ACTIONS_ID_TOKEN_REQUEST_TOKEN && url.protocol === 'https:' && !url.username && !url.password &&
+              !url.port && !url.hash && url.hostname.endsWith('.actions.githubusercontent.com') && url.pathname.endsWith('/oidctoken'));
+            url.searchParams.set('audience', 'sts.amazonaws.com');
+            const response = await fetch(url, { headers: { authorization: 'Bearer ' + e.ACTIONS_ID_TOKEN_REQUEST_TOKEN },
+              redirect: 'error', signal: AbortSignal.timeout(15_000) });
+            require(response.ok);
+            const payload = await response.text();
+            require(payload.length <= 24_000);
+            const token = JSON.parse(payload).value;
+            require(typeof token === 'string' && token.length <= 20_000 && /^[\w-]+\.[\w-]+\.[\w-]+$/.test(token));
+            const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'));
+            require(claims.iss === 'https://token.actions.githubusercontent.com' && claims.aud === 'sts.amazonaws.com' &&
+              claims.repository === repo && claims.repository_id === repoId && claims.repository_owner_id === owner &&
+              claims.actor_id === owner && claims.ref === branch && claims.event_name === 'workflow_dispatch' &&
+              claims.run_id === e.GITHUB_RUN_ID && claims.run_attempt === '1' && claims.environment === environment &&
+              claims.sha === lane.callerCommit && claims.workflow_ref === callerRef && claims.job_workflow_sha === sha &&
+              claims.job_workflow_ref === repo + '/' + path + '@' + sha &&
+              Number.isSafeInteger(claims.exp) && Date.now() < claims.exp * 1000);
+            appendFileSync(e.GITHUB_OUTPUT, 'sha=' + sha + '\n');
+          } catch { fail(); }
+          NODE
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ steps.revision.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: actions/upload-artifact
+          ref: b7c566a772e6b6bfb58ed0dc250532a479d7789f
+          path: .t42-ecr-artifact-action
+          persist-credentials: false
+      - name: Install reviewed source dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Start the protected publisher
+        uses: ./.github/actions/t42-ecr-hosted-launch
+        with:
+          role: publisher
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -1,0 +1,9 @@
+name: Launch the protected T4.2 ECR role
+description: Gives the fixed T4.2 entry its own GitHub artifact runtime context
+inputs:
+  role:
+    required: true
+    description: The publisher or independent reader set by the reusable workflow
+runs:
+  using: node24
+  main: launch.cjs
